@@ -654,7 +654,7 @@
                             }
                             return;
                         }
-                        let activeCol = window._supabaseWorkingCol || 'fob_id';
+                        let activeCol = 'fobid';
                         if (sample && sample.length > 0) {
                             if ('fob_id' in sample[0]) activeCol = 'fob_id';
                             else if ('fobId' in sample[0]) activeCol = 'fobId';
