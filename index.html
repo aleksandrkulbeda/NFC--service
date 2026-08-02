@@ -59,7 +59,7 @@
                     <input type="file" id="import-db-file" class="hidden" accept=".json" onchange="importDatabase(event)">
                 </div>
 
-                <span class="text-[10px] text-slate-500 font-mono hidden md:inline">v4.2.1-Alpha</span>
+                <span class="text-[10px] text-slate-500 font-mono hidden md:inline">v4.2.2-Alpha</span>
             </div>
         </div>
     </header>
@@ -1204,7 +1204,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         }
 
         // =========================================================================
-        // ИСПРАВЛЕННЫЙ ФУНКЦИОНАЛ: ПОИСК ПО ГОСНОМЕРУ И ЗАГРУЗКА ИСТОРИИ ТС
+        // ПОИСК ПО ГОСНОМЕРУ И ЗАГРУЗКА ИСТОРИИ ТО
         // =========================================================================
         async function searchByLicensePlate() {
             const inputPlate = document.getElementById('search-license-plate')?.value.trim().toUpperCase() || '';
@@ -1245,7 +1245,6 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 const recData = record.data || {};
                 const oldFob = record.fobId || record.fob_id || recData.fobId || 'Не привязан';
 
-                // Сохраняем состояние для текущего поста
                 state.fobId = oldFob;
                 state.carBrand = recData.carBrand || '';
                 state.carModel = recData.carModel || '';
@@ -1254,33 +1253,27 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 state.ownerPhone = recData.ownerPhone || '';
                 state.licensePlate = recData.licensePlate || inputPlate;
 
+                // Сохраняем найденные данные в состояние активного поста
                 let post = posts[activePostIndex];
                 post.fobId = state.fobId;
                 post.carBrand = state.carBrand;
                 post.carModel = state.carModel;
                 post.carYear = state.carYear;
-                post.ownerName = state.ownerName;
-                post.ownerPhone = state.ownerPhone;
                 post.licensePlate = state.licensePlate;
-
-                // Загружаем всю прошлую историю ТО в форму текущего поста
-                if (recData.formData) {
-                    post.formData = { ...recData.formData };
-                } else {
-                    post.formData.oilTypeDvs = recData.oilTypeDvs || '';
-                    post.formData.oilVolumeDvs = recData.oilVolumeDvs || '';
-                    post.formData.mileageOilDvs = recData.mileageOilDvs || '';
-                    post.formData.nextOilDvs = recData.nextOilDvs || '';
-                    post.formData.oilFilter = recData.oilFilter || '';
-                    post.formData.airFilter = recData.airFilter || '';
-                    post.formData.fuelFilter = recData.fuelFilter || '';
-                    post.formData.cabinFilter = recData.cabinFilter || '';
-                    post.formData.kppType = recData.kppType || '';
-                    post.formData.oilTypeKpp = recData.oilTypeKpp || '';
-                    post.formData.mileageOilKpp = recData.mileageOilKpp || '';
-                    post.formData.nextOilKpp = recData.nextOilKpp || '';
-                    post.formData.notesDvs = recData.notesDvs || '';
-                }
+                
+                // Заполняем форму данными из последней записи
+                if (recData.oilTypeDvs) post.formData.oilTypeDvs = recData.oilTypeDvs;
+                if (recData.oilVolumeDvs) post.formData.oilVolumeDvs = recData.oilVolumeDvs;
+                if (recData.mileageOilDvs) post.formData.mileageOilDvs = recData.mileageOilDvs;
+                if (recData.nextOilDvs) post.formData.nextOilDvs = recData.nextOilDvs;
+                if (recData.oilFilter) post.formData.oilFilter = recData.oilFilter;
+                if (recData.airFilter) post.formData.airFilter = recData.airFilter;
+                if (recData.fuelFilter) post.formData.fuelFilter = recData.fuelFilter;
+                if (recData.cabinFilter) post.formData.cabinFilter = recData.cabinFilter;
+                if (recData.kppType) post.formData.kppType = recData.kppType;
+                if (recData.oilTypeKpp) post.formData.oilTypeKpp = recData.oilTypeKpp;
+                if (recData.mileageOilKpp) post.formData.mileageOilKpp = recData.mileageOilKpp;
+                if (recData.nextOilKpp) post.formData.nextOilKpp = recData.nextOilKpp;
 
                 saveCurrentPostState();
                 renderPostTabs();
@@ -1292,7 +1285,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                         <div class="text-slate-400 text-[11px]">Госномер: ${state.licensePlate} | Тел: ${state.ownerPhone || '-'}</div>
                         <div class="mt-2 flex flex-wrap gap-2">
                             <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                Открыть карту ТО с историей
+                                Открыть карту ТО
                             </button>
                             <button type="button" onclick="promptRebindFob('${record.id || record.fobId || record.fob_id}', '${oldFob}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 🔄 Привязать новый брелок
@@ -1318,7 +1311,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             const matched = list.find(item => item.licensePlate && item.licensePlate.toUpperCase().replace(/\s+/g, '') === targetPlate);
             
             if (matched) {
-                state.fobId = matched.fobId || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
+                state.fobId = matched.fobId || matched.fob_id || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
@@ -1331,10 +1324,10 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 post.carBrand = state.carBrand;
                 post.carModel = state.carModel;
                 post.carYear = state.carYear;
-                post.ownerName = state.ownerName;
-                post.ownerPhone = state.ownerPhone;
                 post.licensePlate = state.licensePlate;
-                post.formData = { ...matched, formData: undefined };
+                if (matched.oilTypeDvs) post.formData.oilTypeDvs = matched.oilTypeDvs;
+                if (matched.mileageOilDvs) post.formData.mileageOilDvs = matched.mileageOilDvs;
+                if (matched.nextOilDvs) post.formData.nextOilDvs = matched.nextOilDvs;
 
                 saveCurrentPostState();
                 renderPostTabs();
@@ -1346,7 +1339,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                         <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
                         <div class="mt-2 flex space-x-2">
                             <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                Открыть карту ТО с историей
+                                Карта ТО
                             </button>
                             <button type="button" onclick="promptRebindFob('${state.fobId}', '${state.fobId}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 🔄 Привязать новый брелок
