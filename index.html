@@ -1204,7 +1204,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         }
 
         // =========================================================================
-        // НОВЫЙ ФУНКЦИОНАЛ: ПОИСК ПО ГОСНОМЕРУ И ПРИВЯЗКА НОВОГО БРЕЛКА
+        // ИСПРАВЛЕННЫЙ ФУНКЦИОНАЛ: ПОИСК ПО ГОСНОМЕРУ И ЗАГРУЗКА ИСТОРИИ ТС
         // =========================================================================
         async function searchByLicensePlate() {
             const inputPlate = document.getElementById('search-license-plate')?.value.trim().toUpperCase() || '';
@@ -1225,13 +1225,11 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
             const client = getSupabaseClient();
             if (!client) {
-                // Фоллбек на локальную базу если Supabase не активен
                 searchByLicensePlateLocal(inputPlate, resultBox);
                 return;
             }
 
             try {
-                // Ищем по госномеру внутри JSON-колонки data в Supabase
                 const { data, error } = await client
                     .from('diagnostics')
                     .select('*')
@@ -1247,6 +1245,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 const recData = record.data || {};
                 const oldFob = record.fobId || record.fob_id || recData.fobId || 'Не привязан';
 
+                // Сохраняем состояние для текущего поста
                 state.fobId = oldFob;
                 state.carBrand = recData.carBrand || '';
                 state.carModel = recData.carModel || '';
@@ -1254,6 +1253,34 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 state.ownerName = recData.ownerName || '';
                 state.ownerPhone = recData.ownerPhone || '';
                 state.licensePlate = recData.licensePlate || inputPlate;
+
+                let post = posts[activePostIndex];
+                post.fobId = state.fobId;
+                post.carBrand = state.carBrand;
+                post.carModel = state.carModel;
+                post.carYear = state.carYear;
+                post.ownerName = state.ownerName;
+                post.ownerPhone = state.ownerPhone;
+                post.licensePlate = state.licensePlate;
+
+                // Загружаем всю прошлую историю ТО в форму текущего поста
+                if (recData.formData) {
+                    post.formData = { ...recData.formData };
+                } else {
+                    post.formData.oilTypeDvs = recData.oilTypeDvs || '';
+                    post.formData.oilVolumeDvs = recData.oilVolumeDvs || '';
+                    post.formData.mileageOilDvs = recData.mileageOilDvs || '';
+                    post.formData.nextOilDvs = recData.nextOilDvs || '';
+                    post.formData.oilFilter = recData.oilFilter || '';
+                    post.formData.airFilter = recData.airFilter || '';
+                    post.formData.fuelFilter = recData.fuelFilter || '';
+                    post.formData.cabinFilter = recData.cabinFilter || '';
+                    post.formData.kppType = recData.kppType || '';
+                    post.formData.oilTypeKpp = recData.oilTypeKpp || '';
+                    post.formData.mileageOilKpp = recData.mileageOilKpp || '';
+                    post.formData.nextOilKpp = recData.nextOilKpp || '';
+                    post.formData.notesDvs = recData.notesDvs || '';
+                }
 
                 saveCurrentPostState();
                 renderPostTabs();
@@ -1265,7 +1292,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                         <div class="text-slate-400 text-[11px]">Госномер: ${state.licensePlate} | Тел: ${state.ownerPhone || '-'}</div>
                         <div class="mt-2 flex flex-wrap gap-2">
                             <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                Открыть карту ТО
+                                Открыть карту ТО с историей
                             </button>
                             <button type="button" onclick="promptRebindFob('${record.id || record.fobId || record.fob_id}', '${oldFob}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 🔄 Привязать новый брелок
@@ -1299,6 +1326,16 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 state.ownerPhone = matched.ownerPhone || '';
                 state.licensePlate = matched.licensePlate || inputPlate;
                 
+                let post = posts[activePostIndex];
+                post.fobId = state.fobId;
+                post.carBrand = state.carBrand;
+                post.carModel = state.carModel;
+                post.carYear = state.carYear;
+                post.ownerName = state.ownerName;
+                post.ownerPhone = state.ownerPhone;
+                post.licensePlate = state.licensePlate;
+                post.formData = { ...matched, formData: undefined };
+
                 saveCurrentPostState();
                 renderPostTabs();
                 
@@ -1309,7 +1346,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                         <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
                         <div class="mt-2 flex space-x-2">
                             <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                Карта ТО
+                                Открыть карту ТО с историей
                             </button>
                             <button type="button" onclick="promptRebindFob('${state.fobId}', '${state.fobId}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 🔄 Привязать новый брелок
@@ -1339,14 +1376,12 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             if (client) {
                 try {
                     const colName = window._supabaseWorkingCol || 'fobId';
-                    // Обновляем в Supabase
                     const { error } = await client
                         .from('diagnostics')
                         .update({ [colName]: cleanNewFob })
                         .eq(colName, oldFob);
 
                     if (error) {
-                        // Попробуем обновить по id если rowIdentifier является числом/строкой id
                         await client.from('diagnostics').update({ [colName]: cleanNewFob }).eq('id', rowIdentifier);
                     }
                 } catch(e) {
@@ -1354,7 +1389,6 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 }
             }
 
-            // Обновляем в локальном хранилище
             try {
                 let list = JSON.parse(localStorage.getItem('mobil1_sto_all_diagnostics') || '[]');
                 list = list.map(item => {
@@ -1435,11 +1469,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         }
 
         function loadFobToDiagnostics() {
-            let summaryText = 'Брелок: ' + state.fobId;
-            if (state.carBrand || state.carModel) {
-                summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
-            }
-            document.getElementById('summary-car-info').innerText = summaryText;
+            loadPostState(activePostIndex);
             goToScreen3();
         }
 
