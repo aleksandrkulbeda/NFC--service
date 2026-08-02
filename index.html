@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>СТО Mobil 1 - Внутренний Софт</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mobilBlue: '#002C6C',
+                        mobilRed: '#E31B23',
+                        mobilSlate: '#0C1C33',
+                    }
+                }
+            }
+        }
+    </script>
+<script src="/_aistudio-iframe.js?v=2f1c016a"></script></head>
+<body class="bg-[#040D1D] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-500 selection:text-white">
+
+    <!-- HEADER -->
+    <header class="border-b border-slate-800 bg-mobilSlate/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- Mobil 1 Custom CSS Branding -->
+                <div class="flex items-center font-black tracking-tighter text-2xl">
+                    <span class="text-white italic">Mobil</span>
+                    <span class="text-mobilRed text-3xl italic ml-1">1</span>
+                </div>
+                <div class="h-6 w-px bg-slate-700"></div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Внутренний софт СТО</span>
+            </div>
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <span id="header-connection-status" class="hidden lg:inline-flex items-center text-xs text-emerald-400 font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                    <span>Онлайн / Supabase активен</span>
+                </span>
+                
+                <!-- Data Backup / Load Local DB Buttons -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2 bg-slate-950/80 border border-slate-800 p-1 rounded-xl">
+                    <button onclick="exportDatabase()" title="Выгрузить данные (сохранить резервную копию на компьютер)" class="bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/20 text-blue-400 hover:text-blue-300 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex items-center space-x-1 sm:space-x-1.5">
+                        <svg class="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+                        </svg>
+                        <span class="hidden xs:inline">Выгрузить данные</span>
+                        <span class="xs:hidden">Экспорт</span>
+                    </button>
+                    <button onclick="triggerImport()" title="Загрузить ранее сохраненную бд с компьютера" class="bg-emerald-600/10 hover:bg-emerald-600/25 border border-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex items-center space-x-1 sm:space-x-1.5">
+                        <svg class="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"></path>
+                        </svg>
+                        <span class="hidden xs:inline">Загрузить данные</span>
+                        <span class="xs:hidden">Импорт</span>
+                    </button>
+                    <input type="file" id="import-db-file" class="hidden" accept=".json" onchange="importDatabase(event)">
+                </div>
+
+                <span class="text-[10px] text-slate-500 font-mono hidden md:inline">v4.2.1-Alpha</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN COMPONENT FRAME -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+
+        <!-- WORKSTATION / POST SELECTOR BAR -->
+        <div class="w-full max-w-xl sm:max-w-7xl bg-slate-900/60 border border-slate-800/80 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+            <div class="flex items-center space-x-3 text-left">
+                <div class="p-2 bg-red-600/10 text-red-500 rounded-lg">
+                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="text-xs font-black uppercase tracking-wider text-white font-mono">Активные Посты СТО</h4>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Переключайтесь между параллельно обслуживаемыми авто</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-auto">
+                <button onclick="switchActivePost(0)" id="btn-post-0" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-blue-600/15 text-blue-400 border-blue-500/35 shadow-md">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-600 anim-pulse" id="indicator-post-0"></span>
+                    <span>Пост 1 (Свободен)</span>
+                </button>
+                <button onclick="switchActivePost(1)" id="btn-post-1" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-slate-950/45 text-slate-400 border-slate-800 hover:text-slate-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-600" id="indicator-post-1"></span>
+                    <span>Пост 2 (Свободен)</span>
+                </button>
+                <button onclick="switchActivePost(2)" id="btn-post-2" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-slate-950/45 text-slate-400 border-slate-800 hover:text-slate-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-600" id="indicator-post-2"></span>
+                    <span>Пост 3 (Свободен)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 1: WAITING (ОЖИДАНИЕ RFID БРЕЛКА) -->
+        <section id="screen-waiting" class="w-full max-w-lg bg-mobilSlate/70 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl transition-all duration-300">
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 bg-blue-600/10 text-blue-500 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                    <!-- Scanner Wave Ring -->
+                    <span class="absolute inset-0 rounded-full border border-blue-400/30 animate-ping opacity-75"></span>
+                    <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.3 2.5a.75.75 0 011.06 0c4.14 4.14 4.14 10.86 0 15a.75.75 0 11-1.06-1.06 9.01 9.01 0 000-12.88.75.75 0 010-1.06zm1.76-1.77a11.25 11.25 0 010 15.92.75.75 0 01-1.06-1.06c4.01-4.01 4.01-10.51 0-14.52a.75.75 0 111.06-1.06zM5.3 6.5a.75.75 0 011.06 0 3.37 3.37 0 010 4.77.75.75 0 11-1.06-1.06 1.87 1.87 0 000-2.65.75.75 0 010-1.06zM3.5 12a1 1 0 11-2 0 1 1 0 012 0zm19-2.5a.75.75 0 01.75.75v5.5a.75.75 0 01-.75.75h-5.5a.75.75 0 010-1.5h3.69l-3.22-3.22a.75.75 0 011.06-1.06l3.22 3.22V10.25a.75.75 0 01.75-.75z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight text-white">Приёмка автомобиля по чипу</h2>
+                <p class="text-xs text-slate-400 mt-2">Приложите брелок клиента к считывателю ноутбука / ПК для моментальной загрузки истории ТО</p>
+            </div>
+
+            <!-- Scanner Simulator Interface -->
+            <div class="space-y-4">
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
+                    <span class="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Статус сканирования RFID</span>
+                    
+                    <!-- Scan Loader (hidden by default) -->
+                    <div id="scan-spinner" class="hidden py-4">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <span class="block text-xs text-blue-400 mt-2.5 font-mono">Чтение RFID-чипа брелка...</span>
+                    </div>
+
+                    <!-- Idle Status -->
+                    <div id="scan-idle" class="py-3">
+                        <span class="text-xs text-amber-500/90 font-mono flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                            ОЖИДАНИЕ СВЯЗИ С БРЕЛКОМ
+                        </span>
+                    </div>
+
+                    <!-- Scan Success Message (hidden by default) -->
+                    <div id="scan-success" class="hidden py-1.5 text-left border-t border-slate-900 mt-2 pt-2 space-y-2">
+                        <div class="flex items-center space-x-2 text-emerald-400 text-xs font-semibold">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            <span>Чип брелка прочитан успешно!</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-lg space-y-1 text-xs">
+                            <div><span class="text-slate-400">ID Чипа брелка:</span> <strong id="scanned-fob-id" class="text-blue-300 font-mono">-</strong></div>
+                            <div><span class="text-slate-400">Автомобиль:</span> <strong id="scanned-car" class="text-slate-200">-</strong></div>
+                            <div><span class="text-slate-400">История замен:</span> <span class="text-emerald-400 font-bold">Найдена в базе Mobil 1</span></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 mt-2 pt-1">
+                            <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-2 rounded-lg text-xs transition-colors shadow">
+                                Начать карту ТО
+                            </button>
+                            <button type="button" onclick="editFobAndClient()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 px-2 rounded-lg text-xs transition-colors border border-slate-700">
+                                Редактировать ТС
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Buttons representing physical fobs / customer choices -->
+                <div class="space-y-2.5 pt-2">
+                    <button type="button" onclick="simulateFobScan('existing')" class="w-full bg-[#0E1C36] hover:bg-[#14264A] text-slate-200 border border-slate-700/60 p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all group active:scale-[0.98]">
+                        <div class="flex items-center space-x-3 text-left">
+                            <span class="text-xl">🔑</span>
+                            <div>
+                                <span class="block text-white font-bold">Приложить брелок клиента</span>
+                                <span class="block text-slate-400 text-[10px] mt-0.5">Симуляция считывания зарегистрированного ТС</span>
+                            </div>
+                        </div>
+                        <span class="text-blue-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
+                    </button>
+
+                    <button type="button" onclick="simulateFobScan('new')" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white p-3.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all group active:scale-[0.98]">
+                        <div class="flex items-center space-x-3 text-left">
+                            <span class="text-xl">🆕</span>
+                            <div>
+                                <span class="block">Выдать новый брелок</span>
+                                <span class="block text-blue-100 text-[10px] mt-0.5">Вручить клиенту и зарегистрировать ТС в базе</span>
+                            </div>
+                        </div>
+                        <span class="text-white opacity-85 group-hover:translate-x-1 transition-all">→</span>
+                    </button>
+                </div>
+
+                <!-- Search by License Plate Box -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-left space-y-2 mt-4">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Поиск ТС по госномеру</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="search-license-plate" placeholder="Введите гос. номер (напр. 777 MOB 01)" class="flex-grow bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-100 outline-none">
+                        <button type="button" onclick="searchByLicensePlate()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow">
+                            Найти
+                        </button>
+                    </div>
+                    <div id="search-result-info" class="hidden text-xs mt-2 p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1"></div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 2: CHIP_INIT (РЕГИСТРАЦИЯ БРЕЛКА) -->
+        <section id="screen-chip-init" class="w-full max-w-xl bg-mobilSlate/70 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl transition-all duration-300 hidden">
+            <div class="flex items-center justify-between mb-8 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-mobilRed animate-pulse"></span>
+                        <span>Регистрация нового брелка СТО</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Привязка номера RFID-чипа брелка к профилю машины</p>
+                </div>
+                <button type="button" onclick="goToScreen1()" class="text-slate-400 hover:text-white transition-colors text-xs flex items-center space-x-1 py-1 px-2.5 hover:bg-slate-800 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
+                    <span>Назад</span>
+                </button>
+            </div>
+
+            <form id="form-chip-init" onsubmit="event.preventDefault(); saveAndLinkChip();" class="space-y-5">
+                <div class="bg-blue-950/20 border border-blue-900/30 rounded-xl p-4 flex items-center space-x-3 mb-6">
+                    <div class="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28 z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="text-xs font-mono text-slate-400">АКТИВНЫЙ БРЕЛОК: <strong id="display-fob-id" class="text-white text-blue-300"></strong></div>
+                        <div class="text-xs text-slate-500 mt-0.5">Внесите данные автомобиля для завершения привязки к чипу.</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Марка</label>
+                        <input type="text" id="car-brand" placeholder="Напр. Toyota" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Модель</label>
+                        <input type="text" id="car-model" placeholder="Напр. Camry" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Год выпуска</label>
+                        <input type="text" id="car-year" placeholder="Напр. 2021" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Гос. номер</label>
+                        <input type="text" id="license-plate" placeholder="Напр. 777 MOB 01" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    </div>
+                </div>
+
+                <!-- Privacy & Data Protection Compliance Note -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-slate-400">
+                    <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z"></path></svg>
+                    <div class="space-y-1">
+                        <span class="text-slate-200 font-bold block">🛡️ Защита данных и 152-ФЗ / Законодательство о персональных данных</span>
+                        <p class="text-[11px] leading-relaxed text-slate-400">
+                            Обрабатываются только технические параметры авто (Марка, Модель, Гос. номер, данные о ТО). Личные данные владельцев не передаются третьим лицам и привязаны к физическому ID брелока. VIN-код не запрашивается.
+                        </p>
+                    </div>
+                </div>
+
+
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 active:scale-[0.98] text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-950/30 transition-all flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 animate-pulse text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Сохранить и привязать</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+
+        <!-- SCREEN 3: PRIORITET_ALFA (ПРИОРИТЕТ_АЛЬФА) -->
+        <section id="screen-priority-alpha" class="w-full max-w-7xl space-y-8 transition-all duration-300 hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-5 gap-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-mobilRed text-white text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider italic">ALPHA</span>
+                        <h2 class="text-2xl font-black tracking-tight text-white">Режим: Приоритет-Альфа (Диагностика ТО)</h2>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Оцифровка показателей и фиксация данных технического обслуживания авто</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 flex items-center space-x-3">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animation-pulse"></div>
+                        <span class="text-xs text-slate-300 font-mono" id="summary-car-info">Авто не определено</span>
+                    </div>
+                    <button type="button" onclick="goToScreen2()" class="text-slate-400 hover:text-white transition-colors text-xs flex items-center space-x-1 py-2 px-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
+                        <span>Назад к чипу</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3 CARD GRID (Мин высота 560px) -->
+            <form id="form-diagnostics" onsubmit="event.preventDefault(); commitToDatabase();" class="space-y-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- CARD 1: ДВС -->
+                    <div class="bg-mobilSlate/50 border border-slate-800 rounded-2xl p-6 min-h-[560px] flex flex-col justify-between hover:border-blue-500/30 transition-colors">
+                        <div class="space-y-5">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.49 12a4.5 4.5 0 01-1.35 3.03l-4.5 4.5a4.5 4.5 0 01-6.36 0 4.5 4.5 0 010-6.36l4.5-4.5a4.5 4.5 0 016.36 0"></path><path stroke-linecap="round" stroke-linejoin="round" d="M12 9a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-white text-base">ДВС (Двигатель)</h3>
+                                        <p class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Engine Compartment</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">Модуль 01</span>
+                            </div>
+
+                            <div class="space-y-4">
+                                <!-- Oil Type Input with Autocomplete Dropdown -->
+                                <div class="space-y-1 relative">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-xs text-slate-400">Тип залитого масла в ДВС</label>
+                                        <span class="text-[10px] text-blue-400 font-semibold cursor-pointer hover:underline" onclick="toggleOilDropdownForce()">📜 История масел</span>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" id="oil_type_dvs" autocomplete="off" onfocus="showOilDropdown()" oninput="filterOilDropdown(this.value)" placeholder="Кликните для выбора или начните ввод..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                        <!-- Dropdown Menu -->
+                                        <div id="oil_type_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-800 text-xs">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Oil Volume (Manual Input Only) -->
+                                <div class="space-y-1">
+                                    <label class="block text-xs text-slate-400">Объем заливки в ДВС (ручной ввод)</label>
+                                    <input type="text" id="oil_volume_dvs" placeholder="Напр. 4.2 л" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                </div>
+
+                                <!-- Mileage Inputs with +7000 and +9000 Delta Buttons -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1">
+                                        <label class="block text-xs text-slate-400">Текущий пробег (км)</label>
+                                        <input type="text" id="mileage_oil_change_dvs" placeholder="Напр. 150 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="flex items-center justify-between">
+                                            <label class="block text-xs text-slate-400">След. замена (км)</label>
+                                            <div class="flex space-x-1">
+                                                <button type="button" onclick="addMileageDelta(7000)" title="+7000 км к текущему" class="text-[10px] font-bold bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-blue-500/40 cursor-pointer">+7000</button>
+                                                <button type="button" onclick="addMileageDelta(9000)" title="+9000 км к текущему" class="text-[10px] font-bold bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-emerald-500/40 cursor-pointer">+9000</button>
+                                            </div>
+                                        </div>
+                                        <input type="text" id="next_oil_change_dvs" placeholder="Напр. 157 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                    </div>
+                                </div>
+
+                                <!-- Filters Block with Peak-Hour Quick Checkboxes -->
+                                <div class="space-y-2 pt-1 border-t border-slate-800/80">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Фильтры (Быстрая фиксация)</label>
+                                        <button type="button" onclick="toggleAllFilters(true)" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded hover:bg-emerald-900/40 transition-all">✓ Отметить все</button>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- Oil filter -->
+                                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                                            <label class="flex items-center justify-between text-xs text-slate-200 font-medium cursor-pointer">
+                                                <div class="flex items-center space-x-2">
+                                                    <input type="checkbox" id="check_oil_filter" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                                    <span>Масляный фильтр</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-mono">Заменен</span>
+                                            </label>
+                                            <input type="text" id="oil_filter_input" placeholder="Артикул / Модель (необязательно)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 outline-none">
+                                        </div>
+
+                                        <!-- Air filter -->
+                                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                                            <label class="flex items-center justify-between text-xs text-slate-200 font-medium cursor-pointer">
+                                                <div class="flex items-center space-x-2">
+                                                    <input type="checkbox" id="check_air_filter" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                                    <span>Воздушный фильтр</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-mono">Заменен</span>
+                                            </label>
+                                            <input type="text" id="air_filter_input" placeholder="Артикул / Модель (необязательно)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 outline-none">
+                                        </div>
+
+                                        <!-- Fuel filter -->
+                                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                                            <label class="flex items-center justify-between text-xs text-slate-200 font-medium cursor-pointer">
+                                                <div class="flex items-center space-x-2">
+                                                    <input type="checkbox" id="check_fuel_filter" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                                    <span>Топливный фильтр</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-mono">Заменен</span>
+                                            </label>
+                                            <input type="text" id="fuel_filter_input" placeholder="Артикул / Модель (необязательно)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 outline-none">
+                                        </div>
+
+                                        <!-- Cabin filter -->
+                                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                                            <label class="flex items-center justify-between text-xs text-slate-200 font-medium cursor-pointer">
+                                                <div class="flex items-center space-x-2">
+                                                    <input type="checkbox" id="check_cabin_filter" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                                    <span>Салонный фильтр</span>
+                                                </div>
+                                                <span class="text-[10px] text-emerald-400 font-mono">Заменен</span>
+                                            </label>
+                                            <input type="text" id="cabin_filter_input" placeholder="Артикул / Модель (необязательно)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: ТРАНСМИССИЯ -->
+                    <div class="bg-mobilSlate/50 border border-slate-800 rounded-2xl p-6 min-h-[560px] flex flex-col justify-between hover:border-blue-500/30 transition-colors">
+                        <div class="space-y-5">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-white text-base">Трансмиссия</h3>
+                                        <p class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Gearbox & Drivetrain</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">Модуль 02</span>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="space-y-1">
+                                    <label class="block text-xs text-slate-400">Тип КПП</label>
+                                    <input type="text" id="kpp_type" placeholder="Напр. АКПП 6-ступ. / Робот" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                </div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-xs text-slate-400">Трансмиссионное масло</label>
+                                    <input type="text" id="oil_type_kpp" placeholder="Напр. Mobil 1 Synthetic ATF" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1">
+                                        <label class="block text-xs text-slate-400">Пробег при замене КПП (км)</label>
+                                        <input type="text" id="mileage_oil_change_kpp" placeholder="Напр. 110 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="block text-xs text-slate-400">След. замена масла КПП (км)</label>
+                                        <input type="text" id="next_oil_change_kpp" placeholder="Напр. 160 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                    </div>
+                                </div>
+
+                                <!-- Hydraulics Oil Change Block -->
+                                <div class="space-y-3 pt-3 border-t border-slate-800/80">
+                                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Замена масла в гидравлике (ГУР / Гидросистема)</label>
+                                    
+                                    <div class="space-y-1">
+                                        <label class="block text-xs text-slate-400">Залитое масло в гидравлику</label>
+                                        <input type="text" id="oil_type_hydro" placeholder="Напр. Mobil ATF 220 / Pentosin CHF 11S" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="space-y-1">
+                                            <label class="block text-xs text-slate-400">Пробег при замене (км)</label>
+                                            <input type="text" id="mileage_oil_change_hydro" placeholder="Напр. 150 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="block text-xs text-slate-400">След. замена (км)</label>
+                                            <input type="text" id="next_oil_change_hydro" placeholder="Напр. 200 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3: ОХЛАЖДЕНИЕ -->
+                    <div class="bg-mobilSlate/50 border border-slate-800 rounded-2xl p-6 min-h-[560px] flex flex-col justify-between hover:border-blue-500/30 transition-colors">
+                        <div class="space-y-5">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v2.625c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-3.022c0-.215-.086-.422-.24-.574l-4.14-4.14a1.125 1.125 0 01-.168-1.3l.044-.089a1.125 1.125 0 011.602-.45l1.636 1.09a1.125 1.125 0 001.264 0l1.636-1.09a1.125 1.125 0 011.602.45l.044.09a1.125 1.125 0 01-.168 1.299l-4.14 4.14c-.154.152-.24.359-.24.574v3.022"></path><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-white text-base">Охлаждение ТС</h3>
+                                        <p class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Cooling Circuit</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">Модуль 03</span>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="space-y-1">
+                                    <label class="block text-xs text-slate-400">Тип охлаждающей жидкости</label>
+                                    <input type="text" id="coolant_type" placeholder="Напр. Mobil Antifreeze Extra (G11/G12)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                </div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-xs text-slate-400">Температура замерзания (°C)</label>
+                                    <input type="text" id="freeze_temp" placeholder="Напр. -42 °C" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                                </div>
+
+                                <div class="space-y-2 pt-3">
+                                    <label class="block text-xs text-slate-400">Проверка герметичности</label>
+                                    <div class="space-y-1.5">
+                                        <label class="flex items-center space-x-3 text-xs text-slate-300">
+                                            <input type="checkbox" id="check_radiator_ok" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-0">
+                                            <span>Радиатор без утечек</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 text-xs text-slate-300">
+                                            <input type="checkbox" id="check_pump_ok" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-0">
+                                            <span>Помпа работает без шумов</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-800/80 mt-6">
+                            <label class="block text-xs text-slate-400 mb-1">Заметки систем охлаждения</label>
+                            <textarea id="notes_cooling" placeholder="Укажите результаты опрессовки..." class="w-full h-20 bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none resize-none"></textarea>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM FIX ACTION BUTTON -->
+                <div class="bg-mobilSlate/40 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+                    <div class="text-center sm:text-left">
+                        <h4 class="font-bold text-white text-sm">Шаг 3: Сохранение и фиксация</h4>
+                        <p class="text-xs text-slate-400 mt-1">Данные будут зафиксированы в корпоративную базу Мобил 1 и отправлены клиенту на портал.</p>
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-750 hover:from-red-500 hover:to-red-650 active:scale-[0.98] text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-red-950/20 transition-all flex items-center justify-center space-x-3">
+                        <svg class="w-5 h-5 text-red-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Зафиксировать ТО в базу</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- SUCCESS & NFC / QR CODE CLIENT LINK MODAL -->
+    <div id="modal-nfc-qr" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-mobilSlate border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative text-slate-100">
+            <button type="button" onclick="closeNfcQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">ТО успешно зафиксировано!</h3>
+                <p class="text-xs text-slate-400">Запись сохранена в локальной базе ПК СТО и привязана к чипу брелка.</p>
+            </div>
+
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 text-center space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                    <span class="text-xs text-slate-400">Чип брелка: <strong id="modal-fob-id" class="text-blue-300 font-mono">MOB1-77A91</strong></span>
+                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded font-mono">ОРИГИНАЛ MOBIL 1</span>
+                </div>
+
+                <!-- QR Code Display -->
+                <div class="bg-white p-3 rounded-xl inline-block mx-auto shadow-md">
+                    <img id="qr-code-img" src="" alt="Клиентский QR-код" class="w-44 h-44 object-contain">
+                </div>
+
+                <p class="text-[11px] text-slate-400">
+                    Клиент может отсканировать этот <strong>QR-код</strong> или приложить телефон к <strong>NFC-брелку</strong>, чтобы открыть сервисную книжку.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2.5">
+                <button type="button" onclick="writeNfcTag()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/30">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.3 2.5a.75.75 0 011.06 0c4.14 4.14 4.14 10.86 0 15a.75.75 0 11-1.06-1.06 9.01 9.01 0 000-12.88.75.75 0 010-1.06zm1.76-1.77a11.25 11.25 0 010 15.92.75.75 0 01-1.06-1.06c4.01-4.01 4.01-10.51 0-14.52a.75.75 0 111.06-1.06zM5.3 6.5a.75.75 0 011.06 0 3.37 3.37 0 010 4.77.75.75 0 11-1.06-1.06 1.87 1.87 0 000-2.65.75.75 0 010-1.06zM3.5 12a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+                    <span>Записать ссылку на физический NFC брелок</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="copyPortalUrl()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 px-3 rounded-xl font-semibold text-xs transition-all border border-slate-700 flex items-center justify-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v9.25c0 .621-.504 1.125-1.125 1.125z"></path></svg>
+                        <span>Скопировать ссылку</span>
+                    </button>
+                    <button type="button" onclick="closeNfcQrModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-xs transition-all shadow">
+                        Готово (Завершить)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUPABASE SQL SETUP MODAL -->
+    <div id="modal-supabase-sql" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-mobilSlate border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative text-slate-100">
+            <button type="button" onclick="closeSupabaseSqlModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-full flex items-center justify-center mx-auto">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-white">Настройка таблицы Supabase</h3>
+                <p class="text-xs text-slate-400">Все данные зафиксированы и надежно сохранены на вашем ПК! Чтобы включить облачную синхронизацию, выполните SQL-команду в панели Supabase.</p>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>1. Скопируйте SQL и вставьте в Supabase -> SQL Editor</span>
+                    <button type="button" onclick="copySupabaseSql()" class="bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded text-[11px] font-bold transition-all">Скопировать SQL</button>
+                </div>
+                <textarea id="supabase-sql-code" readonly class="w-full h-36 bg-slate-900 border border-slate-800 text-[11px] font-mono text-purple-300 rounded p-2 focus:outline-none resize-none">CREATE TABLE IF NOT EXISTS public.diagnostics (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    fob_id TEXT UNIQUE NOT NULL,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.diagnostics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select" ON public.diagnostics FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.diagnostics FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true);</textarea>
+            </div>
+
+            <button type="button" onclick="closeSupabaseSqlModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 px-3 rounded-xl font-bold text-xs transition-all border border-slate-700">
+                Понятно (Продолжить работу с локальной базой)
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-950 bg-slate-950/80 p-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 СТО "Mobil 1" - Все права защищены. Сервисная станция премиального уровня.</p>
+            <div class="flex space-x-6 text-slate-400 font-mono">
+                <span>API ID: M1-STATION-77</span>
+                <span>Node: Moscow-Centr</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPT (Vanilla JS for multi-screen client-only flow with multi-post support) -->
+    <script>
+        // =========================================================================
+        // SUPABASE CONFIGURATION FOR STATIC HOSTING & BACKENDLESS OPERATION
+        // Укажите URL и Ключ доступа Supabase в константах ниже:
+        // =========================================================================
+        const DEFAULT_SUPABASE_URL = "https://nrqsfkpomswnjwlencgk.supabase.co"; // Ваш URL (например: "https://xxxx.supabase.co")
+        const DEFAULT_SUPABASE_KEY = "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"; // Ваш Ключ (например: "eyJhbGciOi...")
+
+        function getSupabaseConfig() {
+            const url = localStorage.getItem('mobil1_supabase_url') || (DEFAULT_SUPABASE_URL && !DEFAULT_SUPABASE_URL.includes('xyzcompany') ? DEFAULT_SUPABASE_URL : '');
+            const key = localStorage.getItem('mobil1_supabase_key') || (DEFAULT_SUPABASE_KEY && !DEFAULT_SUPABASE_KEY.includes('anon-key') ? DEFAULT_SUPABASE_KEY : '');
+            return { url: url.trim(), key: key.trim() };
+        }
+
+        function getSupabaseClient() {
+            const { url, key } = getSupabaseConfig();
+            if (typeof window.supabase === 'undefined' || !url || !key) return null;
+            try {
+                if (!window._supabaseClient || window._supabaseClientUrl !== url || window._supabaseClientKey !== key) {
+                    window._supabaseClient = window.supabase.createClient(url, key);
+                    window._supabaseClientUrl = url;
+                    window._supabaseClientKey = key;
+                }
+                return window._supabaseClient;
+            } catch(e) {
+                console.error("Supabase client init error:", e);
+                return null;
+            }
+        }
+
+        async function saveToSupabaseDirect(record) {
+            if (window._supabaseTableMissing) {
+                return { success: false, reason: "Таблица diagnostics не создана в Supabase" };
+            }
+
+            const client = getSupabaseClient();
+            if (!client) {
+                return { success: false, reason: "Supabase URL/Key не заданы" };
+            }
+            const cleanFob = String(record.fobId || record.fob_id || "").trim();
+            if (!cleanFob) {
+                return { success: false, reason: "Нет fobId" };
+            }
+
+            const now = new Date().toISOString();
+            let colName = window._supabaseWorkingCol || "fob_id";
+            let existingRow = null;
+
+            // 1. Safely inspect table schema / sample row to avoid 400 Bad Request
+            try {
+                const { data: sample, error: sampleErr } = await client.from("diagnostics").select("*").limit(1);
+                if (sampleErr) {
+                    if (sampleErr.code === "42P01" || (sampleErr.message && (sampleErr.message.includes("does not exist") || sampleErr.message.includes("diagnostics")))) {
+                        window._supabaseTableMissing = true;
+                        updateNetworkStatusUI();
+                        return { success: false, error: "Таблица diagnostics не создана в вашем проекте Supabase." };
+                    }
+                } else if (sample && sample.length > 0) {
+                    if ("fob_id" in sample[0]) {
+                        colName = "fob_id";
+                    } else if ("fobId" in sample[0]) {
+                        colName = "fobId";
+                    }
+                    window._supabaseWorkingCol = colName;
+                }
+
+                // Query targeted row with confirmed column
+                const { data, error } = await client.from("diagnostics").select("*").eq(colName, cleanFob).maybeSingle();
+                if (!error && data) {
+                    existingRow = data;
+                }
+            } catch(e) {
+                console.warn("Supabase lookup warning:", e);
+            }
+
+            const payload = {
+                [colName]: cleanFob,
+                data: record,
+                updated_at: now
+            };
+
+            // 2. If row exists -> UPDATE
+            if (existingRow) {
+                try {
+                    const rowKey = existingRow.id ? 'id' : colName;
+                    const rowVal = existingRow.id ? existingRow.id : cleanFob;
+                    const { error: upErr } = await client.from("diagnostics").update(payload).eq(rowKey, rowVal);
+                    if (!upErr) return { success: true };
+                } catch(e) {}
+            }
+
+            // 3. Otherwise -> INSERT
+            try {
+                const { error: insErr } = await client.from("diagnostics").insert(payload);
+                if (!insErr) return { success: true };
+
+                // Handle race condition or duplicate key
+                if (insErr.code === "23505" || (insErr.message && insErr.message.toLowerCase().includes("duplicate"))) {
+                    const { error: upErr2 } = await client.from("diagnostics").update(payload).eq(colName, cleanFob);
+                    if (!upErr2) return { success: true };
+                    return { success: false, error: upErr2.message };
+                }
+
+                // If column was missing in empty table, try alternate column name
+                if (insErr.code === "42703" || (insErr.message && insErr.message.includes("column"))) {
+                    const altCol = colName === "fobId" ? "fob_id" : "fobId";
+                    const altPayload = { [altCol]: cleanFob, data: record, updated_at: now };
+                    const { error: altIns } = await client.from("diagnostics").insert(altPayload);
+                    if (!altIns) {
+                        window._supabaseWorkingCol = altCol;
+                        return { success: true };
+                    }
+                    return { success: false, error: altIns.message };
+                }
+
+                return { success: false, error: insErr.message };
+            } catch(e) {
+                return { success: false, error: e.message || String(e) };
+            }
+        }
+
+        // Multi-Post Memory State
+        let activePostIndex = 0;
+        
+        // Oil history and autocomplete helper functions
+        function getRecentOilTypes() {
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_recent_oil_types');
+                if (stored) list = JSON.parse(stored);
+            } catch(e) {}
+            if (!list || list.length === 0) {
+                list = [
+                    'Mobil 1 FS 5W-30',
+                    'Mobil 1 ESP 5W-30',
+                    'Mobil 1 0W-20',
+                    'Mobil Super 3000 5W-40',
+                    'Mobil 1 Peak Life 5W-50'
+                ];
+            }
+            return list;
+        }
+
+        function saveRecentOilType(oilName) {
+            if (!oilName || !oilName.trim()) return;
+            const clean = oilName.trim();
+            let list = getRecentOilTypes();
+            list = list.filter(item => item.toLowerCase() !== clean.toLowerCase());
+            list.unshift(clean);
+            if (list.length > 5) list = list.slice(0, 5);
+            try {
+                localStorage.setItem('mobil1_recent_oil_types', JSON.stringify(list));
+            } catch(e) {}
+        }
+
+        function showOilDropdown() {
+            filterOilDropdown(document.getElementById('oil_type_dvs')?.value || '');
+        }
+
+        function toggleOilDropdownForce() {
+            const dd = document.getElementById('oil_type_dropdown');
+            if (!dd) return;
+            if (dd.classList.contains('hidden')) {
+                showOilDropdown();
+            } else {
+                dd.classList.add('hidden');
+            }
+        }
+
+        function filterOilDropdown(searchVal) {
+            const dd = document.getElementById('oil_type_dropdown');
+            if (!dd) return;
+            
+            const query = (searchVal || '').trim().toLowerCase();
+            const recentList = getRecentOilTypes();
+            
+            const popularPresets = [
+                'Mobil 1 FS 5W-30',
+                'Mobil 1 ESP 5W-30',
+                'Mobil 1 0W-20',
+                'Mobil Super 3000 5W-40',
+                'Mobil 1 FS 0W-40',
+                'Mobil 1 ESP Formula 5W-30',
+                'Mobil 1 x1 5W-30',
+                'Mobil 1 Extended Performance 5W-20'
+            ];
+            
+            let combined = [...recentList];
+            popularPresets.forEach(item => {
+                if (!combined.some(r => r.toLowerCase() === item.toLowerCase())) {
+                    combined.push(item);
+                }
+            });
+
+            if (query) {
+                combined = combined.filter(item => item.toLowerCase().includes(query));
+            }
+
+            if (combined.length === 0) {
+                dd.innerHTML = `<div class="p-3 text-slate-400 text-center italic">Масло не найдено в подсказках. Введите наименование...</div>`;
+            } else {
+                let html = '';
+                if (!query && recentList.length > 0) {
+                    html += `<div class="bg-slate-950 px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-blue-400 border-b border-slate-800">Последние 5 вводимых масел:</div>`;
+                }
+                
+                combined.forEach(oil => {
+                    const isRecent = recentList.some(r => r.toLowerCase() === oil.toLowerCase());
+                    const escapedOil = oil.replace(/'/g, "\\'");
+                    html += `
+                        <div onclick="selectOilType('${escapedOil}')" class="px-3 py-2.5 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer flex items-center justify-between group transition-colors">
+                            <span class="font-medium text-slate-200 group-hover:text-white">${oil}</span>
+                            ${isRecent ? '<span class="text-[9px] bg-blue-900/60 text-blue-300 border border-blue-700/50 px-1.5 py-0.5 rounded font-mono">Ранее вводилось</span>' : ''}
+                        </div>
+                    `;
+                });
+                dd.innerHTML = html;
+            }
+            
+            dd.classList.remove('hidden');
+        }
+
+        function selectOilType(oilStr) {
+            const input = document.getElementById('oil_type_dvs');
+            if (input) {
+                input.value = oilStr;
+                saveCurrentPostState();
+            }
+            saveRecentOilType(oilStr);
+            const dd = document.getElementById('oil_type_dropdown');
+            if (dd) dd.classList.add('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dd = document.getElementById('oil_type_dropdown');
+            const input = document.getElementById('oil_type_dvs');
+            if (dd && input && !dd.contains(e.target) && !input.contains(e.target)) {
+                dd.classList.add('hidden');
+            }
+        });
+
+        // Quick calculation of next mileage (+7000 or +9000)
+        function addMileageDelta(delta) {
+            const curInput = document.getElementById('mileage_oil_change_dvs');
+            const nextInput = document.getElementById('next_oil_change_dvs');
+            if (!curInput || !nextInput) return;
+            
+            const raw = curInput.value.replace(/\D/g, '');
+            let currentVal = parseInt(raw, 10);
+            
+            if (isNaN(currentVal) || currentVal <= 0) {
+                currentVal = 150000;
+                curInput.value = "150 000";
+            }
+            
+            const calculated = currentVal + delta;
+            nextInput.value = calculated.toLocaleString('ru-RU').replace(/\s/g, ' ');
+            saveCurrentPostState();
+        }
+
+        // Quick toggle all filters for peak hours
+        function toggleAllFilters(checked) {
+            ['check_oil_filter', 'check_air_filter', 'check_fuel_filter', 'check_cabin_filter'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = checked;
+            });
+            saveCurrentPostState();
+        }
+        
+        // Initial state helper for a new post
+        function createEmptyPostState() {
+            return {
+                screen: 'waiting', // 'waiting', 'chip-init', 'priority-alpha'
+                fobId: '',
+                carBrand: '',
+                carModel: '',
+                carYear: '',
+                ownerName: '',
+                ownerPhone: '',
+                licensePlate: '',
+                scanStatus: 'idle', // 'idle', 'spinner', 'success'
+                formData: {
+                    oilTypeDvs: '',
+                    oilVolumeDvs: '',
+                    mileageOilDvs: '',
+                    nextOilDvs: '',
+                    oilFilter: '',
+                    airFilter: '',
+                    fuelFilter: '',
+                    cabinFilter: '',
+                    pressureOk: false,
+                    coldStartOk: false,
+                    notesDvs: '',
+                    
+                    kppType: '',
+                    oilTypeKpp: '',
+                    mileageOilKpp: '',
+                    nextOilKpp: '',
+                    oilTypeHydro: '',
+                    mileageOilHydro: '',
+                    nextOilHydro: '',
+                    backlashOk: false,
+                    shiftsSmooth: false,
+                    notesKpp: '',
+                    
+                    coolantType: '',
+                    freezeTemp: '',
+                    radiatorOk: false,
+                    pumpOk: false,
+                    notesCooling: ''
+                }
+            };
+        }
+
+        let posts = [
+            createEmptyPostState(),
+            createEmptyPostState(),
+            createEmptyPostState()
+        ];
+
+        // Core global reactive reference (mapped to the active post)
+        let state = {
+            fobId: '',
+            carBrand: '',
+            carModel: '',
+            carYear: '',
+            ownerName: '',
+            ownerPhone: '',
+            licensePlate: ''
+        };
+
+        function saveCurrentPostState() {
+            let post = posts[activePostIndex];
+            
+            // Core state
+            post.fobId = state.fobId;
+            post.carBrand = state.carBrand;
+            post.carModel = state.carModel;
+            post.carYear = state.carYear;
+            post.ownerName = state.ownerName;
+            post.ownerPhone = state.ownerPhone;
+            post.licensePlate = state.licensePlate;
+            
+            // Screen state
+            if (!document.getElementById('screen-waiting').classList.contains('hidden')) {
+                post.screen = 'waiting';
+            } else if (!document.getElementById('screen-chip-init').classList.contains('hidden')) {
+                post.screen = 'chip-init';
+            } else if (!document.getElementById('screen-priority-alpha').classList.contains('hidden')) {
+                post.screen = 'priority-alpha';
+            }
+            
+            // Scan state
+            if (!document.getElementById('scan-success').classList.contains('hidden')) {
+                post.scanStatus = 'success';
+            } else if (!document.getElementById('scan-spinner').classList.contains('hidden')) {
+                post.scanStatus = 'spinner';
+            } else {
+                post.scanStatus = 'idle';
+            }
+            
+            // Save diagnostics form inputs
+            post.formData.oilTypeDvs = document.getElementById('oil_type_dvs')?.value || '';
+            post.formData.oilVolumeDvs = document.getElementById('oil_volume_dvs')?.value || '';
+            post.formData.mileageOilDvs = document.getElementById('mileage_oil_change_dvs')?.value || '';
+            post.formData.nextOilDvs = document.getElementById('next_oil_change_dvs')?.value || '';
+            post.formData.oilFilter = document.getElementById('oil_filter_input')?.value || '';
+            post.formData.airFilter = document.getElementById('air_filter_input')?.value || '';
+            post.formData.fuelFilter = document.getElementById('fuel_filter_input')?.value || '';
+            post.formData.cabinFilter = document.getElementById('cabin_filter_input')?.value || '';
+            
+            post.formData.oilFilterChecked = document.getElementById('check_oil_filter')?.checked || false;
+            post.formData.airFilterChecked = document.getElementById('check_air_filter')?.checked || false;
+            post.formData.fuelFilterChecked = document.getElementById('check_fuel_filter')?.checked || false;
+            post.formData.cabinFilterChecked = document.getElementById('check_cabin_filter')?.checked || false;
+            
+            post.formData.pressureOk = document.getElementById('check_pressure_dvs')?.checked || false;
+            post.formData.coldStartOk = document.getElementById('check_cold_start_dvs')?.checked || false;
+            post.formData.leaksOk = document.getElementById('check_leaks_dvs')?.checked || false;
+            post.formData.notesDvs = document.getElementById('notes_dvs')?.value || '';
+            
+            post.formData.kppType = document.getElementById('kpp_type')?.value || '';
+            post.formData.oilTypeKpp = document.getElementById('oil_type_kpp')?.value || '';
+            post.formData.mileageOilKpp = document.getElementById('mileage_oil_change_kpp')?.value || '';
+            post.formData.nextOilKpp = document.getElementById('next_oil_change_kpp')?.value || '';
+            post.formData.oilTypeHydro = document.getElementById('oil_type_hydro')?.value || '';
+            post.formData.mileageOilHydro = document.getElementById('mileage_oil_change_hydro')?.value || '';
+            post.formData.nextOilHydro = document.getElementById('next_oil_change_hydro')?.value || '';
+            post.formData.backlashOk = document.getElementById('check_backlash_kpp')?.checked || false;
+            post.formData.shiftsSmooth = document.getElementById('check_smooth_kpp')?.checked || false;
+            post.formData.notesKpp = document.getElementById('notes_kpp')?.value || '';
+            
+            post.formData.coolantType = document.getElementById('coolant_type')?.value || '';
+            post.formData.freezeTemp = document.getElementById('freeze_temp')?.value || '';
+            post.formData.radiatorOk = document.getElementById('check_radiator_ok')?.checked || false;
+            post.formData.pumpOk = document.getElementById('check_pump_ok')?.checked || false;
+            post.formData.notesCooling = document.getElementById('notes_cooling')?.value || '';
+        }
+
+        function loadPostState(index) {
+            let post = posts[index];
+            
+            // Restore global state reference
+            state.fobId = post.fobId;
+            state.carBrand = post.carBrand;
+            state.carModel = post.carModel;
+            state.carYear = post.carYear;
+            state.ownerName = post.ownerName;
+            state.ownerPhone = post.ownerPhone;
+            state.licensePlate = post.licensePlate;
+            
+            // Reset screens visibility
+            document.getElementById('screen-waiting').classList.add('hidden');
+            document.getElementById('screen-chip-init').classList.add('hidden');
+            document.getElementById('screen-priority-alpha').classList.add('hidden');
+            
+            if (post.screen === 'waiting') {
+                document.getElementById('screen-waiting').classList.remove('hidden');
+            } else if (post.screen === 'chip-init') {
+                document.getElementById('screen-chip-init').classList.remove('hidden');
+                document.getElementById('display-fob-id').innerText = state.fobId || '-';
+            } else if (post.screen === 'priority-alpha') {
+                document.getElementById('screen-priority-alpha').classList.remove('hidden');
+                
+                let summaryText = 'Брелок: ' + (state.fobId || 'Не указан');
+                if (state.carBrand || state.carModel) {
+                    summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
+                }
+                document.getElementById('summary-car-info').innerText = summaryText;
+            }
+            
+            // Reset scan status displays
+            document.getElementById('scan-success').classList.add('hidden');
+            document.getElementById('scan-idle').classList.add('hidden');
+            document.getElementById('scan-spinner').classList.add('hidden');
+            
+            if (post.scanStatus === 'success') {
+                document.getElementById('scan-success').classList.remove('hidden');
+                document.getElementById('scanned-fob-id').innerText = state.fobId || '-';
+                document.getElementById('scanned-car').innerText = (state.carBrand || state.carModel) ? (state.carBrand + ' ' + state.carModel) : 'Новый автомобиль';
+            } else if (post.scanStatus === 'spinner') {
+                document.getElementById('scan-spinner').classList.remove('hidden');
+            } else {
+                document.getElementById('scan-idle').classList.remove('hidden');
+            }
+            
+            // Populate Chip Init screen inputs
+            if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand || '';
+            if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel || '';
+            if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear || '';
+            if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate || '';
+            if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName || '';
+            if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone || '';
+            
+            // Populate Card 1 inputs
+            if (document.getElementById('oil_type_dvs')) document.getElementById('oil_type_dvs').value = post.formData.oilTypeDvs || '';
+            if (document.getElementById('oil_volume_dvs')) document.getElementById('oil_volume_dvs').value = post.formData.oilVolumeDvs || '';
+            if (document.getElementById('mileage_oil_change_dvs')) document.getElementById('mileage_oil_change_dvs').value = post.formData.mileageOilDvs || '';
+            if (document.getElementById('next_oil_change_dvs')) document.getElementById('next_oil_change_dvs').value = post.formData.nextOilDvs || '';
+            if (document.getElementById('oil_filter_input')) document.getElementById('oil_filter_input').value = post.formData.oilFilter || '';
+            if (document.getElementById('air_filter_input')) document.getElementById('air_filter_input').value = post.formData.airFilter || '';
+            if (document.getElementById('fuel_filter_input')) document.getElementById('fuel_filter_input').value = post.formData.fuelFilter || '';
+            if (document.getElementById('cabin_filter_input')) document.getElementById('cabin_filter_input').value = post.formData.cabinFilter || '';
+            
+            if (document.getElementById('check_oil_filter')) document.getElementById('check_oil_filter').checked = post.formData.oilFilterChecked || false;
+            if (document.getElementById('check_air_filter')) document.getElementById('check_air_filter').checked = post.formData.airFilterChecked || false;
+            if (document.getElementById('check_fuel_filter')) document.getElementById('check_fuel_filter').checked = post.formData.fuelFilterChecked || false;
+            if (document.getElementById('check_cabin_filter')) document.getElementById('check_cabin_filter').checked = post.formData.cabinFilterChecked || false;
+            
+            if (document.getElementById('check_pressure_dvs')) document.getElementById('check_pressure_dvs').checked = post.formData.pressureOk;
+            if (document.getElementById('check_cold_start_dvs')) document.getElementById('check_cold_start_dvs').checked = post.formData.coldStartOk;
+            if (document.getElementById('check_leaks_dvs')) document.getElementById('check_leaks_dvs').checked = post.formData.leaksOk || false;
+            if (document.getElementById('notes_dvs')) document.getElementById('notes_dvs').value = post.formData.notesDvs || '';
+            
+            // Populate Card 2 inputs
+            if (document.getElementById('kpp_type')) document.getElementById('kpp_type').value = post.formData.kppType || '';
+            if (document.getElementById('oil_type_kpp')) document.getElementById('oil_type_kpp').value = post.formData.oilTypeKpp || '';
+            if (document.getElementById('mileage_oil_change_kpp')) document.getElementById('mileage_oil_change_kpp').value = post.formData.mileageOilKpp || '';
+            if (document.getElementById('next_oil_change_kpp')) document.getElementById('next_oil_change_kpp').value = post.formData.nextOilKpp || '';
+            if (document.getElementById('oil_type_hydro')) document.getElementById('oil_type_hydro').value = post.formData.oilTypeHydro || '';
+            if (document.getElementById('mileage_oil_change_hydro')) document.getElementById('mileage_oil_change_hydro').value = post.formData.mileageOilHydro || '';
+            if (document.getElementById('next_oil_change_hydro')) document.getElementById('next_oil_change_hydro').value = post.formData.nextOilHydro || '';
+            if (document.getElementById('check_backlash_kpp')) document.getElementById('check_backlash_kpp').checked = post.formData.backlashOk;
+            if (document.getElementById('check_smooth_kpp')) document.getElementById('check_smooth_kpp').checked = post.formData.shiftsSmooth;
+            if (document.getElementById('notes_kpp')) document.getElementById('notes_kpp').value = post.formData.notesKpp || '';
+            
+            // Populate Card 3 inputs
+            if (document.getElementById('coolant_type')) document.getElementById('coolant_type').value = post.formData.coolantType || '';
+            if (document.getElementById('freeze_temp')) document.getElementById('freeze_temp').value = post.formData.freezeTemp || '';
+            if (document.getElementById('check_radiator_ok')) document.getElementById('check_radiator_ok').checked = post.formData.radiatorOk;
+            if (document.getElementById('check_pump_ok')) document.getElementById('check_pump_ok').checked = post.formData.pumpOk;
+            if (document.getElementById('notes_cooling')) document.getElementById('notes_cooling').value = post.formData.notesCooling || '';
+        }
+
+        function switchActivePost(index) {
+            if (index === activePostIndex) return;
+            saveCurrentPostState();
+            activePostIndex = index;
+            loadPostState(index);
+            renderPostTabs();
+        }
+
+        function renderPostTabs() {
+            for (let i = 0; i < 3; i++) {
+                const btn = document.getElementById(`btn-post-${i}`);
+                if (!btn) continue;
+                
+                const post = posts[i];
+                const isActive = (i === activePostIndex);
+                
+                // Construct tag name
+                let postLabel = `Пост ${i + 1}`;
+                if (post.fobId) {
+                    let labelDetail = post.carBrand || post.fobId;
+                    if (labelDetail.length > 15) labelDetail = labelDetail.substring(0, 12) + '...';
+                    postLabel += ` (${labelDetail})`;
+                } else {
+                    postLabel += ` (Свободен)`;
+                }
+                
+                // Update Button Content
+                btn.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full ${post.fobId ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}" id="indicator-post-${i}"></span>
+                    <span>${postLabel}</span>
+                `;
+                
+                // Update classes
+                if (isActive) {
+                    btn.className = "px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-blue-600/15 text-blue-400 border-blue-500/35 shadow-md shadow-blue-900/10 cursor-default";
+                } else {
+                    btn.className = "px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-slate-950/45 text-slate-400 border-slate-800 hover:text-slate-200 cursor-pointer";
+                }
+            }
+        }
+
+        function resetAllForms() {
+            // Document query selects to safely avoid crash if form structure has changed
+            const formChip = document.getElementById('form-chip-init');
+            if (formChip) formChip.reset();
+            const formDiag = document.getElementById('form-diagnostics');
+            if (formDiag) formDiag.reset();
+            
+            // Reset scan screen visual state
+            document.getElementById('scan-idle').classList.remove('hidden');
+            document.getElementById('scan-spinner').classList.add('hidden');
+            document.getElementById('scan-success').classList.add('hidden');
+        }
+
+        function goToScreen1() {
+            document.getElementById('screen-waiting').classList.remove('hidden');
+            document.getElementById('screen-chip-init').classList.add('hidden');
+            document.getElementById('screen-priority-alpha').classList.add('hidden');
+        }
+
+        function goToScreen2() {
+            document.getElementById('display-fob-id').innerText = state.fobId;
+            
+            // Pre-fill inputs with state
+            document.getElementById('car-brand').value = state.carBrand;
+            document.getElementById('car-model').value = state.carModel;
+
+            document.getElementById('screen-waiting').classList.add('hidden');
+            document.getElementById('screen-chip-init').classList.remove('hidden');
+            document.getElementById('screen-priority-alpha').classList.add('hidden');
+        }
+
+        function simulateFobScan(type) {
+            // Show scan animation
+            document.getElementById('scan-success').classList.add('hidden');
+            document.getElementById('scan-idle').classList.add('hidden');
+            document.getElementById('scan-spinner').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('scan-spinner').classList.add('hidden');
+                document.getElementById('scan-success').classList.remove('hidden');
+
+                if (type === 'existing') {
+                    state.fobId = 'M1-FOB-92842';
+                    state.carBrand = 'Porsche';
+                    state.carModel = 'Cayenne 3.0 V6';
+                    state.carYear = '2022';
+                    state.licensePlate = '777 MOB 01';
+                    state.ownerName = 'Александр';
+                    state.ownerPhone = '+7 (777) 999-88-77';
+
+                    document.getElementById('scanned-fob-id').innerText = state.fobId;
+                    document.getElementById('scanned-car').innerText = state.carBrand + ' ' + state.carModel;
+                } else {
+                    // Generate new RFID keyfob chip
+                    state.fobId = 'M1-FOB-' + Math.floor(10000 + Math.random() * 90000);
+                    state.carBrand = '';
+                    state.carModel = '';
+                    state.carYear = '';
+                    state.licensePlate = '';
+                    state.ownerName = '';
+                    state.ownerPhone = '';
+
+                    // Go to registration immediately
+                    goToScreen2();
+                }
+                
+                // Dynamically update persistent tabs
+                saveCurrentPostState();
+                renderPostTabs();
+            }, 600);
+        }
+
+        function editFobAndClient() {
+            goToScreen2();
+        }
+
+        function searchByLicensePlate() {
+            const inputPlate = document.getElementById('search-license-plate')?.value.trim().toUpperCase() || '';
+            const resultBox = document.getElementById('search-result-info');
+            
+            if (!inputPlate) {
+                if (resultBox) {
+                    resultBox.classList.remove('hidden');
+                    resultBox.innerHTML = '<span class="text-amber-400">Пожалуйста, введите гос. номер для поиска.</span>';
+                }
+                return;
+            }
+            
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) list = JSON.parse(stored);
+            } catch(e) {}
+            
+            const targetPlate = inputPlate.replace(/\s+/g, '');
+            const matched = list.find(item => item.licensePlate && item.licensePlate.toUpperCase().replace(/\s+/g, '') === targetPlate);
+            
+            if (matched) {
+                state.fobId = matched.fobId || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
+                state.carBrand = matched.carBrand || '';
+                state.carModel = matched.carModel || '';
+                state.carYear = matched.carYear || '';
+                state.ownerName = matched.ownerName || '';
+                state.ownerPhone = matched.ownerPhone || '';
+                state.licensePlate = matched.licensePlate || inputPlate;
+                
+                // Pre-fill CHIP_INIT form
+                if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand;
+                if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel;
+                if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear;
+                if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName;
+                if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone;
+                if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate;
+                
+                saveCurrentPostState();
+                renderPostTabs();
+                
+                if (resultBox) {
+                    resultBox.classList.remove('hidden');
+                    resultBox.innerHTML = `
+                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в локальной базе!</div>
+                        <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel} (${state.carYear || 'Год не указ.'})</div>
+                        <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
+                        <div class="mt-2 flex space-x-2">
+                            <button type="button" onclick="goToScreen2()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
+                                Данные ТС / Брелок
+                            </button>
+                            <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
+                                Карта ТО
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                if (resultBox) {
+                    resultBox.classList.remove('hidden');
+                    resultBox.innerHTML = `
+                        <div class="text-amber-400 font-bold">Автомобиль с госномером "${inputPlate}" не найден.</div>
+                        <div class="text-slate-400 text-[11px] mt-1">Вы можете выдать новый брелок и зарегистрировать данные ТС.</div>
+                    `;
+                }
+            }
+        }
+
+        function goToScreen3() {
+            document.getElementById('screen-waiting').classList.add('hidden');
+            document.getElementById('screen-chip-init').classList.add('hidden');
+            document.getElementById('screen-priority-alpha').classList.remove('hidden');
+            
+            // Update top summary bar
+            let summaryText = 'Брелок: ' + (state.fobId || 'Не указан');
+            if (state.carBrand || state.carModel) {
+                summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
+            }
+            document.getElementById('summary-car-info').innerText = summaryText;
+        }
+
+        function saveAndLinkChip() {
+            // Gather inputs
+            const brandVal = document.getElementById('car-brand')?.value || '';
+            const modelVal = document.getElementById('car-model')?.value || '';
+            const yearVal = document.getElementById('car-year')?.value || '';
+            const ownerNameVal = document.getElementById('owner-name')?.value || '';
+            const ownerPhoneVal = document.getElementById('owner-phone')?.value || '';
+            const licensePlateVal = document.getElementById('license-plate')?.value || '';
+            
+            state.carBrand = brandVal;
+            state.carModel = modelVal;
+            state.carYear = yearVal;
+            state.ownerName = ownerNameVal;
+            state.ownerPhone = ownerPhoneVal;
+            state.licensePlate = licensePlateVal;
+            
+            alert("Чип успешно привязан и сохранен в локальную память!");
+            
+            // Save vehicle details in local storage database
+            const vehicleRecord = {
+                fobId: state.fobId,
+                carBrand: state.carBrand,
+                carModel: state.carModel,
+                carYear: state.carYear,
+                ownerName: state.ownerName,
+                ownerPhone: state.ownerPhone,
+                licensePlate: state.licensePlate,
+                timestamp: new Date().toLocaleDateString('ru-RU')
+            };
+            
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) list = JSON.parse(stored);
+            } catch(e) {
+                console.error("Error reading db", e);
+            }
+            
+            let existingIndex = list.findIndex(item => (state.fobId && item.fobId === state.fobId) || (state.licensePlate && item.licensePlate === state.licensePlate));
+            if (existingIndex >= 0) {
+                list[existingIndex] = { ...list[existingIndex], ...vehicleRecord };
+            } else {
+                list.push(vehicleRecord);
+            }
+            
+            localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+            
+            fetch('/api/diagnostics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(vehicleRecord)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("[Local DB Initialize] Success:", data);
+            })
+            .catch(err => {
+                console.warn("[Local DB Initialize] Failed:", err);
+            });
+            
+            // Maintain persistent post state tabs
+            saveCurrentPostState();
+            renderPostTabs();
+            
+            // Switch to Screen 3 (Diagnostics Card)
+            goToScreen3();
+        }
+
+        function loadFobToDiagnostics() {
+            // Directly start diagnostics with loaded client history
+            let summaryText = 'Брелок: ' + state.fobId;
+            if (state.carBrand || state.carModel) {
+                summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
+            }
+            document.getElementById('summary-car-info').innerText = summaryText;
+            
+            goToScreen3();
+        }
+
+        function commitToDatabase() {
+            // Ensure any recent typing is saved
+            saveCurrentPostState();
+            
+            let post = posts[activePostIndex];
+            
+            // Check if there is an active fob ID to register
+            if (!post.fobId) {
+                alert("Ошибка: нет активного брелка для сохранения записи!");
+                return;
+            }
+            
+            // Construct timestamp (DD.MM.YYYY HH:MM)
+            const d = new Date();
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const formattedDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+
+            // Save oil type to recent localStorage list
+            if (post.formData.oilTypeDvs) {
+                saveRecentOilType(post.formData.oilTypeDvs);
+            }
+
+            // Create flat record matching portal-friendly structure
+            const record = {
+                fobId: post.fobId,
+                carBrand: post.carBrand,
+                carModel: post.carModel,
+                carYear: post.carYear || state.carYear || '',
+                ownerName: post.ownerName || state.ownerName || '',
+                ownerPhone: post.ownerPhone || state.ownerPhone || '',
+                licensePlate: post.licensePlate || state.licensePlate || '',
+                oilTypeDvs: post.formData.oilTypeDvs,
+                oilVolumeDvs: post.formData.oilVolumeDvs,
+                mileageOilDvs: post.formData.mileageOilDvs,
+                nextOilDvs: post.formData.nextOilDvs,
+                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ''),
+                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ''),
+                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ''),
+                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ''),
+                oilFilterChecked: post.formData.oilFilterChecked || false,
+                airFilterChecked: post.formData.airFilterChecked || false,
+                fuelFilterChecked: post.formData.fuelFilterChecked || false,
+                cabinFilterChecked: post.formData.cabinFilterChecked || false,
+                kppType: post.formData.kppType || 'АКПП',
+                oilTypeKpp: post.formData.oilTypeKpp || 'Synthetic ATF',
+                mileageOilKpp: post.formData.mileageOilKpp || '',
+                nextOilKpp: post.formData.nextOilKpp || '',
+                oilTypeHydro: post.formData.oilTypeHydro || '',
+                mileageOilHydro: post.formData.mileageOilHydro || '',
+                nextOilHydro: post.formData.nextOilHydro || '',
+                coolantType: post.formData.coolantType || '',
+                freezeTemp: post.formData.freezeTemp || '',
+                shiftsSmooth: post.formData.shiftsSmooth,
+                backlashOk: post.formData.backlashOk,
+                radiatorOk: post.formData.radiatorOk,
+                pumpOk: post.formData.pumpOk,
+                notesDvs: post.formData.notesDvs,
+                notesKpp: post.formData.notesKpp,
+                notesCooling: post.formData.notesCooling,
+                timestamp: formattedDate
+            };
+            
+            // Load existing list
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error("Error reading db", e);
+            }
+            
+            // Mark record as unsynced initially
+            record.syncedToSupabase = false;
+
+            // Remove existing record with same fobId if any (to support overwrites/updates)
+            list = list.filter(item => item.fobId !== record.fobId);
+            
+            // Add new record
+            list.push(record);
+            
+            // Save back to Local Storage
+            localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+            
+            // Notify other tabs immediately
+            try {
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'mobil1_sto_all_diagnostics',
+                    oldValue: null,
+                    newValue: JSON.stringify(list),
+                    storageArea: localStorage
+                }));
+            } catch(e) {
+                console.warn("Storage sync failed", e);
+            }
+
+            // Post real record to backend server if running
+            fetch('/api/diagnostics', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(record)
+            })
+            .then(res => {
+                if (!res.ok) return null;
+                return res.json().catch(() => null);
+            })
+            .then(data => {
+                if (data) console.log("[Cloud Live Sync] Server sync completed successfully:", data);
+            })
+            .catch(err => {
+                console.warn("[Cloud Live Sync] Server endpoint unavailable, using direct local storage & Supabase.");
+            });
+
+            // Direct Supabase Browser SDK sync
+            if (navigator.onLine) {
+                saveToSupabaseDirect(record).then(res => {
+                    if (res.success) {
+                        console.log("[Supabase Direct Sync] Successfully saved to Supabase cloud");
+                        markRecordAsSynced(record.fobId);
+                    } else {
+                        console.warn("[Supabase Direct Sync] Will retry auto-sync when online:", res);
+                    }
+                });
+            } else {
+                console.log("[Supabase Direct Sync] Currently offline. Saved locally, auto-sync will run when back online.");
+            }
+            
+            // Open NFC & QR Modal for STO staff & client tap
+            openNfcQrModal(record);
+            
+            // Clear active post
+            posts[activePostIndex] = createEmptyPostState();
+            
+            // Reset fields
+            resetAllForms();
+            
+            // Force reload active post so it becomes empty (waiting screen)
+            loadPostState(activePostIndex);
+            renderPostTabs();
+        }
+
+        // NFC & QR CODE MODAL FUNCTIONS
+        let activePortalLink = '';
+
+        function openNfcQrModal(record) {
+            const modal = document.getElementById('modal-nfc-qr');
+            const fobElem = document.getElementById('modal-fob-id');
+            const qrImg = document.getElementById('qr-code-img');
+            
+            if (!modal) return;
+
+            const cleanFob = record.fobId || 'MOB1-77A91';
+            fobElem.innerText = cleanFob;
+
+            // Generate full client portal URL
+            const origin = window.location.origin;
+            const encodedFob = encodeURIComponent(cleanFob);
+            activePortalLink = `${origin}/client_portal.html?fob=${encodedFob}&sig=AUTH_MOBIL1_SECURE`;
+
+            // Build dynamic QR Code
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(activePortalLink)}`;
+            qrImg.src = qrApiUrl;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeNfcQrModal() {
+            const modal = document.getElementById('modal-nfc-qr');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copyPortalUrl() {
+            if (!activePortalLink) return;
+            navigator.clipboard.writeText(activePortalLink)
+                .then(() => alert("Ссылка на клиентскую сервисную книжку скопирована!\n\n" + activePortalLink))
+                .catch(() => prompt("Скопируйте ссылку вручную:", activePortalLink));
+        }
+
+        async function writeNfcTag() {
+            if (!('NDEFReader' in window)) {
+                alert("Ваш браузер или ПК не поддерживает прямую запись через Web NFC API.\n\nКлиент может отсканировать QR-код камерой смартфона — при этом ссылка автоматически откроется на его телефоне.");
+                return;
+            }
+
+            try {
+                const ndef = new NDEFReader();
+                alert("Приложите фирменный NFC брелок Mobil 1 к считывателю для записи данных...");
+                await ndef.write({
+                    records: [{ recordType: "url", data: activePortalLink }]
+                });
+                alert("✓ Данные успешно записаны на чип брелка Mobil 1!");
+            } catch (err) {
+                alert("Ошибка записи на NFC чип брелка:\n" + err.message);
+            }
+        }
+
+        // EXPORT ALL LOCAL DATABASE RECORDS
+        function exportDatabase() {
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+            
+            if (list.length === 0) {
+                if (!confirm("Внимание: в локальной базе данных нет записей. Всё равно выгрузить пустой файл?")) {
+                    return;
+                }
+            }
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(list, null, 4));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            
+            const today = new Date().toISOString().slice(0, 10);
+            downloadAnchorNode.setAttribute("download", `mobil1_sto_kazakhstan_db_${today}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+        
+        // TRIGGER FILE INPUT CLICK FOR IMPORT
+        function triggerImport() {
+            document.getElementById('import-db-file').click();
+        }
+        
+        // IMPORT DATABASE FILE
+        function importDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!Array.isArray(parsed)) {
+                        throw new Error("Файл должен содержать массив записей.");
+                    }
+                    
+                    // Validate elements inside roughly
+                    if (parsed.length > 0) {
+                        const first = parsed[0];
+                        if (!first.hasOwnProperty('fobId')) {
+                            throw new Error("Неверный формат базы СТО (отсутствует fobId).");
+                        }
+                    }
+                    
+                    if (confirm(`Вы уверены, что хотите импортировать данные? Это заменит текущие ${getSavedCount()} записей в памяти браузера новыми ${parsed.length} записями.`)) {
+                        localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(parsed));
+                        
+                        // Sync storage event across page instances
+                        try {
+                            window.dispatchEvent(new StorageEvent('storage', {
+                                key: 'mobil1_sto_all_diagnostics',
+                                oldValue: null,
+                                newValue: JSON.stringify(parsed),
+                                storageArea: localStorage
+                            }));
+                        } catch(err) {
+                            console.warn(err);
+                        }
+                        
+                        // Force update indicators & tabs
+                        resetAllForms();
+                        loadPostState(activePostIndex);
+                        renderPostTabs();
+                        
+                        alert(`Импорт успешно завершен! Загружено ${parsed.length} автомобилей в базу СТО.`);
+                        
+                        // Clear file input value to allow re-importing the same name if needed
+                        event.target.value = '';
+                    }
+                } catch(err) {
+                    alert("Ошибка при разборе файла резервной копии:\n" + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function getSavedCount() {
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    return JSON.parse(stored).length;
+                }
+            } catch(e) {}
+            return 0;
+        }
+
+        async function syncToSupabase() {
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+
+            const btn = document.getElementById('btn-sync-supabase');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Отправка в Supabase...</span>
+                `;
+            }
+
+            // 1. Try Server endpoint if running with Express server
+            try {
+                const res = await fetch('/api/sync/to-supabase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ records: list })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success) {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                        }
+                        alert(`✓ Синхронизация с Supabase выполнена через сервер!\n\nУспешно отправлено записей: ${data.syncedCount || list.length}`);
+                        return;
+                    }
+                }
+            } catch(e) {
+                console.warn("[Server Sync] Server endpoint not available, switching to direct client-side Supabase SDK sync");
+            }
+
+            // 2. Direct client-side batch upsert using Supabase JS SDK (for static hosting!)
+            const client = getSupabaseClient();
+            if (!client) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+                alert("⚠️ Supabase не настроен!\n\nПропишите ваш SUPABASE_URL и SUPABASE_KEY в переменные DEFAULT_SUPABASE_URL и DEFAULT_SUPABASE_KEY в начале JS-кода в этом HTML-файле.");
+                return;
+            }
+
+            let successCount = 0;
+            let lastError = '';
+
+            for (const rec of list) {
+                const res = await saveToSupabaseDirect(rec);
+                if (res.success) {
+                    successCount++;
+                } else if (res.error) {
+                    lastError = res.error;
+                }
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+
+            if (successCount > 0) {
+                alert(`✓ Синхронизация с Supabase выполнена прямо из браузера!\n\nУспешно отправлено записей: ${successCount} из ${list.length}`);
+            } else {
+                alert(`⚠️ Не удалось отправлять данные в Supabase.\n\nПодробности: ${lastError || 'Проверьте правильность URL, ключа и наличие таблицы diagnostics в вашей БД Supabase.'}`);
+            }
+        }
+
+        function markRecordAsSynced(fobId) {
+            try {
+                let stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (!stored) return;
+                let list = JSON.parse(stored);
+                let updated = false;
+                list = list.map(item => {
+                    if ((item.fobId || item.fob_id) === fobId) {
+                        item.syncedToSupabase = true;
+                        updated = true;
+                    }
+                    return item;
+                });
+                if (updated) {
+                    localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+                }
+            } catch(e) {}
+        }
+
+        async function autoSyncPendingRecordsToSupabase() {
+            if (!navigator.onLine || window._supabaseTableMissing) return;
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) list = JSON.parse(stored);
+            } catch(e) { return; }
+
+            if (!list || list.length === 0) return;
+
+            for (const item of list) {
+                if (!item.syncedToSupabase) {
+                    const res = await saveToSupabaseDirect(item);
+                    if (res.success) {
+                        markRecordAsSynced(item.fobId || item.fob_id);
+                        console.log(`[Auto Sync] Successfully synced pending record ${item.fobId || item.fob_id} to Supabase`);
+                    } else {
+                        // Stop loop if table missing or error occurred
+                        break;
+                    }
+                }
+            }
+        }
+
+        function showSupabaseSqlModal() {
+            const modal = document.getElementById('modal-supabase-sql');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSupabaseSqlModal() {
+            const modal = document.getElementById('modal-supabase-sql');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copySupabaseSql() {
+            const code = document.getElementById('supabase-sql-code')?.value;
+            if (code) {
+                navigator.clipboard.writeText(code).then(() => alert("✓ SQL-скрипт скопирован в буфер обмена!\n\nВыполните его в панели Supabase -> SQL Editor."));
+            }
+        }
+
+        function updateNetworkStatusUI() {
+            const statusElem = document.getElementById('header-connection-status');
+            if (!statusElem) return;
+            if (navigator.onLine) {
+                const client = getSupabaseClient();
+                if (window._supabaseTableMissing) {
+                    statusElem.className = "hidden lg:inline-flex items-center text-xs text-amber-400 font-mono cursor-pointer hover:underline bg-amber-950/40 border border-amber-800/60 px-2.5 py-1 rounded-lg";
+                    statusElem.onclick = showSupabaseSqlModal;
+                    statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span><span>Локальный режим (нажмите для SQL Supabase)</span>`;
+                } else if (client) {
+                    statusElem.className = "hidden lg:inline-flex items-center text-xs text-emerald-400 font-mono";
+                    statusElem.onclick = null;
+                    statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span><span>Онлайн / Supabase активен</span>`;
+                } else {
+                    statusElem.className = "hidden lg:inline-flex items-center text-xs text-amber-400 font-mono";
+                    statusElem.onclick = null;
+                    statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span><span>Локальный режим (на ПК)</span>`;
+                }
+            } else {
+                statusElem.className = "hidden lg:inline-flex items-center text-xs text-red-400 font-mono";
+                statusElem.onclick = null;
+                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span><span>Офлайн режим (данные на ПК)</span>`;
+            }
+        }
+
+        window.addEventListener('online', () => {
+            console.log("[Network] Restored. Auto-syncing pending records to Supabase...");
+            updateNetworkStatusUI();
+            autoSyncPendingRecordsToSupabase();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("[Network] Connection lost. Storing data locally.");
+            updateNetworkStatusUI();
+        });
+
+        // Initialize on load
+        renderPostTabs();
+        updateNetworkStatusUI();
+        setTimeout(() => {
+            autoSyncPendingRecordsToSupabase();
+        }, 1500);
+    </script>
+</body>
+</html>
