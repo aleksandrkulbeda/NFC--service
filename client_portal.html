@@ -470,7 +470,7 @@
         }
 
         // Helper function to format mileage safely without NaN
-        function formatKm(val, defaultVal = '—') {
+        function formatKm(val, defaultVal = '—', unit = 'км') {
             if (val === null || val === undefined || val === '') return defaultVal;
             let strVal = String(val).trim();
             if (!strVal) return defaultVal;
@@ -478,14 +478,17 @@
             if (digits) {
                 let num = parseInt(digits, 10);
                 if (!isNaN(num)) {
-                    return num.toLocaleString('ru-RU') + ' км';
+                    return num.toLocaleString('ru-RU') + ' ' + unit;
                 }
             }
-            return strVal.includes('км') ? strVal : strVal + ' км';
+            if (strVal.includes('км') || strVal.includes('мл') || strVal.includes('миль')) return strVal;
+            return strVal + ' ' + unit;
         }
 
         // Render functions
         function renderCarData(data) {
+            const carUnit = data.mileageUnit || 'км';
+
             // ID/Fob header
             document.getElementById('portal-fob-id').innerText = 'ID: ' + (data.fobId || '#???');
             
@@ -500,7 +503,7 @@
             let warningText = document.getElementById('warning-text');
             
             // Warning Banner setup (Odometer check instruction + WhatsApp booking)
-            let nextKmFormatted = formatKm(data.nextOilDvs, '150 000 км');
+            let nextKmFormatted = formatKm(data.nextOilDvs, '150 000 ' + carUnit, carUnit);
             warningContainer.className = "p-5 rounded-2xl text-white flex flex-col justify-between space-y-4 animate-brand-orange-pulse relative overflow-hidden";
             warningBadge.innerText = "Контроль пробега";
             warningBadge.className = "text-[10px] font-black uppercase tracking-wider bg-black/40 text-orange-200 px-2.5 py-1 rounded-full";
@@ -520,9 +523,9 @@
             
             // Oil DVS general fields
             document.getElementById('oil-type-desc').innerText = data.oilTypeDvs || 'Mobil 1 FS 5W-30';
-            document.getElementById('oil-mileage-change').innerText = formatKm(data.mileageOilDvs, '—');
+            document.getElementById('oil-mileage-change').innerText = formatKm(data.mileageOilDvs, '—', carUnit);
             document.getElementById('oil-volume-desc').innerText = data.oilVolumeDvs ? (data.oilVolumeDvs + (String(data.oilVolumeDvs).includes('л') ? '' : ' л')) : '6.5 л';
-            document.getElementById('oil-next-change').innerText = formatKm(data.nextOilDvs, '—');
+            document.getElementById('oil-next-change').innerText = formatKm(data.nextOilDvs, '—', carUnit);
             
             // Filter lists
             setFilterState('oil-filter-check', 'oil-filter-status', 'oil-filter-desc', data.oilFilter, data.oilFilterChecked, 'Масляный фильтр');
@@ -532,8 +535,8 @@
             
             // KPP/Transmission fields
             document.getElementById('kpp-fluid-type').innerText = `${data.oilTypeKpp || 'Synthetic ATF'} • ${data.kppType || 'АКПП'}`;
-            document.getElementById('kpp-mileage-change').innerText = formatKm(data.mileageOilKpp, '—');
-            document.getElementById('kpp-next-change').innerText = formatKm(data.nextOilKpp, '—');
+            document.getElementById('kpp-mileage-change').innerText = formatKm(data.mileageOilKpp, '—', carUnit);
+            document.getElementById('kpp-next-change').innerText = formatKm(data.nextOilKpp, '—', carUnit);
             
             let isKppAlt = (data.shiftsSmooth !== false && data.backlashOk !== false);
             document.getElementById('kpp-seal-status').innerText = isKppAlt ? "Герметична" : "Рекомендуется осмотр";
@@ -543,10 +546,10 @@
                 document.getElementById('hydro-oil-type').innerText = data.oilTypeHydro || 'Замена не производилась';
             }
             if (document.getElementById('hydro-mileage-change')) {
-                document.getElementById('hydro-mileage-change').innerText = formatKm(data.mileageOilHydro, '—');
+                document.getElementById('hydro-mileage-change').innerText = formatKm(data.mileageOilHydro, '—', carUnit);
             }
             if (document.getElementById('hydro-next-change')) {
-                document.getElementById('hydro-next-change').innerText = formatKm(data.nextOilHydro, '—');
+                document.getElementById('hydro-next-change').innerText = formatKm(data.nextOilHydro, '—', carUnit);
             }
 
             // Cooling system fields
@@ -567,11 +570,13 @@
             if (!container) return;
 
             let history = (data && Array.isArray(data.history)) ? data.history : [];
+            const recordUnit = (data && data.mileageUnit) ? data.mileageUnit : 'км';
 
             // If history is empty but data contains a service session, synthesize a single history entry
             if (history.length === 0 && data && (data.timestamp || data.mileageOilDvs)) {
                 history = [{
                     timestamp: data.timestamp || 'Зафиксированное ТО',
+                    mileageUnit: recordUnit,
                     mileageOilDvs: data.mileageOilDvs || '',
                     nextOilDvs: data.nextOilDvs || '',
                     oilTypeDvs: data.oilTypeDvs || '',
@@ -598,6 +603,7 @@
 
             let html = '';
             history.forEach((item, index) => {
+                const itemUnit = item.mileageUnit || recordUnit;
                 const filters = [];
                 if (item.oilFilter) filters.push(`Масляный (${item.oilFilter})`);
                 if (item.airFilter) filters.push(`Воздушный (${item.airFilter})`);
@@ -611,7 +617,7 @@
                                 <span class="bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] font-mono">ТО #${history.length - index}</span>
                                 <span class="text-white font-bold">${item.timestamp || 'Дата не указана'}</span>
                             </div>
-                            <span class="text-emerald-400 font-mono font-bold">${formatKm(item.mileageOilDvs, '—')}</span>
+                            <span class="text-emerald-400 font-mono font-bold">${formatKm(item.mileageOilDvs, '—', itemUnit)}</span>
                         </div>
 
                         <div class="space-y-1.5 pt-0.5">
@@ -623,7 +629,7 @@
                             ${item.nextOilDvs ? `
                                 <div class="flex items-center justify-between text-[11px]">
                                     <span class="text-slate-400">След. замена масла:</span>
-                                    <span class="text-blue-400 font-mono font-bold">${formatKm(item.nextOilDvs, '—')}</span>
+                                    <span class="text-blue-400 font-mono font-bold">${formatKm(item.nextOilDvs, '—', itemUnit)}</span>
                                 </div>
                             ` : ''}
 
