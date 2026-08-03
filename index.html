@@ -59,7 +59,7 @@
                     <input type="file" id="import-db-file" class="hidden" accept=".json" onchange="importDatabase(event)">
                 </div>
 
-                <span class="text-[10px] text-slate-500 font-mono hidden md:inline">v4.2.2-Alpha</span>
+                <span class="text-[10px] text-slate-500 font-mono hidden md:inline">v4.2.1-Alpha</span>
             </div>
         </div>
     </header>
@@ -180,7 +180,7 @@
 
                 <!-- Search by License Plate Box -->
                 <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-left space-y-2 mt-4">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Поиск ТС по госномеру (при утере брелка)</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Поиск ТС по госномеру</label>
                     <div class="flex space-x-2">
                         <input type="text" id="search-license-plate" placeholder="Введите гос. номер (напр. 777 MOB 01)" class="flex-grow bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-100 outline-none">
                         <button type="button" onclick="searchByLicensePlate()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow">
@@ -246,12 +246,14 @@
                 <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-slate-400">
                     <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z"></path></svg>
                     <div class="space-y-1">
-                        <span class="text-slate-200 font-bold block">🛡️ Защита данных и законодательство о персональных данных</span>
+                        <span class="text-slate-200 font-bold block">🛡️ Защита данных и 152-ФЗ / Законодательство о персональных данных</span>
                         <p class="text-[11px] leading-relaxed text-slate-400">
                             Обрабатываются только технические параметры авто (Марка, Модель, Гос. номер, данные о ТО). Личные данные владельцев не передаются третьим лицам и привязаны к физическому ID брелока. VIN-код не запрашивается.
                         </p>
                     </div>
                 </div>
+
+
 
                 <div class="pt-2">
                     <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 active:scale-[0.98] text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-950/30 transition-all flex items-center justify-center space-x-2">
@@ -463,6 +465,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -516,6 +519,28 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- REPLACEMENT HISTORY CARD (Последние 5 замен) -->
+                <div id="sto-history-container" class="bg-mobilSlate/50 border border-slate-800 rounded-2xl p-6 mt-8">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-base">История обслуживаний и замен (Последние 5 ТО)</h3>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Service History Logs</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-mono text-orange-400 bg-orange-950/40 px-2.5 py-1 rounded border border-orange-900/40 font-bold" id="sto-history-count-badge">0 замен</span>
+                    </div>
+
+                    <div id="sto-history-list" class="space-y-3">
+                        <div class="text-xs text-slate-500 italic p-3 text-center border border-dashed border-slate-800 rounded-xl">
+                            Записи замен не найдены. Новое ТО будет сохранено в историю при фиксации.
+                        </div>
+                    </div>
                 </div>
 
                 <!-- BOTTOM FIX ACTION BUTTON -->
@@ -607,7 +632,7 @@
                 </div>
                 <textarea id="supabase-sql-code" readonly class="w-full h-36 bg-slate-900 border border-slate-800 text-[11px] font-mono text-purple-300 rounded p-2 focus:outline-none resize-none">CREATE TABLE IF NOT EXISTS public.diagnostics (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    fobId TEXT UNIQUE NOT NULL,
+    fob_id TEXT UNIQUE NOT NULL,
     data JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -635,10 +660,14 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         </div>
     </footer>
 
-    <!-- INTERACTIVE SCRIPT -->
+    <!-- INTERACTIVE SCRIPT (Vanilla JS for multi-screen client-only flow with multi-post support) -->
     <script>
-        const DEFAULT_SUPABASE_URL = "https://nrqsfkpomswnjwlencgk.supabase.co"; 
-        const DEFAULT_SUPABASE_KEY = "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"; 
+        // =========================================================================
+        // SUPABASE CONFIGURATION FOR STATIC HOSTING & BACKENDLESS OPERATION
+        // Укажите URL и Ключ доступа Supabase в константах ниже:
+        // =========================================================================
+        const DEFAULT_SUPABASE_URL = "https://nrqsfkpomswnjwlencgk.supabase.co"; // Ваш URL (например: "https://xxxx.supabase.co")
+        const DEFAULT_SUPABASE_KEY = "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"; // Ваш Ключ (например: "eyJhbGciOi...")
 
         function getSupabaseConfig() {
             const url = localStorage.getItem('mobil1_supabase_url') || (DEFAULT_SUPABASE_URL && !DEFAULT_SUPABASE_URL.includes('xyzcompany') ? DEFAULT_SUPABASE_URL : '');
@@ -677,9 +706,10 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             }
 
             const now = new Date().toISOString();
-            let colName = window._supabaseWorkingCol || "fobId";
+            let colName = window._supabaseWorkingCol || "fob_id";
             let existingRow = null;
 
+            // 1. Safely inspect table schema / sample row to avoid 400 Bad Request
             try {
                 const { data: sample, error: sampleErr } = await client.from("diagnostics").select("*").limit(1);
                 if (sampleErr) {
@@ -697,6 +727,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     window._supabaseWorkingCol = colName;
                 }
 
+                // Query targeted row with confirmed column
                 const { data, error } = await client.from("diagnostics").select("*").eq(colName, cleanFob).maybeSingle();
                 if (!error && data) {
                     existingRow = data;
@@ -711,6 +742,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 updated_at: now
             };
 
+            // 2. If row exists -> UPDATE
             if (existingRow) {
                 try {
                     const rowKey = existingRow.id ? 'id' : colName;
@@ -720,16 +752,19 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 } catch(e) {}
             }
 
+            // 3. Otherwise -> INSERT
             try {
                 const { error: insErr } = await client.from("diagnostics").insert(payload);
                 if (!insErr) return { success: true };
 
+                // Handle race condition or duplicate key
                 if (insErr.code === "23505" || (insErr.message && insErr.message.toLowerCase().includes("duplicate"))) {
                     const { error: upErr2 } = await client.from("diagnostics").update(payload).eq(colName, cleanFob);
                     if (!upErr2) return { success: true };
                     return { success: false, error: upErr2.message };
                 }
 
+                // If column was missing in empty table, try alternate column name
                 if (insErr.code === "42703" || (insErr.message && insErr.message.includes("column"))) {
                     const altCol = colName === "fobId" ? "fob_id" : "fobId";
                     const altPayload = { [altCol]: cleanFob, data: record, updated_at: now };
@@ -750,6 +785,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         // Multi-Post Memory State
         let activePostIndex = 0;
         
+        // Oil history and autocomplete helper functions
         function getRecentOilTypes() {
             let list = [];
             try {
@@ -843,6 +879,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 });
                 dd.innerHTML = html;
             }
+            
             dd.classList.remove('hidden');
         }
 
@@ -857,6 +894,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             if (dd) dd.classList.add('hidden');
         }
 
+        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             const dd = document.getElementById('oil_type_dropdown');
             const input = document.getElementById('oil_type_dvs');
@@ -865,6 +903,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             }
         });
 
+        // Quick calculation of next mileage (+7000 or +9000)
         function addMileageDelta(delta) {
             const curInput = document.getElementById('mileage_oil_change_dvs');
             const nextInput = document.getElementById('next_oil_change_dvs');
@@ -883,6 +922,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             saveCurrentPostState();
         }
 
+        // Quick toggle all filters for peak hours
         function toggleAllFilters(checked) {
             ['check_oil_filter', 'check_air_filter', 'check_fuel_filter', 'check_cabin_filter'].forEach(id => {
                 const el = document.getElementById(id);
@@ -891,9 +931,10 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             saveCurrentPostState();
         }
         
+        // Initial state helper for a new post
         function createEmptyPostState() {
             return {
-                screen: 'waiting',
+                screen: 'waiting', // 'waiting', 'chip-init', 'priority-alpha'
                 fobId: '',
                 carBrand: '',
                 carModel: '',
@@ -901,7 +942,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 ownerName: '',
                 ownerPhone: '',
                 licensePlate: '',
-                scanStatus: 'idle',
+                scanStatus: 'idle', // 'idle', 'spinner', 'success'
                 formData: {
                     oilTypeDvs: '',
                     oilVolumeDvs: '',
@@ -914,6 +955,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     pressureOk: false,
                     coldStartOk: false,
                     notesDvs: '',
+                    
                     kppType: '',
                     oilTypeKpp: '',
                     mileageOilKpp: '',
@@ -924,6 +966,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     backlashOk: false,
                     shiftsSmooth: false,
                     notesKpp: '',
+                    
                     coolantType: '',
                     freezeTemp: '',
                     radiatorOk: false,
@@ -939,6 +982,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             createEmptyPostState()
         ];
 
+        // Core global reactive reference (mapped to the active post)
         let state = {
             fobId: '',
             carBrand: '',
@@ -951,6 +995,8 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
         function saveCurrentPostState() {
             let post = posts[activePostIndex];
+            
+            // Core state
             post.fobId = state.fobId;
             post.carBrand = state.carBrand;
             post.carModel = state.carModel;
@@ -959,6 +1005,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             post.ownerPhone = state.ownerPhone;
             post.licensePlate = state.licensePlate;
             
+            // Screen state
             if (!document.getElementById('screen-waiting').classList.contains('hidden')) {
                 post.screen = 'waiting';
             } else if (!document.getElementById('screen-chip-init').classList.contains('hidden')) {
@@ -967,6 +1014,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 post.screen = 'priority-alpha';
             }
             
+            // Scan state
             if (!document.getElementById('scan-success').classList.contains('hidden')) {
                 post.scanStatus = 'success';
             } else if (!document.getElementById('scan-spinner').classList.contains('hidden')) {
@@ -975,6 +1023,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 post.scanStatus = 'idle';
             }
             
+            // Save diagnostics form inputs
             post.formData.oilTypeDvs = document.getElementById('oil_type_dvs')?.value || '';
             post.formData.oilVolumeDvs = document.getElementById('oil_volume_dvs')?.value || '';
             post.formData.mileageOilDvs = document.getElementById('mileage_oil_change_dvs')?.value || '';
@@ -1014,6 +1063,8 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
         function loadPostState(index) {
             let post = posts[index];
+            
+            // Restore global state reference
             state.fobId = post.fobId;
             state.carBrand = post.carBrand;
             state.carModel = post.carModel;
@@ -1022,6 +1073,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             state.ownerPhone = post.ownerPhone;
             state.licensePlate = post.licensePlate;
             
+            // Reset screens visibility
             document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-chip-init').classList.add('hidden');
             document.getElementById('screen-priority-alpha').classList.add('hidden');
@@ -1033,6 +1085,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 document.getElementById('display-fob-id').innerText = state.fobId || '-';
             } else if (post.screen === 'priority-alpha') {
                 document.getElementById('screen-priority-alpha').classList.remove('hidden');
+                
                 let summaryText = 'Брелок: ' + (state.fobId || 'Не указан');
                 if (state.carBrand || state.carModel) {
                     summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
@@ -1040,6 +1093,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 document.getElementById('summary-car-info').innerText = summaryText;
             }
             
+            // Reset scan status displays
             document.getElementById('scan-success').classList.add('hidden');
             document.getElementById('scan-idle').classList.add('hidden');
             document.getElementById('scan-spinner').classList.add('hidden');
@@ -1054,6 +1108,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 document.getElementById('scan-idle').classList.remove('hidden');
             }
             
+            // Populate Chip Init screen inputs
             if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand || '';
             if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel || '';
             if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear || '';
@@ -1061,6 +1116,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName || '';
             if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone || '';
             
+            // Populate Card 1 inputs
             if (document.getElementById('oil_type_dvs')) document.getElementById('oil_type_dvs').value = post.formData.oilTypeDvs || '';
             if (document.getElementById('oil_volume_dvs')) document.getElementById('oil_volume_dvs').value = post.formData.oilVolumeDvs || '';
             if (document.getElementById('mileage_oil_change_dvs')) document.getElementById('mileage_oil_change_dvs').value = post.formData.mileageOilDvs || '';
@@ -1080,6 +1136,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             if (document.getElementById('check_leaks_dvs')) document.getElementById('check_leaks_dvs').checked = post.formData.leaksOk || false;
             if (document.getElementById('notes_dvs')) document.getElementById('notes_dvs').value = post.formData.notesDvs || '';
             
+            // Populate Card 2 inputs
             if (document.getElementById('kpp_type')) document.getElementById('kpp_type').value = post.formData.kppType || '';
             if (document.getElementById('oil_type_kpp')) document.getElementById('oil_type_kpp').value = post.formData.oilTypeKpp || '';
             if (document.getElementById('mileage_oil_change_kpp')) document.getElementById('mileage_oil_change_kpp').value = post.formData.mileageOilKpp || '';
@@ -1091,11 +1148,15 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             if (document.getElementById('check_smooth_kpp')) document.getElementById('check_smooth_kpp').checked = post.formData.shiftsSmooth;
             if (document.getElementById('notes_kpp')) document.getElementById('notes_kpp').value = post.formData.notesKpp || '';
             
+            // Populate Card 3 inputs
             if (document.getElementById('coolant_type')) document.getElementById('coolant_type').value = post.formData.coolantType || '';
             if (document.getElementById('freeze_temp')) document.getElementById('freeze_temp').value = post.formData.freezeTemp || '';
             if (document.getElementById('check_radiator_ok')) document.getElementById('check_radiator_ok').checked = post.formData.radiatorOk;
             if (document.getElementById('check_pump_ok')) document.getElementById('check_pump_ok').checked = post.formData.pumpOk;
             if (document.getElementById('notes_cooling')) document.getElementById('notes_cooling').value = post.formData.notesCooling || '';
+
+            // Render replacement history for active post fob
+            renderStoHistory(post.fobId);
         }
 
         function switchActivePost(index) {
@@ -1110,9 +1171,11 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             for (let i = 0; i < 3; i++) {
                 const btn = document.getElementById(`btn-post-${i}`);
                 if (!btn) continue;
+                
                 const post = posts[i];
                 const isActive = (i === activePostIndex);
                 
+                // Construct tag name
                 let postLabel = `Пост ${i + 1}`;
                 if (post.fobId) {
                     let labelDetail = post.carBrand || post.fobId;
@@ -1122,11 +1185,13 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     postLabel += ` (Свободен)`;
                 }
                 
+                // Update Button Content
                 btn.innerHTML = `
                     <span class="w-1.5 h-1.5 rounded-full ${post.fobId ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}" id="indicator-post-${i}"></span>
                     <span>${postLabel}</span>
                 `;
                 
+                // Update classes
                 if (isActive) {
                     btn.className = "px-5 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center space-x-2 bg-blue-600/15 text-blue-400 border-blue-500/35 shadow-md shadow-blue-900/10 cursor-default";
                 } else {
@@ -1136,11 +1201,13 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         }
 
         function resetAllForms() {
+            // Document query selects to safely avoid crash if form structure has changed
             const formChip = document.getElementById('form-chip-init');
             if (formChip) formChip.reset();
             const formDiag = document.getElementById('form-diagnostics');
             if (formDiag) formDiag.reset();
             
+            // Reset scan screen visual state
             document.getElementById('scan-idle').classList.remove('hidden');
             document.getElementById('scan-spinner').classList.add('hidden');
             document.getElementById('scan-success').classList.add('hidden');
@@ -1154,6 +1221,8 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
         function goToScreen2() {
             document.getElementById('display-fob-id').innerText = state.fobId;
+            
+            // Pre-fill inputs with state
             document.getElementById('car-brand').value = state.carBrand;
             document.getElementById('car-model').value = state.carModel;
 
@@ -1163,6 +1232,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         }
 
         function simulateFobScan(type) {
+            // Show scan animation
             document.getElementById('scan-success').classList.add('hidden');
             document.getElementById('scan-idle').classList.add('hidden');
             document.getElementById('scan-spinner').classList.remove('hidden');
@@ -1183,6 +1253,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     document.getElementById('scanned-fob-id').innerText = state.fobId;
                     document.getElementById('scanned-car').innerText = state.carBrand + ' ' + state.carModel;
                 } else {
+                    // Generate new RFID keyfob chip
                     state.fobId = 'M1-FOB-' + Math.floor(10000 + Math.random() * 90000);
                     state.carBrand = '';
                     state.carModel = '';
@@ -1191,9 +1262,11 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     state.ownerName = '';
                     state.ownerPhone = '';
 
+                    // Go to registration immediately
                     goToScreen2();
                 }
                 
+                // Dynamically update persistent tabs
                 saveCurrentPostState();
                 renderPostTabs();
             }, 600);
@@ -1203,10 +1276,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             goToScreen2();
         }
 
-        // =========================================================================
-        // ПОИСК ПО ГОСНОМЕРУ И ЗАГРУЗКА ИСТОРИИ ТО
-        // =========================================================================
-        async function searchByLicensePlate() {
+        function searchByLicensePlate() {
             const inputPlate = document.getElementById('search-license-plate')?.value.trim().toUpperCase() || '';
             const resultBox = document.getElementById('search-result-info');
             
@@ -1217,90 +1287,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 }
                 return;
             }
-
-            if (resultBox) {
-                resultBox.classList.remove('hidden');
-                resultBox.innerHTML = '<span class="text-blue-400">Ищем в облачной базе Supabase...</span>';
-            }
-
-            const client = getSupabaseClient();
-            if (!client) {
-                searchByLicensePlateLocal(inputPlate, resultBox);
-                return;
-            }
-
-            try {
-                const { data, error } = await client
-                    .from('diagnostics')
-                    .select('*')
-                    .ilike('data->>licensePlate', `%${inputPlate}%`)
-                    .limit(1);
-
-                if (error || !data || data.length === 0) {
-                    searchByLicensePlateLocal(inputPlate, resultBox);
-                    return;
-                }
-
-                const record = data[0];
-                const recData = record.data || {};
-                const oldFob = record.fobId || record.fob_id || recData.fobId || 'Не привязан';
-
-                state.fobId = oldFob;
-                state.carBrand = recData.carBrand || '';
-                state.carModel = recData.carModel || '';
-                state.carYear = recData.carYear || '';
-                state.ownerName = recData.ownerName || '';
-                state.ownerPhone = recData.ownerPhone || '';
-                state.licensePlate = recData.licensePlate || inputPlate;
-
-                // Сохраняем найденные данные в состояние активного поста
-                let post = posts[activePostIndex];
-                post.fobId = state.fobId;
-                post.carBrand = state.carBrand;
-                post.carModel = state.carModel;
-                post.carYear = state.carYear;
-                post.licensePlate = state.licensePlate;
-                
-                // Заполняем форму данными из последней записи
-                if (recData.oilTypeDvs) post.formData.oilTypeDvs = recData.oilTypeDvs;
-                if (recData.oilVolumeDvs) post.formData.oilVolumeDvs = recData.oilVolumeDvs;
-                if (recData.mileageOilDvs) post.formData.mileageOilDvs = recData.mileageOilDvs;
-                if (recData.nextOilDvs) post.formData.nextOilDvs = recData.nextOilDvs;
-                if (recData.oilFilter) post.formData.oilFilter = recData.oilFilter;
-                if (recData.airFilter) post.formData.airFilter = recData.airFilter;
-                if (recData.fuelFilter) post.formData.fuelFilter = recData.fuelFilter;
-                if (recData.cabinFilter) post.formData.cabinFilter = recData.cabinFilter;
-                if (recData.kppType) post.formData.kppType = recData.kppType;
-                if (recData.oilTypeKpp) post.formData.oilTypeKpp = recData.oilTypeKpp;
-                if (recData.mileageOilKpp) post.formData.mileageOilKpp = recData.mileageOilKpp;
-                if (recData.nextOilKpp) post.formData.nextOilKpp = recData.nextOilKpp;
-
-                saveCurrentPostState();
-                renderPostTabs();
-
-                if (resultBox) {
-                    resultBox.innerHTML = `
-                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в Supabase!</div>
-                        <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel} (Брелок: ${oldFob})</div>
-                        <div class="text-slate-400 text-[11px]">Госномер: ${state.licensePlate} | Тел: ${state.ownerPhone || '-'}</div>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                Открыть карту ТО
-                            </button>
-                            <button type="button" onclick="promptRebindFob('${record.id || record.fobId || record.fob_id}', '${oldFob}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                🔄 Привязать новый брелок
-                            </button>
-                        </div>
-                    `;
-                }
-            } catch(e) {
-                console.error("Cloud search error:", e);
-                searchByLicensePlateLocal(inputPlate, resultBox);
-            }
-        }
-
-        // Поиск по локальной базе на ПК (резервный)
-        function searchByLicensePlateLocal(inputPlate, resultBox) {
+            
             let list = [];
             try {
                 const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
@@ -1311,7 +1298,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             const matched = list.find(item => item.licensePlate && item.licensePlate.toUpperCase().replace(/\s+/g, '') === targetPlate);
             
             if (matched) {
-                state.fobId = matched.fobId || matched.fob_id || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
+                state.fobId = matched.fobId || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
@@ -1319,36 +1306,36 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 state.ownerPhone = matched.ownerPhone || '';
                 state.licensePlate = matched.licensePlate || inputPlate;
                 
-                let post = posts[activePostIndex];
-                post.fobId = state.fobId;
-                post.carBrand = state.carBrand;
-                post.carModel = state.carModel;
-                post.carYear = state.carYear;
-                post.licensePlate = state.licensePlate;
-                if (matched.oilTypeDvs) post.formData.oilTypeDvs = matched.oilTypeDvs;
-                if (matched.mileageOilDvs) post.formData.mileageOilDvs = matched.mileageOilDvs;
-                if (matched.nextOilDvs) post.formData.nextOilDvs = matched.nextOilDvs;
-
+                // Pre-fill CHIP_INIT form
+                if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand;
+                if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel;
+                if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear;
+                if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName;
+                if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone;
+                if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate;
+                
                 saveCurrentPostState();
                 renderPostTabs();
                 
                 if (resultBox) {
+                    resultBox.classList.remove('hidden');
                     resultBox.innerHTML = `
-                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в локальной базе ПК!</div>
-                        <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel}</div>
+                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в локальной базе!</div>
+                        <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel} (${state.carYear || 'Год не указ.'})</div>
                         <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
                         <div class="mt-2 flex space-x-2">
+                            <button type="button" onclick="goToScreen2()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
+                                Данные ТС / Брелок
+                            </button>
                             <button type="button" onclick="loadFobToDiagnostics()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 Карта ТО
-                            </button>
-                            <button type="button" onclick="promptRebindFob('${state.fobId}', '${state.fobId}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
-                                🔄 Привязать новый брелок
                             </button>
                         </div>
                     `;
                 }
             } else {
                 if (resultBox) {
+                    resultBox.classList.remove('hidden');
                     resultBox.innerHTML = `
                         <div class="text-amber-400 font-bold">Автомобиль с госномером "${inputPlate}" не найден.</div>
                         <div class="text-slate-400 text-[11px] mt-1">Вы можете выдать новый брелок и зарегистрировать данные ТС.</div>
@@ -1357,63 +1344,24 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             }
         }
 
-        // Функция диалога перепривязки при утере брелка
-        async function promptRebindFob(rowIdentifier, oldFob) {
-            const newFob = prompt(`Клиент потерял старый брелок (${oldFob}). Введите ID НОВОГО чипа для перепривязки всей истории:`, "M1-FOB-");
-            if (!newFob || !newFob.trim()) return;
-
-            const cleanNewFob = newFob.trim();
-            state.fobId = cleanNewFob;
-
-            const client = getSupabaseClient();
-            if (client) {
-                try {
-                    const colName = window._supabaseWorkingCol || 'fobId';
-                    const { error } = await client
-                        .from('diagnostics')
-                        .update({ [colName]: cleanNewFob })
-                        .eq(colName, oldFob);
-
-                    if (error) {
-                        await client.from('diagnostics').update({ [colName]: cleanNewFob }).eq('id', rowIdentifier);
-                    }
-                } catch(e) {
-                    console.warn("Supabase rebind warning:", e);
-                }
-            }
-
-            try {
-                let list = JSON.parse(localStorage.getItem('mobil1_sto_all_diagnostics') || '[]');
-                list = list.map(item => {
-                    if (item.fobId === oldFob || item.fob_id === oldFob) {
-                        item.fobId = cleanNewFob;
-                        item.fob_id = cleanNewFob;
-                    }
-                    return item;
-                });
-                localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
-            } catch(e) {}
-
-            alert(`✓ Успешно! Новый брелок ${cleanNewFob} привязан к истории этой машины. Вся история замен сохранена.`);
-            saveCurrentPostState();
-            renderPostTabs();
-            loadFobToDiagnostics();
-        }
-        // =========================================================================
-
         function goToScreen3() {
             document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-chip-init').classList.add('hidden');
             document.getElementById('screen-priority-alpha').classList.remove('hidden');
             
+            // Update top summary bar
             let summaryText = 'Брелок: ' + (state.fobId || 'Не указан');
             if (state.carBrand || state.carModel) {
                 summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
             }
             document.getElementById('summary-car-info').innerText = summaryText;
+
+            // Render history for current fob
+            renderStoHistory(state.fobId);
         }
 
         function saveAndLinkChip() {
+            // Gather inputs
             const brandVal = document.getElementById('car-brand')?.value || '';
             const modelVal = document.getElementById('car-model')?.value || '';
             const yearVal = document.getElementById('car-year')?.value || '';
@@ -1430,6 +1378,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             
             alert("Чип успешно привязан и сохранен в локальную память!");
             
+            // Save vehicle details in local storage database
             const vehicleRecord = {
                 fobId: state.fobId,
                 carBrand: state.carBrand,
@@ -1445,7 +1394,9 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             try {
                 const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
                 if (stored) list = JSON.parse(stored);
-            } catch(e) {}
+            } catch(e) {
+                console.error("Error reading db", e);
+            }
             
             let existingIndex = list.findIndex(item => (state.fobId && item.fobId === state.fobId) || (state.licensePlate && item.licensePlate === state.licensePlate));
             if (existingIndex >= 0) {
@@ -1456,25 +1407,144 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             
             localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
             
+            fetch('/api/diagnostics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(vehicleRecord)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("[Local DB Initialize] Success:", data);
+            })
+            .catch(err => {
+                console.warn("[Local DB Initialize] Failed:", err);
+            });
+            
+            // Maintain persistent post state tabs
             saveCurrentPostState();
             renderPostTabs();
+            
+            // Switch to Screen 3 (Diagnostics Card)
             goToScreen3();
         }
 
         function loadFobToDiagnostics() {
-            loadPostState(activePostIndex);
+            // Directly start diagnostics with loaded client history
+            let summaryText = 'Брелок: ' + state.fobId;
+            if (state.carBrand || state.carModel) {
+                summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
+            }
+            document.getElementById('summary-car-info').innerText = summaryText;
+            
             goToScreen3();
         }
 
+        function renderStoHistory(fobId) {
+            const container = document.getElementById('sto-history-list');
+            const badge = document.getElementById('sto-history-count-badge');
+            if (!container) return;
+
+            if (!fobId) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic p-3 text-center border border-dashed border-slate-800 rounded-xl">Брелок не выбран. Выберите брелок для загрузки истории замен.</div>`;
+                if (badge) badge.innerText = '0 замен';
+                return;
+            }
+
+            let records = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) records = JSON.parse(stored);
+            } catch(e) {}
+
+            const rec = records.find(item => item.fobId === fobId);
+            let history = (rec && Array.isArray(rec.history)) ? rec.history : [];
+            
+            // If history array empty but rec exists with service date, create virtual first history item
+            if (history.length === 0 && rec && rec.timestamp) {
+                history = [{
+                    timestamp: rec.timestamp,
+                    mileageOilDvs: rec.mileageOilDvs || '',
+                    nextOilDvs: rec.nextOilDvs || '',
+                    oilTypeDvs: rec.oilTypeDvs || '',
+                    oilVolumeDvs: rec.oilVolumeDvs || '',
+                    oilFilter: rec.oilFilter || '',
+                    airFilter: rec.airFilter || '',
+                    fuelFilter: rec.fuelFilter || '',
+                    cabinFilter: rec.cabinFilter || '',
+                    notesDvs: rec.notesDvs || ''
+                }];
+            }
+
+            // Slice to last 5 entries for STO internal portal
+            const last5 = history.slice(0, 5);
+            if (badge) badge.innerText = `${history.length} замен (показано ${last5.length})`;
+
+            if (last5.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic p-3 text-center border border-dashed border-slate-800 rounded-xl">История замен для брелка ${fobId} пуста. Новое ТО будет сохранено в историю при фиксации.</div>`;
+                return;
+            }
+
+            let html = '';
+            last5.forEach((item, index) => {
+                const filterBadges = [];
+                if (item.oilFilter) filterBadges.push(`Масляный (${item.oilFilter})`);
+                if (item.airFilter) filterBadges.push(`Воздушный (${item.airFilter})`);
+                if (item.fuelFilter) filterBadges.push(`Топливный (${item.fuelFilter})`);
+                if (item.cabinFilter) filterBadges.push(`Салонный (${item.cabinFilter})`);
+
+                html += `
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs space-y-2 relative">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] font-mono">ТО #${history.length - index}</span>
+                                <span class="text-slate-300 font-semibold">📅 ${item.timestamp || 'Дата не указана'}</span>
+                            </div>
+                            <span class="text-emerald-400 font-mono font-bold">Пробег: ${item.mileageOilDvs ? item.mileageOilDvs + ' км' : '—'}</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                                <span class="text-slate-500">Масло ДВС:</span> 
+                                <strong class="text-slate-200">${item.oilTypeDvs || 'Замена масла'}</strong> 
+                                ${item.oilVolumeDvs ? `<span class="text-slate-400">(${item.oilVolumeDvs} л)</span>` : ''}
+                            </div>
+                            <div>
+                                <span class="text-slate-500">След. замена:</span> 
+                                <strong class="text-blue-400 font-mono">${item.nextOilDvs ? item.nextOilDvs + ' км' : '—'}</strong>
+                            </div>
+                        </div>
+
+                        ${filterBadges.length > 0 ? `
+                            <div class="flex flex-wrap gap-1 pt-1">
+                                ${filterBadges.map(b => `<span class="bg-slate-950 text-slate-300 border border-slate-800 text-[10px] px-2 py-0.5 rounded">✓ ${b}</span>`).join('')}
+                            </div>
+                        ` : ''}
+
+                        ${item.notesDvs ? `
+                            <div class="bg-slate-950/60 p-2 rounded text-[10px] text-slate-400">
+                                📝 <span class="italic">${item.notesDvs}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
         function commitToDatabase() {
+            // Ensure any recent typing is saved
             saveCurrentPostState();
+            
             let post = posts[activePostIndex];
             
+            // Check if there is an active fob ID to register
             if (!post.fobId) {
                 alert("Ошибка: нет активного брелка для сохранения записи!");
                 return;
             }
             
+            // Construct timestamp (DD.MM.YYYY HH:MM)
             const d = new Date();
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -1483,17 +1553,76 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             const minutes = String(d.getMinutes()).padStart(2, '0');
             const formattedDate = `${day}.${month}.${year} ${hours}:${minutes}`;
 
+            // Save oil type to recent localStorage list
             if (post.formData.oilTypeDvs) {
                 saveRecentOilType(post.formData.oilTypeDvs);
             }
 
+            // Load existing list to preserve service history
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error("Error reading db", e);
+            }
+
+            const existingRecord = list.find(item => item.fobId === post.fobId);
+            let prevHistory = [];
+            if (existingRecord && Array.isArray(existingRecord.history) && existingRecord.history.length > 0) {
+                prevHistory = [...existingRecord.history];
+            } else if (existingRecord && (existingRecord.timestamp || existingRecord.mileageOilDvs)) {
+                prevHistory.push({
+                    id: 'hist_' + Date.now() + '_prev',
+                    timestamp: existingRecord.timestamp || 'Ранее зафиксировано',
+                    mileageOilDvs: existingRecord.mileageOilDvs || '',
+                    nextOilDvs: existingRecord.nextOilDvs || '',
+                    oilTypeDvs: existingRecord.oilTypeDvs || '',
+                    oilVolumeDvs: existingRecord.oilVolumeDvs || '',
+                    oilFilter: existingRecord.oilFilter || '',
+                    airFilter: existingRecord.airFilter || '',
+                    fuelFilter: existingRecord.fuelFilter || '',
+                    cabinFilter: existingRecord.cabinFilter || '',
+                    oilTypeKpp: existingRecord.oilTypeKpp || '',
+                    mileageOilKpp: existingRecord.mileageOilKpp || '',
+                    nextOilKpp: existingRecord.nextOilKpp || '',
+                    coolantType: existingRecord.coolantType || '',
+                    freezeTemp: existingRecord.freezeTemp || '',
+                    notesDvs: existingRecord.notesDvs || ''
+                });
+            }
+
+            const currentHistoryEntry = {
+                id: 'hist_' + Date.now(),
+                timestamp: formattedDate,
+                mileageOilDvs: post.formData.mileageOilDvs || '',
+                nextOilDvs: post.formData.nextOilDvs || '',
+                oilTypeDvs: post.formData.oilTypeDvs || '',
+                oilVolumeDvs: post.formData.oilVolumeDvs || '',
+                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ''),
+                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ''),
+                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ''),
+                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ''),
+                oilTypeKpp: post.formData.oilTypeKpp || '',
+                mileageOilKpp: post.formData.mileageOilKpp || '',
+                nextOilKpp: post.formData.nextOilKpp || '',
+                coolantType: post.formData.coolantType || '',
+                freezeTemp: post.formData.freezeTemp || '',
+                notesDvs: post.formData.notesDvs || '',
+                notesKpp: post.formData.notesKpp || '',
+                notesCooling: post.formData.notesCooling || ''
+            };
+
+            const fullHistory = [currentHistoryEntry, ...prevHistory];
+
+            // Create flat record matching portal-friendly structure (WITHOUT personal names/phones)
             const record = {
                 fobId: post.fobId,
                 carBrand: post.carBrand,
                 carModel: post.carModel,
                 carYear: post.carYear || state.carYear || '',
-                ownerName: post.ownerName || state.ownerName || '',
-                ownerPhone: post.ownerPhone || state.ownerPhone || '',
                 licensePlate: post.licensePlate || state.licensePlate || '',
                 oilTypeDvs: post.formData.oilTypeDvs,
                 oilVolumeDvs: post.formData.oilVolumeDvs,
@@ -1523,36 +1652,93 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 notesDvs: post.formData.notesDvs,
                 notesKpp: post.formData.notesKpp,
                 notesCooling: post.formData.notesCooling,
-                timestamp: formattedDate
+                timestamp: formattedDate,
+                history: fullHistory
             };
             
+            // Load existing list
             let list = [];
             try {
                 const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
-                if (stored) list = JSON.parse(stored);
-            } catch(e) {}
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error("Error reading db", e);
+            }
             
+            // Mark record as unsynced initially
             record.syncedToSupabase = false;
+
+            // Remove existing record with same fobId if any (to support overwrites/updates)
             list = list.filter(item => item.fobId !== record.fobId);
+            
+            // Add new record
             list.push(record);
             
+            // Save back to Local Storage
             localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
             
+            // Notify other tabs immediately
+            try {
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'mobil1_sto_all_diagnostics',
+                    oldValue: null,
+                    newValue: JSON.stringify(list),
+                    storageArea: localStorage
+                }));
+            } catch(e) {
+                console.warn("Storage sync failed", e);
+            }
+
+            // Post real record to backend server if running
+            fetch('/api/diagnostics', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(record)
+            })
+            .then(res => {
+                if (!res.ok) return null;
+                return res.json().catch(() => null);
+            })
+            .then(data => {
+                if (data) console.log("[Cloud Live Sync] Server sync completed successfully:", data);
+            })
+            .catch(err => {
+                console.warn("[Cloud Live Sync] Server endpoint unavailable, using direct local storage & Supabase.");
+            });
+
+            // Direct Supabase Browser SDK sync
             if (navigator.onLine) {
                 saveToSupabaseDirect(record).then(res => {
                     if (res.success) {
+                        console.log("[Supabase Direct Sync] Successfully saved to Supabase cloud");
                         markRecordAsSynced(record.fobId);
+                    } else {
+                        console.warn("[Supabase Direct Sync] Will retry auto-sync when online:", res);
                     }
                 });
+            } else {
+                console.log("[Supabase Direct Sync] Currently offline. Saved locally, auto-sync will run when back online.");
             }
             
+            // Open NFC & QR Modal for STO staff & client tap
             openNfcQrModal(record);
+            
+            // Clear active post
             posts[activePostIndex] = createEmptyPostState();
+            
+            // Reset fields
             resetAllForms();
+            
+            // Force reload active post so it becomes empty (waiting screen)
             loadPostState(activePostIndex);
             renderPostTabs();
         }
 
+        // NFC & QR CODE MODAL FUNCTIONS
         let activePortalLink = '';
 
         function openNfcQrModal(record) {
@@ -1565,10 +1751,12 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             const cleanFob = record.fobId || 'MOB1-77A91';
             fobElem.innerText = cleanFob;
 
+            // Generate full client portal URL
             const origin = window.location.origin;
             const encodedFob = encodeURIComponent(cleanFob);
             activePortalLink = `${origin}/client_portal.html?fob=${encodedFob}&sig=AUTH_MOBIL1_SECURE`;
 
+            // Build dynamic QR Code
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(activePortalLink)}`;
             qrImg.src = qrApiUrl;
 
@@ -1605,16 +1793,28 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             }
         }
 
+        // EXPORT ALL LOCAL DATABASE RECORDS
         function exportDatabase() {
             let list = [];
             try {
                 const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
-                if (stored) list = JSON.parse(stored);
-            } catch(e) {}
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+            
+            if (list.length === 0) {
+                if (!confirm("Внимание: в локальной базе данных нет записей. Всё равно выгрузить пустой файл?")) {
+                    return;
+                }
+            }
             
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(list, null, 4));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
+            
             const today = new Date().toISOString().slice(0, 10);
             downloadAnchorNode.setAttribute("download", `mobil1_sto_kazakhstan_db_${today}.json`);
             document.body.appendChild(downloadAnchorNode);
@@ -1622,10 +1822,12 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             downloadAnchorNode.remove();
         }
         
+        // TRIGGER FILE INPUT CLICK FOR IMPORT
         function triggerImport() {
             document.getElementById('import-db-file').click();
         }
         
+        // IMPORT DATABASE FILE
         function importDatabase(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1634,21 +1836,139 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             reader.onload = function(e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
-                    if (!Array.isArray(parsed)) throw new Error("Файл должен содержать массив записей.");
+                    if (!Array.isArray(parsed)) {
+                        throw new Error("Файл должен содержать массив записей.");
+                    }
                     
-                    if (confirm(`Вы уверены, что хотите импортировать данные? Это заменит текущие записи.`)) {
+                    // Validate elements inside roughly
+                    if (parsed.length > 0) {
+                        const first = parsed[0];
+                        if (!first.hasOwnProperty('fobId')) {
+                            throw new Error("Неверный формат базы СТО (отсутствует fobId).");
+                        }
+                    }
+                    
+                    if (confirm(`Вы уверены, что хотите импортировать данные? Это заменит текущие ${getSavedCount()} записей в памяти браузера новыми ${parsed.length} записями.`)) {
                         localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(parsed));
+                        
+                        // Sync storage event across page instances
+                        try {
+                            window.dispatchEvent(new StorageEvent('storage', {
+                                key: 'mobil1_sto_all_diagnostics',
+                                oldValue: null,
+                                newValue: JSON.stringify(parsed),
+                                storageArea: localStorage
+                            }));
+                        } catch(err) {
+                            console.warn(err);
+                        }
+                        
+                        // Force update indicators & tabs
                         resetAllForms();
                         loadPostState(activePostIndex);
                         renderPostTabs();
-                        alert(`Импорт успешно завершен! Загружено автомобилей: ${parsed.length}.`);
+                        
+                        alert(`Импорт успешно завершен! Загружено ${parsed.length} автомобилей в базу СТО.`);
+                        
+                        // Clear file input value to allow re-importing the same name if needed
                         event.target.value = '';
                     }
                 } catch(err) {
-                    alert("Ошибка при разборе файла:\n" + err.message);
+                    alert("Ошибка при разборе файла резервной копии:\n" + err.message);
                 }
             };
             reader.readAsText(file);
+        }
+        
+        function getSavedCount() {
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    return JSON.parse(stored).length;
+                }
+            } catch(e) {}
+            return 0;
+        }
+
+        async function syncToSupabase() {
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) {
+                    list = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+
+            const btn = document.getElementById('btn-sync-supabase');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Отправка в Supabase...</span>
+                `;
+            }
+
+            // 1. Try Server endpoint if running with Express server
+            try {
+                const res = await fetch('/api/sync/to-supabase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ records: list })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success) {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                        }
+                        alert(`✓ Синхронизация с Supabase выполнена через сервер!\n\nУспешно отправлено записей: ${data.syncedCount || list.length}`);
+                        return;
+                    }
+                }
+            } catch(e) {
+                console.warn("[Server Sync] Server endpoint not available, switching to direct client-side Supabase SDK sync");
+            }
+
+            // 2. Direct client-side batch upsert using Supabase JS SDK (for static hosting!)
+            const client = getSupabaseClient();
+            if (!client) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+                alert("⚠️ Supabase не настроен!\n\nПропишите ваш SUPABASE_URL и SUPABASE_KEY в переменные DEFAULT_SUPABASE_URL и DEFAULT_SUPABASE_KEY в начале JS-кода в этом HTML-файле.");
+                return;
+            }
+
+            let successCount = 0;
+            let lastError = '';
+
+            for (const rec of list) {
+                const res = await saveToSupabaseDirect(rec);
+                if (res.success) {
+                    successCount++;
+                } else if (res.error) {
+                    lastError = res.error;
+                }
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+
+            if (successCount > 0) {
+                alert(`✓ Синхронизация с Supabase выполнена прямо из браузера!\n\nУспешно отправлено записей: ${successCount} из ${list.length}`);
+            } else {
+                alert(`⚠️ Не удалось отправлять данные в Supabase.\n\nПодробности: ${lastError || 'Проверьте правильность URL, ключа и наличие таблицы diagnostics в вашей БД Supabase.'}`);
+            }
         }
 
         function markRecordAsSynced(fobId) {
@@ -1656,14 +1976,45 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 let stored = localStorage.getItem('mobil1_sto_all_diagnostics');
                 if (!stored) return;
                 let list = JSON.parse(stored);
+                let updated = false;
                 list = list.map(item => {
                     if ((item.fobId || item.fob_id) === fobId) {
                         item.syncedToSupabase = true;
+                        updated = true;
                     }
                     return item;
                 });
-                localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+                if (updated) {
+                    localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+                }
             } catch(e) {}
+        }
+
+        async function autoSyncPendingRecordsToSupabase() {
+            if (!navigator.onLine || window._supabaseTableMissing) return;
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
+                if (stored) list = JSON.parse(stored);
+            } catch(e) { return; }
+
+            if (!list || list.length === 0) return;
+
+            for (const item of list) {
+                if (!item.syncedToSupabase) {
+                    const res = await saveToSupabaseDirect(item);
+                    if (res.success) {
+                        markRecordAsSynced(item.fobId || item.fob_id);
+                        console.log(`[Auto Sync] Successfully synced pending record ${item.fobId || item.fob_id} to Supabase`);
+                    } else {
+                        // Stop loop if table missing or error occurred
+                        break;
+                    }
+                }
+            }
         }
 
         function showSupabaseSqlModal() {
@@ -1679,7 +2030,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         function copySupabaseSql() {
             const code = document.getElementById('supabase-sql-code')?.value;
             if (code) {
-                navigator.clipboard.writeText(code).then(() => alert("✓ SQL-скрипт скопирован в буфер обмена!"));
+                navigator.clipboard.writeText(code).then(() => alert("✓ SQL-скрипт скопирован в буфер обмена!\n\nВыполните его в панели Supabase -> SQL Editor."));
             }
         }
 
@@ -1696,12 +2047,35 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                     statusElem.className = "hidden lg:inline-flex items-center text-xs text-emerald-400 font-mono";
                     statusElem.onclick = null;
                     statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span><span>Онлайн / Supabase активен</span>`;
+                } else {
+                    statusElem.className = "hidden lg:inline-flex items-center text-xs text-amber-400 font-mono";
+                    statusElem.onclick = null;
+                    statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span><span>Локальный режим (на ПК)</span>`;
                 }
+            } else {
+                statusElem.className = "hidden lg:inline-flex items-center text-xs text-red-400 font-mono";
+                statusElem.onclick = null;
+                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span><span>Офлайн режим (данные на ПК)</span>`;
             }
         }
 
+        window.addEventListener('online', () => {
+            console.log("[Network] Restored. Auto-syncing pending records to Supabase...");
+            updateNetworkStatusUI();
+            autoSyncPendingRecordsToSupabase();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("[Network] Connection lost. Storing data locally.");
+            updateNetworkStatusUI();
+        });
+
+        // Initialize on load
         renderPostTabs();
         updateNetworkStatusUI();
+        setTimeout(() => {
+            autoSyncPendingRecordsToSupabase();
+        }, 1500);
     </script>
 </body>
 </html>
