@@ -1656,17 +1656,6 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 history: fullHistory
             };
             
-            // Load existing list
-            let list = [];
-            try {
-                const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
-                if (stored) {
-                    list = JSON.parse(stored);
-                }
-            } catch(e) {
-                console.error("Error reading db", e);
-            }
-            
             // Mark record as unsynced initially
             record.syncedToSupabase = false;
 
