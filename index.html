@@ -328,18 +328,24 @@
                                     <input type="text" id="oil_volume_dvs" placeholder="Напр. 4.2 л" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                 </div>
 
-                                <!-- Mileage Inputs with +7000 and +9000 Delta Buttons -->
+                                <!-- Mileage Inputs with +7000 and +9000 Delta Buttons & Unit Toggle -->
                                 <div class="grid grid-cols-2 gap-3">
                                     <div class="space-y-1">
-                                        <label class="block text-xs text-slate-400">Текущий пробег (км)</label>
+                                        <div class="flex items-center justify-between">
+                                            <label class="block text-xs text-slate-400">Текущий пробег (<span class="mileage-unit-label">км</span>)</label>
+                                            <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800 text-[10px] font-mono">
+                                                <button type="button" onclick="setMileageUnit('км')" id="unit-btn-km" class="px-2 py-0.5 rounded font-bold transition-all bg-blue-600 text-white cursor-pointer">км</button>
+                                                <button type="button" onclick="setMileageUnit('мл')" id="unit-btn-ml" class="px-2 py-0.5 rounded font-bold transition-all text-slate-400 hover:text-white cursor-pointer">мл</button>
+                                            </div>
+                                        </div>
                                         <input type="text" id="mileage_oil_change_dvs" placeholder="Напр. 150 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                     </div>
                                     <div class="space-y-1">
                                         <div class="flex items-center justify-between">
-                                            <label class="block text-xs text-slate-400">След. замена (км)</label>
+                                            <label class="block text-xs text-slate-400">След. замена (<span class="mileage-unit-label">км</span>)</label>
                                             <div class="flex space-x-1">
-                                                <button type="button" onclick="addMileageDelta(7000)" title="+7000 км к текущему" class="text-[10px] font-bold bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-blue-500/40 cursor-pointer">+7000</button>
-                                                <button type="button" onclick="addMileageDelta(9000)" title="+9000 км к текущему" class="text-[10px] font-bold bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-emerald-500/40 cursor-pointer">+9000</button>
+                                                <button type="button" onclick="addMileageDelta(7000)" title="+7000 к текущему" class="text-[10px] font-bold bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-blue-500/40 cursor-pointer">+7000</button>
+                                                <button type="button" onclick="addMileageDelta(9000)" title="+9000 к текущему" class="text-[10px] font-bold bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white px-1.5 py-0.5 rounded transition-all border border-emerald-500/40 cursor-pointer">+9000</button>
                                             </div>
                                         </div>
                                         <input type="text" id="next_oil_change_dvs" placeholder="Напр. 157 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
@@ -436,11 +442,11 @@
 
                                 <div class="grid grid-cols-2 gap-3">
                                     <div class="space-y-1">
-                                        <label class="block text-xs text-slate-400">Пробег при замене КПП (км)</label>
+                                        <label class="block text-xs text-slate-400">Пробег при замене КПП (<span class="mileage-unit-label">км</span>)</label>
                                         <input type="text" id="mileage_oil_change_kpp" placeholder="Напр. 110 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                     </div>
                                     <div class="space-y-1">
-                                        <label class="block text-xs text-slate-400">След. замена масла КПП (км)</label>
+                                        <label class="block text-xs text-slate-400">След. замена масла КПП (<span class="mileage-unit-label">км</span>)</label>
                                         <input type="text" id="next_oil_change_kpp" placeholder="Напр. 160 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                     </div>
                                 </div>
@@ -456,11 +462,11 @@
 
                                     <div class="grid grid-cols-2 gap-3">
                                         <div class="space-y-1">
-                                            <label class="block text-xs text-slate-400">Пробег при замене (км)</label>
+                                            <label class="block text-xs text-slate-400">Пробег при замене (<span class="mileage-unit-label">км</span>)</label>
                                             <input type="text" id="mileage_oil_change_hydro" placeholder="Напр. 150 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                         </div>
                                         <div class="space-y-1">
-                                            <label class="block text-xs text-slate-400">След. замена (км)</label>
+                                            <label class="block text-xs text-slate-400">След. замена (<span class="mileage-unit-label">км</span>)</label>
                                             <input type="text" id="next_oil_change_hydro" placeholder="Напр. 200 000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
                                         </div>
                                     </div>
@@ -944,6 +950,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 licensePlate: '',
                 scanStatus: 'idle', // 'idle', 'spinner', 'success'
                 formData: {
+                    mileageUnit: 'км',
                     oilTypeDvs: '',
                     oilVolumeDvs: '',
                     mileageOilDvs: '',
@@ -981,6 +988,36 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             createEmptyPostState(),
             createEmptyPostState()
         ];
+
+        function setMileageUnit(unit) {
+            if (unit !== 'км' && unit !== 'мл') unit = 'км';
+            let post = posts[activePostIndex];
+            if (post && post.formData) {
+                post.formData.mileageUnit = unit;
+            }
+            updateMileageUnitUI(unit);
+        }
+
+        function updateMileageUnitUI(unit = 'км') {
+            const labels = document.querySelectorAll('.mileage-unit-label');
+            labels.forEach(el => el.innerText = unit);
+
+            const btnKm = document.getElementById('unit-btn-km');
+            const btnMl = document.getElementById('unit-btn-ml');
+            if (btnKm && btnMl) {
+                if (unit === 'мл') {
+                    btnKm.className = "px-2 py-0.5 rounded font-bold transition-all text-slate-400 hover:text-white cursor-pointer";
+                    btnMl.className = "px-2 py-0.5 rounded font-bold transition-all bg-blue-600 text-white cursor-pointer";
+                } else {
+                    btnKm.className = "px-2 py-0.5 rounded font-bold transition-all bg-blue-600 text-white cursor-pointer";
+                    btnMl.className = "px-2 py-0.5 rounded font-bold transition-all text-slate-400 hover:text-white cursor-pointer";
+                }
+            }
+
+            if (state && state.fobId) {
+                renderStoHistory(state.fobId);
+            }
+        }
 
         // Core global reactive reference (mapped to the active post)
         let state = {
@@ -1024,6 +1061,8 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             }
             
             // Save diagnostics form inputs
+            const isMl = document.getElementById('unit-btn-ml')?.classList.contains('bg-blue-600');
+            post.formData.mileageUnit = isMl ? 'мл' : 'км';
             post.formData.oilTypeDvs = document.getElementById('oil_type_dvs')?.value || '';
             post.formData.oilVolumeDvs = document.getElementById('oil_volume_dvs')?.value || '';
             post.formData.mileageOilDvs = document.getElementById('mileage_oil_change_dvs')?.value || '';
@@ -1072,6 +1111,9 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             state.ownerName = post.ownerName;
             state.ownerPhone = post.ownerPhone;
             state.licensePlate = post.licensePlate;
+            
+            // Restore mileage unit toggle
+            updateMileageUnitUI(post.formData.mileageUnit || 'км');
             
             // Reset screens visibility
             document.getElementById('screen-waiting').classList.add('hidden');
@@ -1486,6 +1528,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
             let html = '';
             last5.forEach((item, index) => {
+                const itemUnit = item.mileageUnit || rec.mileageUnit || 'км';
                 const filterBadges = [];
                 if (item.oilFilter) filterBadges.push(`Масляный (${item.oilFilter})`);
                 if (item.airFilter) filterBadges.push(`Воздушный (${item.airFilter})`);
@@ -1499,7 +1542,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                                 <span class="bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] font-mono">ТО #${history.length - index}</span>
                                 <span class="text-slate-300 font-semibold">📅 ${item.timestamp || 'Дата не указана'}</span>
                             </div>
-                            <span class="text-emerald-400 font-mono font-bold">Пробег: ${item.mileageOilDvs ? item.mileageOilDvs + ' км' : '—'}</span>
+                            <span class="text-emerald-400 font-mono font-bold">Пробег: ${item.mileageOilDvs ? item.mileageOilDvs + ' ' + itemUnit : '—'}</span>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
@@ -1510,7 +1553,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                             </div>
                             <div>
                                 <span class="text-slate-500">След. замена:</span> 
-                                <strong class="text-blue-400 font-mono">${item.nextOilDvs ? item.nextOilDvs + ' км' : '—'}</strong>
+                                <strong class="text-blue-400 font-mono">${item.nextOilDvs ? item.nextOilDvs + ' ' + itemUnit : '—'}</strong>
                             </div>
                         </div>
 
@@ -1537,6 +1580,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             saveCurrentPostState();
             
             let post = posts[activePostIndex];
+            const currentUnit = post.formData.mileageUnit || 'км';
             
             // Check if there is an active fob ID to register
             if (!post.fobId) {
@@ -1577,6 +1621,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                 prevHistory.push({
                     id: 'hist_' + Date.now() + '_prev',
                     timestamp: existingRecord.timestamp || 'Ранее зафиксировано',
+                    mileageUnit: existingRecord.mileageUnit || currentUnit,
                     mileageOilDvs: existingRecord.mileageOilDvs || '',
                     nextOilDvs: existingRecord.nextOilDvs || '',
                     oilTypeDvs: existingRecord.oilTypeDvs || '',
@@ -1597,6 +1642,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             const currentHistoryEntry = {
                 id: 'hist_' + Date.now(),
                 timestamp: formattedDate,
+                mileageUnit: currentUnit,
                 mileageOilDvs: post.formData.mileageOilDvs || '',
                 nextOilDvs: post.formData.nextOilDvs || '',
                 oilTypeDvs: post.formData.oilTypeDvs || '',
@@ -1620,6 +1666,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
             // Create flat record matching portal-friendly structure (WITHOUT personal names/phones)
             const record = {
                 fobId: post.fobId,
+                mileageUnit: currentUnit,
                 carBrand: post.carBrand,
                 carModel: post.carModel,
                 carYear: post.carYear || state.carYear || '',
