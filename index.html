@@ -972,15 +972,18 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
         function parseUrlStoParameters() {
             try {
                 const params = new URLSearchParams(window.location.search);
-                const stoName = params.get('sto') || params.get('sto_name') || params.get('station') || params.get('name');
-                const stoWa = params.get('wa') || params.get('whatsapp') || params.get('phone');
+                const rawStoName = params.get('station_name') || params.get('sto') || params.get('sto_name') || params.get('station') || params.get('name');
+                const rawStoWa = params.get('station_phone') || params.get('wa') || params.get('whatsapp') || params.get('phone');
                 const chipUid = params.get('chip') || params.get('chip_uid') || params.get('fob') || params.get('uid');
                 const pin = params.get('pin') || params.get('p') || '1234';
 
-                if (stoName || stoWa || chipUid) {
-                    const uid = chipUid || ('STO-NFC-' + Math.floor(10000 + Math.random() * 90000));
-                    const name = stoName || 'NFC SERViS СТО';
-                    const wa = stoWa ? (stoWa.startsWith('+') ? stoWa : ('+' + stoWa.replace(/\D/g, ''))) : '+7 (707) 123-45-67';
+                if (rawStoName || rawStoWa || chipUid) {
+                    const name = rawStoName ? decodeURIComponent(rawStoName).replace(/_/g, ' ') : 'NFC SERViS СТО';
+                    let wa = rawStoWa ? decodeURIComponent(rawStoWa) : '+7 (707) 123-45-67';
+                    if (wa && !wa.startsWith('+')) {
+                        wa = '+' + wa.replace(/\D/g, '');
+                    }
+                    const uid = chipUid || ('STO-CHIP-' + Math.abs(name.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0) % 90000 + 10000));
 
                     // Update active profile
                     activeStoProfile = {
@@ -992,7 +995,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
 
                     // Auto register into registry if not present
                     const registry = getStoChipRegistry();
-                    const existingIdx = registry.findIndex(r => r.chipUid.toLowerCase() === uid.toLowerCase());
+                    const existingIdx = registry.findIndex(r => r.chipUid.toLowerCase() === uid.toLowerCase() || r.stationName.toLowerCase() === name.toLowerCase());
                     const record = {
                         chipUid: uid,
                         stationName: name,
@@ -1021,7 +1024,7 @@ CREATE POLICY "Allow public update" ON public.diagnostics FOR UPDATE USING (true
                                     <div class="text-amber-400 text-lg">⚡</div>
                                     <div class="space-y-0.5">
                                         <span class="font-bold text-amber-300 block">ЗАГРУЖЕНЫ ДАННЫЕ ИЗ ССЫЛКИ NFC ЧИПА</span>
-                                        <p class="text-amber-100/80 text-[11px]">Автоматически подставлена СТО: <b>${name}</b>. Для входа введите 4-значный ПИН-код.</p>
+                                        <p class="text-amber-100/80 text-[11px]">Автоматически подставлена СТО: <b>${name}</b> (${wa}). Для входа введите ПИН-код (по умолч. 1234).</p>
                                     </div>
                                 </div>
                             `;
