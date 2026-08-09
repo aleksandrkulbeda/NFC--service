@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070E1E">
+    <link rel="manifest" href="/manifest.json">
     <title>NFC SERViS - Портал Клиента</title>
+    <script>
+        // Register Service Worker for Instant NFC Cache Load (<50ms)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => console.log('[ServiceWorker] Registered successfully:', reg.scope))
+                    .catch(err => console.warn('[ServiceWorker] Registration failed:', err));
+            });
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -60,6 +72,22 @@
 <script src="/_aistudio-iframe.js?v=2f1c016a"></script></head>
 <body class="bg-[#030914] text-slate-100 font-sans min-h-screen py-4 sm:py-10 px-4 flex justify-center items-center selection:bg-orange-500 selection:text-white">
 
+    <!-- MASTER STO DETECTED STICKY BANNER -->
+    <div id="master-sto-banner" class="hidden fixed top-0 left-0 right-0 bg-gradient-to-r from-amber-950 via-orange-950 to-amber-900 border-b border-amber-500/50 p-3 text-white text-xs shadow-2xl z-50">
+        <div class="max-w-md mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">👨‍🔧</span>
+                <div>
+                    <span class="font-black text-amber-200 block text-xs">Режим Мастера СТО</span>
+                    <span id="master-banner-fob-text" class="text-slate-300 text-[11px] block">Считан брелок автомобиля</span>
+                </div>
+            </div>
+            <a id="master-banner-link" href="sto_internal.html" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs transition-all flex items-center gap-1 shadow-lg shadow-amber-950/50 shrink-0">
+                <span>Панель СТО →</span>
+            </a>
+        </div>
+    </div>
+
     <!-- SMARTPHONE CASE FRAME SIMULATION FOR PREMIUM DISPLAY -->
     <div class="w-full max-w-[440px] bg-[#0A1121] border border-slate-800 rounded-[38px] overflow-hidden flex flex-col shadow-2xl relative ring-12 ring-slate-900/60">
         
@@ -97,8 +125,14 @@
                     </div>
                     <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono border-l border-slate-800 pl-2">Портал</span>
                 </div>
-                <div class="text-[10px] text-slate-400 bg-slate-800/80 border border-slate-700/50 px-3 py-1 rounded-full font-mono" id="portal-fob-id">
-                    ID: #77A91
+                <div class="flex items-center gap-2">
+                    <div id="fast-cache-badge" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[9px] font-mono shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>⚡ Кэш</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 bg-slate-800/80 border border-slate-700/50 px-3 py-1 rounded-full font-mono" id="portal-fob-id">
+                        ID: #77A91
+                    </div>
                 </div>
             </div>
 
@@ -370,6 +404,23 @@
 
     <!-- REACTIVE CLIENT PORTAL STORAGE ENGINE -->
     <script>
+        // INSTANT AUTO-REDIRECT FOR STO MASTER / MECHANIC DEVICES
+        (function checkMasterInstantRedirect() {
+            try {
+                const isMasterDevice = localStorage.getItem('sto_master_authorized') === 'true' || localStorage.getItem('sto_is_master_device') === 'true';
+                if (isMasterDevice) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('scanFob');
+                    if (queryFob && queryFob.trim()) {
+                        // Redirect instantly to internal STO panel with scanned fob ID before rendering client portal
+                        window.location.replace(`sto_internal.html?fob=${encodeURIComponent(queryFob.trim())}`);
+                    }
+                }
+            } catch (e) {
+                console.warn("Master auto-redirect check failed:", e);
+            }
+        })();
+
         const DEFAULT_CAR = {
             fobId: '#77A91',
             carBrand: 'Porsche',
@@ -781,10 +832,30 @@
             }
         }
 
+        // Save record to local storage cache for instant offline sub-50ms loads
+        function saveCarToLocalStorage(car) {
+            if (!car || !car.fobId) return;
+            try {
+                let records = getSavedCars();
+                const idx = records.findIndex(c => c.fobId === car.fobId);
+                if (idx >= 0) {
+                    records[idx] = { ...records[idx], ...car };
+                } else {
+                    records.push(car);
+                }
+                localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(records));
+            } catch (e) {
+                console.warn("Failed to cache car to localStorage:", e);
+            }
+        }
+
         // On dropdown entry change
         function selectFobRecord(fobId) {
+            const cacheBadge = document.getElementById('fast-cache-badge');
+
             if (fobId === 'default') {
                 renderCarData(DEFAULT_CAR);
+                if (cacheBadge) cacheBadge.classList.add('hidden');
                 return;
             }
             
@@ -793,6 +864,12 @@
             const matched = cars.find(c => c.fobId === fobId);
             if (matched) {
                 renderCarData(matched);
+                if (cacheBadge) {
+                    cacheBadge.classList.remove('hidden');
+                    cacheBadge.classList.add('flex');
+                }
+            } else if (cacheBadge) {
+                cacheBadge.classList.add('hidden');
             }
             
             // 2. Fetch specific live record from Server API (if present)
@@ -802,7 +879,14 @@
                     throw new Error("No record on the server");
                 })
                 .then(cloudRecord => {
-                    renderCarData(cloudRecord);
+                    if (cloudRecord && cloudRecord.fobId) {
+                        saveCarToLocalStorage(cloudRecord);
+                        renderCarData(cloudRecord);
+                        if (cacheBadge) {
+                            cacheBadge.classList.remove('hidden');
+                            cacheBadge.classList.add('flex');
+                        }
+                    }
                 })
                 .catch(err => {
                     console.log("[Fob select] Remote server fetch bypassed or offline:", err);
@@ -835,7 +919,12 @@
                             .then(({ data, error }) => {
                                 if (!error && data) {
                                     const rec = (data.data && typeof data.data === 'object') ? { ...data.data, ...data } : data;
+                                    saveCarToLocalStorage(rec);
                                     renderCarData(rec);
+                                    if (cacheBadge) {
+                                        cacheBadge.classList.remove('hidden');
+                                        cacheBadge.classList.add('flex');
+                                    }
                                 }
                             });
                     })
@@ -872,7 +961,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const queryFob = urlParams.get('fob') || urlParams.get('fobId');
             
+            // Detect if this device is used by an STO Master / Mechanic
+            const isMasterDevice = localStorage.getItem('sto_master_authorized') === 'true' || localStorage.getItem('sto_is_master_device') === 'true';
+
             if (queryFob) {
+                if (isMasterDevice) {
+                    window.location.replace(`sto_internal.html?fob=${encodeURIComponent(queryFob)}`);
+                    return;
+                }
+
                 // Check if options contains this fob, else add temporary option
                 const picker = document.getElementById('fob-picker');
                 if (picker) {
@@ -893,6 +990,14 @@
                 }
                 selectFobRecord(queryFob);
                 return;
+            } else if (isMasterDevice) {
+                // Device belongs to master, show persistent STO bar
+                const banner = document.getElementById('master-sto-banner');
+                const bannerLink = document.getElementById('master-banner-link');
+                if (banner && bannerLink) {
+                    bannerLink.href = 'sto_internal.html';
+                    banner.classList.remove('hidden');
+                }
             }
 
             // Check if there's saved cars in local storage
