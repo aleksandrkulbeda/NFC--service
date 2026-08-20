@@ -761,13 +761,30 @@
             const cars = getSavedCars();
             const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
 
-            // 1. Search in local saved records
+            // 1. Search in local saved records (cached on this device)
             let matched = cars.find(c => {
                 const plate = normalize(c.carNumber || c.carPlate || c.licensePlate);
-                return plate && (plate.includes(query) || query.includes(plate));
+                const fob = normalize(c.fobId || c.fob_id);
+                return (plate && (plate.includes(query) || query.includes(plate))) || (fob && (fob.includes(query) || query.includes(fob)));
             });
 
-            // 2. Search in Supabase database
+            // 2. Search on Backend Server (/api/diagnostics?q=...)
+            if (!matched) {
+                try {
+                    const serverRes = await fetch(`/api/diagnostics?q=${encodeURIComponent(rawQuery)}`);
+                    if (serverRes.ok) {
+                        const serverData = await serverRes.json();
+                        if (serverData && (serverData.carNumber || serverData.licensePlate || serverData.fobId || serverData.fob_id)) {
+                            matched = (serverData.data && typeof serverData.data === 'object') ? { ...serverData.data, ...serverData } : serverData;
+                            saveCarToLocalStorage(matched);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Server diagnostics search error:", err);
+                }
+            }
+
+            // 3. Search directly in Supabase database (fallback)
             if (!matched) {
                 const client = getSupabaseClient();
                 if (client) {
@@ -836,8 +853,12 @@
             document.getElementById('portal-fob-id').innerText = 'ID: ' + (data.fobId || '#???');
             
             // Main Title, License Plate, & Serving STO
-            document.getElementById('car-title').innerText = `${data.carBrand || 'Неизвестная'} ${data.carModel || 'Машина'}`.trim();
-            document.getElementById('car-license-plate').innerText = data.licensePlate ? (data.licensePlate.startsWith('KZ') ? data.licensePlate : 'KZ ' + data.licensePlate) : 'KZ 777 MOB 01';
+            const brand = data.carBrand || data.brand || '';
+            const model = data.carModel || data.model || '';
+            const plate = data.licensePlate || data.carNumber || data.carPlate || data.car_number || '777 MOB 01';
+            
+            document.getElementById('car-title').innerText = (`${brand} ${model}`.trim()) || 'Автомобиль';
+            document.getElementById('car-license-plate').innerText = plate.toUpperCase().startsWith('KZ') ? plate.toUpperCase() : ('KZ ' + plate.toUpperCase());
             
             const stoBadge = document.getElementById('car-sto-badge');
             if (stoBadge) {
