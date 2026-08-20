@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070E1E">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/assets/manifest--DpfonbK.json">
     <title>NFC SERVIS 1 - Портал Клиента</title>
     <script>
         // Register Service Worker for Instant NFC Cache Load (<50ms)
@@ -71,22 +71,6 @@
     </style>
 <script src="/_aistudio-iframe.js?v=2f1c016a"></script></head>
 <body class="bg-[#030914] text-slate-100 font-sans min-h-screen py-4 sm:py-10 px-4 flex justify-center items-center selection:bg-orange-500 selection:text-white">
-    <!-- MASTER STO DETECTED STICKY BANNER -->
-    <div id="master-sto-banner" class="hidden fixed top-0 left-0 right-0 bg-gradient-to-r from-amber-950 via-orange-950 to-amber-900 border-b border-amber-500/50 p-3 text-white text-xs shadow-2xl z-50">
-        <div class="max-w-md mx-auto flex items-center justify-between gap-2">
-            <div class="flex items-center space-x-2">
-                <span class="text-xl">👨‍🔧</span>
-                <div>
-                    <span class="font-black text-amber-200 block text-xs" data-i18n="masterMode">Режим Мастера СТО</span>
-                    <span id="master-banner-fob-text" class="text-slate-300 text-[11px] block" data-i18n="fobRead">Считан брелок автомобиля</span>
-                </div>
-            </div>
-            <a id="master-banner-link" href="sto_internal.html" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs transition-all flex items-center gap-1 shadow-lg shadow-amber-950/50 shrink-0">
-                <span data-i18n="stoPanelBtn">Панель СТО →</span>
-            </a>
-        </div>
-    </div>
-
     <!-- SMARTPHONE CASE FRAME SIMULATION FOR PREMIUM DISPLAY -->
     <div class="w-full max-w-[440px] bg-[#0A1121] border border-slate-800 rounded-[38px] overflow-hidden flex flex-col shadow-2xl relative ring-12 ring-slate-900/60">
         
@@ -141,45 +125,58 @@
                 </div>
             </div>
 
-            <!-- CHIP SCAN SELECTOR (For simulation on single computer) -->
-            <div id="fob-picker-container" class="bg-slate-900/40 border border-slate-800 p-3 rounded-2xl space-y-2">
-                <label class="block text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                    <span data-i18n="fobSimLabel">Симуляция прикладывания RFID-брелока</span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                </label>
-                <select id="fob-picker" onchange="selectFobRecord(this.value)" class="w-full bg-[#050B16] border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-100 outline-none focus:ring-1 focus:ring-blue-500/20 transition-all font-mono">
-                    <option value="default" data-i18n="fobTestOpt">🏆 Тестовый брелок (Porsche Cayenne Turbo S)</option>
-                </select>
+            <!-- SCREEN 1: QR CODE ENTRY SCREEN (Prompt to enter car plate) -->
+            <div id="qr-entry-screen" class="space-y-4 pt-1">
+                <div class="bg-gradient-to-br from-slate-900 via-[#0D182E] to-slate-950 border border-slate-800 p-5 rounded-3xl space-y-4 shadow-xl text-center relative overflow-hidden">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-inner">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <h2 class="text-lg font-black text-white tracking-tight" data-i18n="entryTitle">Электронная сервисная книжка</h2>
+                        <p class="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto" data-i18n="entrySub">Введите госномер вашего автомобиля для просмотра истории ТО и регламентных замен</p>
+                    </div>
+
+                    <!-- CAR PLATE INPUT FORM -->
+                    <div class="space-y-2.5 pt-2">
+                        <div class="relative flex items-center bg-[#020712] border-2 border-slate-700 focus-within:border-orange-500 rounded-2xl px-3.5 py-2.5 transition-all shadow-inner">
+                            <div class="flex items-center space-x-1.5 border-r border-slate-800 pr-3 mr-3 text-[11px] font-black text-blue-400 font-mono tracking-widest shrink-0">
+                                <span>🇰🇿</span>
+                                <span>KZ</span>
+                            </div>
+                            <input id="entry-plate-input" type="text" placeholder="777 MOB 01" class="w-full bg-transparent text-white font-mono font-black text-base uppercase tracking-wider outline-none placeholder:text-slate-600 placeholder:font-normal placeholder:tracking-normal" onkeypress="if(event.key==='Enter') searchByPlate()">
+                        </div>
+                        
+                        <button type="button" onclick="searchByPlate()" id="entry-submit-btn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs tracking-wider uppercase transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center space-x-2">
+                            <span data-i18n="entryBtn">ОТКРЫТЬ СЕРВИСНУЮ КНИЖКУ</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+                        </button>
+
+                        <div id="entry-status-msg" class="hidden text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium"></div>
+                    </div>
+
+                    <!-- NFC HINT -->
+                    <div class="pt-3 border-t border-slate-800/80">
+                        <p class="text-[11px] text-slate-500 leading-snug" data-i18n="entryNfcHint">💡 Если ваш телефон поддерживает NFC, просто приложите его к брелоку для мгновенного входа без ввода номера</p>
+                    </div>
+                </div>
             </div>
 
-            <!-- SEARCH BY CAR PLATE (For key fob QR-code scan without NFC) -->
-            <div class="bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800/80 p-3.5 rounded-2xl space-y-2.5 shadow-lg">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path></svg>
-                        <span data-i18n="searchPlateTitle">Вход по QR с брелока / Госномеру</span>
-                    </span>
-                    <span class="text-[9px] text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full font-mono">БЕЗ NFC</span>
-                </div>
-                <div class="flex gap-2">
-                    <input id="search-plate-input" type="text" placeholder="KZ 777 MOB 01" class="flex-grow bg-[#050B16] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white uppercase placeholder:text-slate-600 outline-none focus:border-orange-500 font-mono tracking-wider transition-all" onkeypress="if(event.key==='Enter') searchByPlate()">
-                    <button type="button" onclick="searchByPlate()" class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs transition-all flex items-center gap-1 shadow-md shadow-orange-950/30 shrink-0">
-                        <span data-i18n="searchBtn">Найти</span>
-                    </button>
-                </div>
-                <div id="search-plate-status" class="hidden text-[10px] text-red-400 font-medium px-1"></div>
-            </div>
+            <!-- SCREEN 2: CAR DIGITAL LOGBOOK SCREEN (Rendered after plate search or NFC tap) -->
+            <div id="car-logbook-screen" class="space-y-6 hidden">
 
-            <!-- WELCOME & USER INFO -->
-            <div class="space-y-1">
-                <span class="text-xs text-slate-500 font-medium" data-i18n="yourCar">Ваш автомобиль</span>
-                <h2 class="text-xl font-black text-white tracking-tight" id="car-title">Porsche Cayenne Turbo S</h2>
-                <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-mono pt-1">
-                    <span class="bg-[#0D1E3A] text-blue-400 px-2 py-0.5 rounded border border-blue-900/40 font-bold" id="car-license-plate">KZ 777 MOB 01</span>
-                    <span class="bg-amber-950/60 text-amber-300 px-2 py-0.5 rounded border border-amber-800/50 flex items-center gap-1 font-bold" id="car-sto-badge">🏢 NFC SERViS Center</span>
-                    <span id="car-last-service">• Последнее ТО: 16.06.2026</span>
+                <!-- WELCOME & USER INFO -->
+                <div class="space-y-1">
+                    <span class="text-xs text-slate-500 font-medium" data-i18n="yourCar">Ваш автомобиль</span>
+                    <h2 class="text-xl font-black text-white tracking-tight" id="car-title">Porsche Cayenne Turbo S</h2>
+                    <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-mono pt-1">
+                        <span class="bg-[#0D1E3A] text-blue-400 px-2 py-0.5 rounded border border-blue-900/40 font-bold" id="car-license-plate">KZ 777 MOB 01</span>
+                        <span class="bg-amber-950/60 text-amber-300 px-2 py-0.5 rounded border border-amber-800/50 flex items-center gap-1 font-bold" id="car-sto-badge">🏢 NFC SERVIS Center</span>
+                        <span id="car-last-service">• Последнее ТО: 16.06.2026</span>
+                    </div>
                 </div>
-            </div>
 
             <!-- CRITICAL STATUS BLOCK WITH EXTREMELY BRIGHT ORANGE PULSATION -->
             <div id="warning-container" class="p-5 rounded-2xl text-white flex flex-col justify-between space-y-4 animate-brand-orange-pulse relative overflow-hidden">
@@ -417,6 +414,8 @@
                 </p>
             </div>
 
+            </div> <!-- END OF CAR LOGBOOK SCREEN -->
+
         </div>
 
         <!-- NAVIGATION / HOME BUTTON -->
@@ -500,7 +499,13 @@
                 waMessageNextPlanned: "Следующая замена запланирована на пробеге:",
                 searchPlateTitle: "Вход по QR с брелока / Госномеру",
                 searchBtn: "Найти",
-                plateNotFound: "Автомобиль с таким госномером не найден в базе."
+                plateNotFound: "Автомобиль с таким госномером пока не зарегистрирован на СТО.",
+                entryTitle: "Электронная сервисная книжка",
+                entrySub: "Введите госномер вашего автомобиля для просмотра истории ТО и регламентных замен",
+                entryPlatePlaceholder: "777 MOB 01",
+                entryBtn: "ОТКРЫТЬ СЕРВИСНУЮ КНИЖКУ",
+                entryNfcHint: "💡 Если ваш телефон поддерживает NFC, просто приложите его к брелоку для мгновенного входа без ввода номера",
+                searchingPlate: "Поиск автомобиля в базе СТО..."
             },
             kk: {
                 masterMode: "СТО Шебері режимі",
@@ -556,7 +561,13 @@
                 waMessageNextPlanned: "Келесі ауыстыру жоспарланған жүріс:",
                 searchPlateTitle: "Салпыншақтағы QR / Мемл. нөмір бойынша кіру",
                 searchBtn: "Табу",
-                plateNotFound: "Бұл мемлекеттік нөмірмен автокөлік табылмады."
+                plateNotFound: "Бұл мемлекеттік нөмірмен автокөлік әлі СТО-да тіркелмеген.",
+                entryTitle: "Электронды сервистік кітапша",
+                entrySub: "ТҚК тарихы мен ұсыныстарды көру үшін автокөлігіңіздің мемлекеттік нөмірін енгізіңіз",
+                entryPlatePlaceholder: "777 MOB 01",
+                entryBtn: "СЕРВИСТІК КІТАПШАНЫ АШУ",
+                entryNfcHint: "💡 Егер телефоныңызда NFC болса, нөмірді термей-ақ бірден кіру үшін телефонды салпыншаққа тигізіңіз",
+                searchingPlate: "Дерекқордан көлік ізделуде..."
             }
         };
 
@@ -708,50 +719,92 @@
             });
         }
 
+        function showEntryScreen() {
+            const entryScreen = document.getElementById('qr-entry-screen');
+            const logbookScreen = document.getElementById('car-logbook-screen');
+            if (entryScreen) entryScreen.classList.remove('hidden');
+            if (logbookScreen) logbookScreen.classList.add('hidden');
+        }
+
+        function showLogbookScreen() {
+            const entryScreen = document.getElementById('qr-entry-screen');
+            const logbookScreen = document.getElementById('car-logbook-screen');
+            if (entryScreen) entryScreen.classList.add('hidden');
+            if (logbookScreen) logbookScreen.classList.remove('hidden');
+        }
+
         // Helper function to search car by license plate (for QR codes on key fobs)
-        function searchByPlate() {
-            const input = document.getElementById('search-plate-input');
-            const statusEl = document.getElementById('search-plate-status');
+        async function searchByPlate() {
+            const input = document.getElementById('entry-plate-input') || document.getElementById('search-plate-input');
+            const statusEl = document.getElementById('entry-status-msg') || document.getElementById('search-plate-status');
+            const submitBtn = document.getElementById('entry-submit-btn');
             if (!input) return;
-            const query = input.value.trim().toUpperCase().replace(/[\s\-_]/g, '');
+            const rawQuery = input.value.trim();
+            const query = rawQuery.toUpperCase().replace(/[\s\-_]/g, '');
+            const dict = translations[currentLang] || translations.ru;
+            
             if (!query) {
                 if (statusEl) {
-                    statusEl.innerText = (translations[currentLang] || translations.ru).searchPlateTitle || "Введите госномер";
+                    statusEl.innerText = (currentLang === 'kk') ? "Автокөліктің мемлекеттік нөмірін енгізіңіз" : "Пожалуйста, введите госномер автомобиля";
+                    statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium";
                     statusEl.classList.remove('hidden');
                 }
                 return;
             }
 
-            const dict = translations[currentLang] || translations.ru;
+            if (statusEl) {
+                statusEl.innerText = dict.searchingPlate || "Поиск автомобиля в базе СТО...";
+                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-blue-950/50 border border-blue-800/40 text-blue-300 text-center font-medium";
+                statusEl.classList.remove('hidden');
+            }
+
             const cars = getSavedCars();
             const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
 
+            // 1. Search in local saved records
             let matched = cars.find(c => {
                 const plate = normalize(c.carNumber || c.carPlate || c.licensePlate);
-                return plate.includes(query) || query.includes(plate);
+                return plate && (plate.includes(query) || query.includes(plate));
             });
+
+            // 2. Search in Supabase database
+            if (!matched) {
+                const client = getSupabaseClient();
+                if (client) {
+                    try {
+                        const { data, error } = await client.from('diagnostics')
+                            .select('*')
+                            .or(`car_number.ilike.%${rawQuery}%,licensePlate.ilike.%${rawQuery}%,fob_id.ilike.%${rawQuery}%`)
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+
+                        if (!error && data && data.length > 0) {
+                            const row = data[0];
+                            matched = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
+                            saveCarToLocalStorage(matched);
+                        }
+                    } catch(e) {
+                        console.warn("Supabase plate query error:", e);
+                    }
+                }
+            }
+
+            // 3. Fallback demo car check (if testing)
+            if (!matched && (query.includes('777') || query.includes('MOB') || query.includes('01') || query === 'TEST' || query === 'KZ')) {
+                matched = DEFAULT_CAR;
+            }
 
             if (matched) {
                 if (statusEl) statusEl.classList.add('hidden');
-                const picker = document.getElementById('fob-picker');
-                if (picker) picker.value = matched.fobId || 'default';
+                showLogbookScreen();
                 renderCarData(matched);
                 input.value = '';
                 return;
             }
 
-            // Check default demo car
-            if (query.includes('777') || query.includes('MOB') || query.includes('01')) {
-                if (statusEl) statusEl.classList.add('hidden');
-                const picker = document.getElementById('fob-picker');
-                if (picker) picker.value = 'default';
-                renderCarData(DEFAULT_CAR);
-                input.value = '';
-                return;
-            }
-
             if (statusEl) {
-                statusEl.innerText = dict.plateNotFound || "Автомобиль с таким госномером не найден.";
+                statusEl.innerText = dict.plateNotFound || "Автомобиль с таким госномером пока не зарегистрирован на СТО.";
+                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium";
                 statusEl.classList.remove('hidden');
             }
         }
@@ -775,6 +828,7 @@
         // Render functions
         function renderCarData(data) {
             window._currentCarData = data;
+            showLogbookScreen();
             const dict = translations[currentLang] || translations.ru;
             const carUnit = data.mileageUnit || dict.unitKm || 'км';
 
@@ -1181,9 +1235,10 @@
             setLanguage(currentLang);
             updateFobPicker();
             
-            // Check if URL contains ?fob=... or ?fobId=... from NFC tag / QR code scan
+            // Check if URL contains ?fob=... or ?nfc=... or ?fobId=... or ?plate=...
             const urlParams = new URLSearchParams(window.location.search);
-            const queryFob = urlParams.get('fob') || urlParams.get('fobId');
+            const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('nfc');
+            const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
             
             // Detect if this device is used by an STO Master / Mechanic
             const isMasterDevice = localStorage.getItem('sto_master_authorized') === 'true' || localStorage.getItem('sto_is_master_device') === 'true';
@@ -1214,25 +1269,15 @@
                 }
                 selectFobRecord(queryFob);
                 return;
-            } else if (isMasterDevice) {
-                // Device belongs to master, show persistent STO bar
-                const banner = document.getElementById('master-sto-banner');
-                const bannerLink = document.getElementById('master-banner-link');
-                if (banner && bannerLink) {
-                    bannerLink.href = 'sto_internal.html';
-                    banner.classList.remove('hidden');
-                }
+            } else if (queryPlate) {
+                const input = document.getElementById('entry-plate-input');
+                if (input) input.value = queryPlate;
+                searchByPlate();
+                return;
             }
 
-            // Check if there's saved cars in local storage
-            const cars = getSavedCars();
-            if (cars.length > 0) {
-                const latestCar = cars[cars.length - 1];
-                document.getElementById('fob-picker').value = latestCar.fobId;
-                renderCarData(latestCar);
-            } else {
-                renderCarData(DEFAULT_CAR);
-            }
+            // By default when opening via QR scan without fob ID: Show Entry Screen asking for car plate!
+            showEntryScreen();
         });
     </script>
 </body>
