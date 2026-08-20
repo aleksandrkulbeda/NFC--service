@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFC SERViS - Внутренний Софт СТО</title>
+    <title>NFC SERVIS 1 - Внутренний Софт СТО</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -44,7 +44,8 @@
                     <div class="flex flex-col leading-none">
                         <div class="flex items-center font-black tracking-tight text-xl">
                             <span class="text-white">NFC</span>
-                            <span class="text-orange-500 ml-1">SERViS</span>
+                            <span class="text-orange-500 ml-1">SERVIS</span>
+                            <span class="text-white ml-1">1</span>
                         </div>
                         <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">Auto Logbook</span>
                     </div>
@@ -602,22 +603,38 @@
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
                 </div>
                 <h3 class="text-xl font-bold text-white">ТО успешно зафиксировано!</h3>
-                <p class="text-xs text-slate-400">Запись сохранена в локальной базе ПК СТО и привязана к чипу брелка.</p>
+                <p class="text-xs text-slate-400">Автомобиль привязан к базе СТО и готов к записи на брелок.</p>
             </div>
 
             <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 text-center space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
                     <span class="text-xs text-slate-400">Чип брелка: <strong id="modal-fob-id" class="text-blue-300 font-mono">MOB1-77A91</strong></span>
-                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded font-mono">ОРИГИНАЛ MOBIL 1</span>
+                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded font-mono">ФИЗИЧЕСКИЙ БРЕЛОК</span>
                 </div>
 
-                <!-- QR Code Display -->
-                <div class="bg-white p-3 rounded-xl inline-block mx-auto shadow-md">
-                    <img id="qr-code-img" src="" alt="Клиентский QR-код" class="w-44 h-44 object-contain">
+                <!-- Instructions Card -->
+                <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-left space-y-2 text-xs">
+                    <div class="flex items-start space-x-2 text-slate-200">
+                        <span class="text-orange-400 font-bold">1.</span>
+                        <span><strong>Запись в NFC:</strong> Нажмите кнопку ниже и приложите физический брелок к смартфону мастера.</span>
+                    </div>
+                    <div class="flex items-start space-x-2 text-slate-200">
+                        <span class="text-orange-400 font-bold">2.</span>
+                        <span><strong>Для клиента с NFC:</strong> Прикладывает свой телефон к брелоку на ключах и сразу открывает книжку.</span>
+                    </div>
+                    <div class="flex items-start space-x-2 text-slate-200">
+                        <span class="text-orange-400 font-bold">3.</span>
+                        <span><strong>Для клиента БЕЗ NFC:</strong> Сканирует постоянный QR-код на обратной стороне брелока.</span>
+                    </div>
+                </div>
+
+                <!-- QR Code Display (for quick screen scan or verification) -->
+                <div class="bg-white p-2.5 rounded-xl inline-block mx-auto shadow-md">
+                    <img id="qr-code-img" src="" alt="Клиентский QR-код" class="w-36 h-36 object-contain">
                 </div>
 
                 <p class="text-[11px] text-slate-400">
-                    Клиент может отсканировать этот <strong>QR-код</strong> или приложить телефон к <strong>NFC-брелку</strong>, чтобы открыть сервисную книжку.
+                    Прямая ссылка для входа по QR-коду брелока
                 </p>
             </div>
 
