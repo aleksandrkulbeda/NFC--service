@@ -4,20 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070E1E">
-    <link rel="manifest" href="/assets/manifest--DpfonbK.json">
     <title>NFC SERVIS 1 - Портал Клиента</title>
-    <script>
-        // Register Service Worker for Instant NFC Cache Load (<50ms)
-        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('[ServiceWorker] Registered:', reg.scope))
-                    .catch(() => {
-                        // Silent fallback for static hosting
-                    });
-            });
-        }
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -669,35 +656,26 @@
                 }
             };
 
-            // 1. Try Server API if Node.js backend is running
-            fetch('/api/diagnostics')
-                .then(res => {
-                    if (res.ok) return res.json();
-                    throw new Error("HTTP " + res.status);
-                })
-                .then(cloudRecords => handleCloudData(cloudRecords))
-                .catch(() => {
-                    // 2. Direct browser fetch from Supabase (for static hosting)
-                    const client = getSupabaseClient();
-                    if (client) {
-                        client.from('diagnostics')
-                            .select('*')
-                            .order('updated_at', { ascending: false })
-                            .limit(100)
-                            .then(({ data, error }) => {
-                                if (!error && Array.isArray(data)) {
-                                    handleCloudData(data);
-                                } else {
-                                    if (callback) callback(getSavedCars());
-                                }
-                            })
-                            .catch(() => {
-                                if (callback) callback(getSavedCars());
-                            });
-                    } else {
+            // Direct browser fetch from Supabase (for static hosting)
+            const client = getSupabaseClient();
+            if (client) {
+                client.from('diagnostics')
+                    .select('*')
+                    .order('updated_at', { ascending: false })
+                    .limit(100)
+                    .then(({ data, error }) => {
+                        if (!error && Array.isArray(data)) {
+                            handleCloudData(data);
+                        } else {
+                            if (callback) callback(getSavedCars());
+                        }
+                    })
+                    .catch(() => {
                         if (callback) callback(getSavedCars());
-                    }
-                });
+                    });
+            } else {
+                if (callback) callback(getSavedCars());
+            }
         }
 
         // populate picker element with list
@@ -826,23 +804,7 @@
                 }
             }
 
-            // 3. Search on Backend Server (/api/diagnostics?q=...) if available
-            if (!matched) {
-                try {
-                    const serverRes = await fetch(`/api/diagnostics?q=${encodeURIComponent(rawQuery)}`);
-                    if (serverRes.ok) {
-                        const serverData = await serverRes.json();
-                        if (serverData && (serverData.carNumber || serverData.licensePlate || serverData.fobId || serverData.fob_id)) {
-                            matched = (serverData.data && typeof serverData.data === 'object') ? { ...serverData.data, ...serverData } : serverData;
-                            saveCarToLocalStorage(matched);
-                        }
-                    }
-                } catch (err) {
-                    // silent fallback
-                }
-            }
-
-            // 4. Fallback demo car check (if testing)
+            // 3. Fallback demo car check (if testing)
             if (!matched && (query.includes('777') || query.includes('MOB') || query.includes('01') || query === 'TEST' || query === 'KZ')) {
                 matched = DEFAULT_CAR;
             }
@@ -1239,28 +1201,7 @@
                 cacheBadge.classList.add('hidden');
             }
             
-            // 2. Fetch specific live record from Server API (if present)
-            fetch(`/api/diagnostics?fobId=${encodeURIComponent(fobId)}`)
-                .then(res => {
-                    if (res.ok) return res.json();
-                    throw new Error("No record on server");
-                })
-                .then(cloudRecord => {
-                    if (cloudRecord && (cloudRecord.fobId || cloudRecord.fob_id)) {
-                        const rec = (cloudRecord.data && typeof cloudRecord.data === 'object') ? { ...cloudRecord.data, ...cloudRecord } : cloudRecord;
-                        saveCarToLocalStorage(rec);
-                        renderCarData(rec);
-                        if (cacheBadge) {
-                            cacheBadge.classList.remove('hidden');
-                            cacheBadge.classList.add('flex');
-                        }
-                    }
-                })
-                .catch(() => {
-                    // Silent fallback for static site
-                });
-
-            // 3. Direct browser fetch from Supabase (for static hosting without server!)
+            // 2. Direct browser fetch from Supabase (for static hosting without server!)
             const client = getSupabaseClient();
             if (client && !window._supabaseTableMissing) {
                 client.from('diagnostics')
