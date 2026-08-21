@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070E1E">
     <title>NFC SERVIS 1 - Внутренний Софт СТО</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2024,19 +2025,6 @@
             
             localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
             
-            fetch('/api/diagnostics', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(vehicleRecord)
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("[Local DB Initialize] Success:", data);
-            })
-            .catch(err => {
-                console.warn("[Local DB Initialize] Failed:", err);
-            });
-            
             // Maintain persistent post state tabs
             saveCurrentPostState();
             renderPostTabs();
@@ -2388,25 +2376,6 @@
                 console.warn("Storage sync failed", e);
             }
 
-            // Post real record to backend server if running
-            fetch('/api/diagnostics', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(record)
-            })
-            .then(res => {
-                if (!res.ok) return null;
-                return res.json().catch(() => null);
-            })
-            .then(data => {
-                if (data) console.log("[Cloud Live Sync] Server sync completed successfully:", data);
-            })
-            .catch(err => {
-                console.warn("[Cloud Live Sync] Server endpoint unavailable, using direct local storage & Supabase.");
-            });
-
             // Direct Supabase Browser SDK sync
             if (navigator.onLine) {
                 saveToSupabaseDirect(record).then(res => {
@@ -2611,29 +2580,7 @@
                 `;
             }
 
-            // 1. Try Server endpoint if running with Express server
-            try {
-                const res = await fetch('/api/sync/to-supabase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ records: list })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.success) {
-                        if (btn) {
-                            btn.disabled = false;
-                            btn.innerHTML = originalText;
-                        }
-                        alert(`✓ Синхронизация с Supabase выполнена через сервер!\n\nУспешно отправлено записей: ${data.syncedCount || list.length}`);
-                        return;
-                    }
-                }
-            } catch(e) {
-                console.warn("[Server Sync] Server endpoint not available, switching to direct client-side Supabase SDK sync");
-            }
-
-            // 2. Direct client-side batch upsert using Supabase JS SDK (for static hosting!)
+            // Direct client-side batch upsert using Supabase JS SDK (for static hosting!)
             const client = getSupabaseClient();
             if (!client) {
                 if (btn) {
