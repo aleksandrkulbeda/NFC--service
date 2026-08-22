@@ -182,7 +182,7 @@
                     <!-- КРАСНАЯ ПЛАШКА С КРУПНЫМ КУРСИВНЫМ ПРОБЕГОМ И АНИМАЦИЕЙ -->
                     <div class="pulse-red-card border-2 rounded-2xl p-3.5 text-center shadow-xl my-1 transition-all">
                         <span class="block text-[10px] sm:text-[11px] uppercase tracking-wider text-red-100 font-extrabold" data-i18n="nextOilChangeAt">След. замена масла на пробеге:</span>
-                        <span id="warning-next-km" class="block text-2xl sm:text-3xl font-black font-mono text-white tracking-widest my-1 drop-shadow-md">150 000 км</span>
+                        <span id="warning-next-km" class="block text-2xl sm:text-3xl font-black font-mono text-white tracking-widest my-1 drop-shadow-md">—</span>
                         <span class="block text-[10px] text-red-100/90 font-medium" data-i18n="onReachKm">При достижении этой цифры записаться на замену</span>
                     </div>
 
@@ -212,19 +212,19 @@
                     <div class="grid grid-cols-2 gap-3 text-xs pt-1">
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="oilInSystem">Масло в системе</span>
-                            <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="oil-type-desc">Mobil 1 FS 5W-30</span>
+                            <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="oil-type-desc">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="mileageAtChange">Пробег при замене</span>
-                            <span class="block text-white font-mono font-bold mt-0.5 text-amber-400" id="oil-mileage-change">149 500 км</span>
+                            <span class="block text-white font-mono font-bold mt-0.5 text-amber-400" id="oil-mileage-change">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="oilVolume">Объем картера</span>
-                            <span class="block text-white font-semibold mt-0.5" id="oil-volume-desc">6.5 литров</span>
+                            <span class="block text-white font-semibold mt-0.5" id="oil-volume-desc">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="nextEngineOilChange">След. замена масла ДВС</span>
-                            <span class="block text-white font-mono font-bold mt-0.5 text-emerald-400" id="oil-next-change">150 000 км</span>
+                            <span class="block text-white font-mono font-bold mt-0.5 text-emerald-400" id="oil-next-change">—</span>
                         </div>
                     </div>
 
@@ -302,19 +302,19 @@
                     <div class="grid grid-cols-2 gap-3 text-xs pt-1">
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="kppFluidType">Тип жидкости / КПП</span>
-                            <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="kpp-fluid-type">Synthetic ATF • АКПП</span>
+                            <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="kpp-fluid-type">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="mileageAtChange">Пробег при замене</span>
-                            <span class="block text-white font-mono font-bold mt-0.5 text-emerald-400" id="kpp-mileage-change">110 000 км</span>
+                            <span class="block text-white font-mono font-bold mt-0.5 text-emerald-400" id="kpp-mileage-change">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="kppLubrication">Система смазки КПП</span>
-                            <span class="block text-white font-semibold mt-0.5" id="kpp-seal-status">Герметична</span>
+                            <span class="block text-white font-semibold mt-0.5" id="kpp-seal-status">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                             <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="kppNextChange">След. замена</span>
-                            <span class="block text-white font-mono font-bold mt-0.5 text-slate-300" id="kpp-next-change">160 000 км</span>
+                            <span class="block text-white font-mono font-bold mt-0.5 text-slate-300" id="kpp-next-change">—</span>
                         </div>
                     </div>
                 </div>
@@ -335,15 +335,15 @@
                 <div class="grid grid-cols-2 gap-3 text-xs pt-1">
                     <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950 col-span-2">
                         <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="hydroFluid">Залитое масло в гидравлику</span>
-                        <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="hydro-oil-type">Mobil ATF 220</span>
+                        <span class="block text-white font-semibold mt-0.5 text-ellipsis overflow-hidden" id="hydro-oil-type">—</span>
                     </div>
                     <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                         <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="mileageAtChange">Пробег при замене</span>
-                        <span class="block text-white font-mono font-bold mt-0.5 text-amber-400" id="hydro-mileage-change">150 000 км</span>
+                        <span class="block text-white font-mono font-bold mt-0.5 text-amber-400" id="hydro-mileage-change">—</span>
                     </div>
                     <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-950">
                         <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-wider" data-i18n="kppNextChange">След. замена</span>
-                        <span class="block text-white font-mono font-bold mt-0.5 text-blue-400" id="hydro-next-change">200 000 км</span>
+                        <span class="block text-white font-mono font-bold mt-0.5 text-blue-400" id="hydro-next-change">—</span>
                     </div>
                 </div>
             </div>
@@ -736,6 +736,7 @@
         async function searchByPlate() {
             const input = document.getElementById('entry-plate-input') || document.getElementById('search-plate-input');
             const statusEl = document.getElementById('entry-status-msg') || document.getElementById('search-plate-status');
+            const cacheBadge = document.getElementById('fast-cache-badge');
             if (!input) return;
             const rawQuery = input.value.trim();
             const query = rawQuery.toUpperCase().replace(/[\s\-_]/g, '');
@@ -751,15 +752,18 @@
             }
 
             if (statusEl) {
-                statusEl.innerText = dict.searchingPlate || "Поиск актуальных данных автомобиля...";
-                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-blue-950/50 border border-blue-800/40 text-blue-300 text-center font-medium";
+                statusEl.innerText = dict.searchingPlate || "Поиск актуальных данных автомобиля в облаке Supabase...";
+                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-blue-950/50 border border-blue-800/40 text-blue-300 text-center font-medium animate-pulse";
                 statusEl.classList.remove('hidden');
             }
 
+            await ensureSupabaseConfig();
+
             const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
             let matched = null;
+            let isCloudSource = false;
 
-            // 1. Direct real-time search in Supabase Cloud database FIRST (freshest data)
+            // 1. Direct real-time search in Supabase Cloud database FIRST (freshest data from cloud)
             const client = getSupabaseClient();
             if (client) {
                 try {
@@ -782,6 +786,8 @@
 
                         if (found) {
                             matched = (found.data && typeof found.data === 'object') ? { ...found.data, ...found } : found;
+                            isCloudSource = true;
+                            // Overwrite stale local storage with fresh Supabase data
                             saveCarToLocalStorage(matched);
                         }
                     }
@@ -798,6 +804,8 @@
                         const serverData = await serverRes.json();
                         if (serverData && (serverData.fobId || serverData.licensePlate || serverData.carNumber)) {
                             matched = serverData;
+                            isCloudSource = true;
+                            // Overwrite stale local storage with fresh server data
                             saveCarToLocalStorage(matched);
                         }
                     }
@@ -806,7 +814,7 @@
                 }
             }
 
-            // 3. Fallback to locally cached records (for offline mode)
+            // 3. Fallback to locally cached records (for deep offline mode ONLY)
             if (!matched) {
                 const cars = getSavedCars();
                 matched = cars.find(c => {
@@ -821,6 +829,14 @@
                 if (statusEl) statusEl.classList.add('hidden');
                 showLogbookScreen();
                 renderCarData(matched);
+                if (cacheBadge) {
+                    if (isCloudSource) {
+                        cacheBadge.classList.add('hidden');
+                    } else {
+                        cacheBadge.classList.remove('hidden');
+                        cacheBadge.classList.add('flex');
+                    }
+                }
                 input.value = '';
                 return;
             }
@@ -891,7 +907,14 @@
             let warningText = document.getElementById('warning-text');
             
             // Warning Banner setup (Odometer check instruction + WhatsApp booking)
-            let nextKmFormatted = formatKm(data.nextOilDvs, '150 000 ' + carUnit, carUnit);
+            let plannedNextKm = data.nextOilDvs;
+            if (!plannedNextKm && data.mileageOilDvs) {
+                const curNum = parseInt(String(data.mileageOilDvs).replace(/\D/g, ''), 10);
+                if (!isNaN(curNum) && curNum > 0) {
+                    plannedNextKm = (curNum + 8000).toString();
+                }
+            }
+            let nextKmFormatted = formatKm(plannedNextKm, '—', carUnit);
             warningContainer.className = "p-5 rounded-2xl text-white flex flex-col justify-between space-y-4 animate-brand-orange-pulse relative overflow-hidden";
             warningBadge.innerText = dict.warningBadge || "Контроль пробега";
             warningBadge.className = "text-[10px] font-black uppercase tracking-wider bg-black/40 text-orange-200 px-2.5 py-1 rounded-full";
@@ -919,10 +942,10 @@
             }
             
             // Oil DVS general fields
-            document.getElementById('oil-type-desc').innerText = data.oilTypeDvs || 'Mobil 1 FS 5W-30';
+            document.getElementById('oil-type-desc').innerText = data.oilTypeDvs || '—';
             document.getElementById('oil-mileage-change').innerText = formatKm(data.mileageOilDvs, '—', carUnit);
-            document.getElementById('oil-volume-desc').innerText = data.oilVolumeDvs ? (data.oilVolumeDvs + (String(data.oilVolumeDvs).includes('л') ? '' : ' л')) : '6.5 л';
-            document.getElementById('oil-next-change').innerText = formatKm(data.nextOilDvs, '—', carUnit);
+            document.getElementById('oil-volume-desc').innerText = data.oilVolumeDvs ? (data.oilVolumeDvs + (String(data.oilVolumeDvs).includes('л') ? '' : ' л')) : '—';
+            document.getElementById('oil-next-change').innerText = formatKm(plannedNextKm, '—', carUnit);
             
             // Filter lists
             setFilterState('oil-filter-check', 'oil-filter-status', 'oil-filter-desc', data.oilFilter, data.oilFilterChecked, 'Масляный фильтр');
@@ -931,7 +954,7 @@
             setFilterState('cabin-filter-check', 'cabin-filter-status', 'cabin-filter-desc', data.cabinFilter, data.cabinFilterChecked, 'Салонный фильтр');
             
             // KPP/Transmission fields
-            document.getElementById('kpp-fluid-type').innerText = `${data.oilTypeKpp || 'Synthetic ATF'} • ${data.kppType || 'АКПП'}`;
+            document.getElementById('kpp-fluid-type').innerText = data.oilTypeKpp ? `${data.oilTypeKpp} • ${data.kppType || 'АКПП'}` : (data.kppType || '—');
             document.getElementById('kpp-mileage-change').innerText = formatKm(data.mileageOilKpp, '—', carUnit);
             document.getElementById('kpp-next-change').innerText = formatKm(data.nextOilKpp, '—', carUnit);
             
@@ -1201,6 +1224,27 @@
             return { url, key };
         }
 
+        async function ensureSupabaseConfig() {
+            const currentCfg = getSupabaseConfig();
+            if (currentCfg.url && currentCfg.key) return currentCfg;
+            try {
+                const res = await fetch('/api/supabase-config', { headers: { 'Accept': 'application/json' } });
+                if (res.ok) {
+                    const cfg = await res.json();
+                    if (cfg && cfg.configured && cfg.supabaseUrl && cfg.supabaseKey) {
+                        window._supabaseServerUrl = cfg.supabaseUrl;
+                        window._supabaseServerKey = cfg.supabaseKey;
+                        try {
+                            localStorage.setItem('mobil1_supabase_url', cfg.supabaseUrl);
+                            localStorage.setItem('mobil1_supabase_key', cfg.supabaseKey);
+                        } catch(e) {}
+                        return { url: cfg.supabaseUrl, key: cfg.supabaseKey };
+                    }
+                }
+            } catch(e) {}
+            return getSupabaseConfig();
+        }
+
         function getSupabaseClient() {
             const { url, key } = getSupabaseConfig();
             if (typeof window.supabase === 'undefined' || !url || !key) return null;
@@ -1249,7 +1293,7 @@
         }
 
         // On dropdown entry change or NFC fob load
-        function selectFobRecord(fobId) {
+        async function selectFobRecord(fobId) {
             const cacheBadge = document.getElementById('fast-cache-badge');
 
             if (fobId === 'default') {
@@ -1257,64 +1301,71 @@
                 if (cacheBadge) cacheBadge.classList.add('hidden');
                 return;
             }
-            
-            // 1. Instantly display locally cached values (zero latency UX)
+
+            await ensureSupabaseConfig();
+            let cloudMatched = null;
+
+            // 1. Direct fetch from Supabase Cloud as primary truth
+            const client = getSupabaseClient();
+            if (client && !window._supabaseTableMissing) {
+                const cleanTarget = String(fobId).trim().toUpperCase();
+                try {
+                    const { data, error } = await client.from('diagnostics')
+                        .select('*')
+                        .order('updated_at', { ascending: false })
+                        .limit(50);
+                    if (!error && Array.isArray(data)) {
+                        const found = data.find(row => {
+                            const rec = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
+                            const f = String(rec.fobId || rec.fob_id || row.fob_id || row.fobId || '').trim().toUpperCase();
+                            return f === cleanTarget;
+                        });
+                        if (found) {
+                            cloudMatched = (found.data && typeof found.data === 'object') ? { ...found.data, ...found } : found;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 2. Fetch from backend server API if not found in client Supabase query
+            if (!cloudMatched) {
+                try {
+                    const res = await fetch(`/api/diagnostics?fobId=${encodeURIComponent(fobId)}`);
+                    if (res.ok) {
+                        const serverRecord = await res.json();
+                        if (serverRecord && (serverRecord.fobId || serverRecord.carBrand || serverRecord.licensePlate)) {
+                            cloudMatched = serverRecord;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 3. If fresh cloud data found: overwrite localStorage and render immediately
+            if (cloudMatched) {
+                saveCarToLocalStorage(cloudMatched);
+                renderCarData(cloudMatched);
+                if (cacheBadge) cacheBadge.classList.add('hidden');
+                return;
+            }
+
+            // 4. Offline fallback to local storage cache ONLY if cloud search returned nothing or offline
             const cars = getSavedCars();
-            const matched = cars.find(c => (c.fobId || c.fob_id) === fobId);
-            if (matched) {
-                renderCarData(matched);
+            const localMatched = cars.find(c => (c.fobId || c.fob_id) === fobId);
+            if (localMatched) {
+                renderCarData(localMatched);
                 if (cacheBadge) {
                     cacheBadge.classList.remove('hidden');
                     cacheBadge.classList.add('flex');
                 }
-            } else if (cacheBadge) {
-                cacheBadge.classList.add('hidden');
+            } else {
+                showEntryScreen();
+                const statusEl = document.getElementById('entry-status-msg');
+                if (statusEl) {
+                    statusEl.innerText = `Брелок #${fobId} пока не зарегистрирован в базе.`;
+                    statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium";
+                    statusEl.classList.remove('hidden');
+                }
             }
-            
-            // 2. Fetch fresh record from Supabase Cloud directly
-            const client = getSupabaseClient();
-            if (client && !window._supabaseTableMissing) {
-                const cleanTarget = String(fobId).trim().toUpperCase();
-                client.from('diagnostics')
-                    .select('*')
-                    .order('updated_at', { ascending: false })
-                    .limit(50)
-                    .then(({ data, error }) => {
-                        if (!error && Array.isArray(data)) {
-                            const found = data.find(row => {
-                                const rec = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
-                                const f = String(rec.fobId || rec.fob_id || row.fob_id || row.fobId || '').trim().toUpperCase();
-                                return f === cleanTarget;
-                            });
-
-                            if (found) {
-                                const rec = (found.data && typeof found.data === 'object') ? { ...found.data, ...found } : found;
-                                saveCarToLocalStorage(rec);
-                                renderCarData(rec);
-                                if (cacheBadge) {
-                                    cacheBadge.classList.remove('hidden');
-                                    cacheBadge.classList.add('flex');
-                                }
-                            }
-                        }
-                    })
-                    .catch(() => {});
-            }
-
-            // 3. Fetch from backend server API
-            fetch(`/api/diagnostics?fobId=${encodeURIComponent(fobId)}`)
-                .then(r => r.ok ? r.json() : null)
-                .then(serverRecord => {
-                    if (serverRecord && (serverRecord.fobId || serverRecord.carBrand || serverRecord.licensePlate)) {
-                        saveCarToLocalStorage(serverRecord);
-                        renderCarData(serverRecord);
-                        if (cacheBadge) {
-                            cacheBadge.classList.remove('hidden');
-                            cacheBadge.classList.add('flex');
-                        }
-                    }
-                })
-                .catch(() => {});
         }
 
         // Event listener for cross-interface storage coordination (keeps data in sync without forcing screen change)
