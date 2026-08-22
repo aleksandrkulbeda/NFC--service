@@ -59,22 +59,12 @@
         }
     </style>
 <script src="/_aistudio-iframe.js?v=2f1c016a"></script></head>
-<body class="bg-[#030914] text-slate-100 font-sans min-h-screen py-4 sm:py-10 px-4 flex justify-center items-center selection:bg-orange-500 selection:text-white">
-    <!-- SMARTPHONE CASE FRAME SIMULATION FOR PREMIUM DISPLAY -->
-    <div class="w-full max-w-[440px] bg-[#0A1121] border border-slate-800 rounded-[38px] overflow-hidden flex flex-col shadow-2xl relative ring-12 ring-slate-900/60">
+<body class="bg-[#030914] text-slate-100 font-sans min-h-screen selection:bg-orange-500 selection:text-white flex flex-col items-center justify-start sm:p-4">
+    <!-- RESPONSIVE CLIENT PORTAL CONTAINER -->
+    <div class="w-full max-w-xl bg-[#0A1121] border-x border-b sm:border border-slate-800/80 sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:my-4">
         
-        <!-- PHONE NOTCH / STATUS HEADER -->
-        <div class="w-full bg-[#050B16] px-8 py-3 flex justify-between items-center text-[11px] font-semibold text-slate-500 font-mono tracking-tight border-b border-slate-900">
-            <div>12:45</div>
-            <div class="h-4.5 w-24 bg-black rounded-b-xl absolute left-1/2 -translate-x-1/2 top-0"></div>
-            <div class="flex items-center space-x-1.5">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.58 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-                <span>5G LTE</span>
-            </div>
-        </div>
-
-        <!-- MAIN SCROLLABLE WRAPPER -->
-        <div class="flex-grow p-5 space-y-6 overflow-y-auto max-h-[812px] scrollbar-thin scrollbar-thumb-slate-800">
+        <!-- MAIN CONTENT CONTAINER -->
+        <div class="flex-grow p-4 sm:p-6 space-y-6">
             
             <!-- PORTAL APP HEADER -->
             <div class="flex items-center justify-between border-b border-slate-900 pb-4">
@@ -172,7 +162,7 @@
                     <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-mono pt-1">
                         <span class="bg-[#0D1E3A] text-blue-400 px-2 py-0.5 rounded border border-blue-900/40 font-bold" id="car-license-plate">KZ 777 MOB 01</span>
                         <span class="bg-amber-950/60 text-amber-300 px-2 py-0.5 rounded border border-amber-800/50 flex items-center gap-1 font-bold" id="car-sto-badge">🏢 NFC SERVIS Center</span>
-                        <span id="car-last-service">• Последнее ТО: 16.06.2026</span>
+                        <span id="car-last-service">• Последнее ТО: —</span>
                     </div>
                 </div>
 
@@ -414,11 +404,6 @@
 
             </div> <!-- END OF CAR LOGBOOK SCREEN -->
 
-        </div>
-
-        <!-- NAVIGATION / HOME BUTTON -->
-        <div class="bg-[#050B16] w-full py-4.5 flex justify-center items-center border-t border-slate-900">
-            <div class="h-1.5 w-32 bg-slate-700/60 rounded-full hover:bg-slate-600 cursor-pointer"></div>
         </div>
     </div>
 
@@ -889,7 +874,16 @@
                 stoBadge.innerText = (dict.stoPrefix || '🏢 СТО: ') + (data.stationName || 'NFC SERViS Center');
             }
             
-            document.getElementById('car-last-service').innerText = `${dict.lastServicePrefix || '• Последнее ТО: '}${data.timestamp || '16.06.2026'}`;
+            let formattedDate = data.timestamp || data.serviceDate || data.lastServiceDate;
+            if (!formattedDate && data.updated_at) {
+                try {
+                    formattedDate = new Date(data.updated_at).toLocaleDateString('ru-RU');
+                } catch(e) {}
+            }
+            if (!formattedDate) {
+                formattedDate = new Date().toLocaleDateString('ru-RU');
+            }
+            document.getElementById('car-last-service').innerText = `${dict.lastServicePrefix || '• Последнее ТО: '}${formattedDate}`;
             
             let warningContainer = document.getElementById('warning-container');
             let warningBadge = document.getElementById('warning-badge');
