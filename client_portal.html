@@ -424,23 +424,6 @@
 
     <!-- REACTIVE CLIENT PORTAL STORAGE ENGINE -->
     <script>
-        // INSTANT AUTO-REDIRECT FOR STO MASTER / MECHANIC DEVICES
-        (function checkMasterInstantRedirect() {
-            try {
-                const isMasterDevice = localStorage.getItem('sto_master_authorized') === 'true' || localStorage.getItem('sto_is_master_device') === 'true';
-                if (isMasterDevice) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('scanFob');
-                    if (queryFob && queryFob.trim()) {
-                        // Redirect instantly to internal STO panel with scanned fob ID before rendering client portal
-                        window.location.replace(`sto_internal.html?fob=${encodeURIComponent(queryFob.trim())}`);
-                    }
-                }
-            } catch (e) {
-                console.warn("Master auto-redirect check failed:", e);
-            }
-        })();
-
         // INTERNATIONALIZATION SYSTEM (RU / KK)
         const translations = {
             ru: {
@@ -627,7 +610,7 @@
             timestamp: '16.06.2026'
         };
 
-        // Load all saved diagnostics from localStorage
+        // Load all saved diagnostics from localStorage (used for offline cache)
         function getSavedCars() {
             let records = [];
             try {
@@ -638,10 +621,10 @@
             } catch (e) {
                 console.error("Ошибка при чтении localStorage:", e);
             }
-            return records;
+            return Array.isArray(records) ? records : [];
         }
 
-        // Fetch non-confidential diagnostics from cloud (Supabase or server) and merge with local records
+        // Fetch non-confidential diagnostics from cloud (Supabase or server) and merge with local records in background
         function syncAndLoadFromCloud(callback) {
             const handleCloudData = (cloudRecords) => {
                 if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
@@ -658,7 +641,10 @@
                         }
                     });
                     
-                    populatePickerWithRecords(merged);
+                    try {
+                        localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(merged));
+                    } catch(e) {}
+                    
                     if (callback) callback(merged);
                 } else {
                     if (callback) callback(getSavedCars());
@@ -687,46 +673,44 @@
             }
         }
 
-        // populate picker element with list
+        // populate picker element with list if present
         function populatePickerWithRecords(records) {
             const picker = document.getElementById('fob-picker');
             if (!picker) return;
             const savedValue = picker.value;
             
-            // Clear but keep first
             picker.innerHTML = `<option value="default">🏆 Тестовый брелок (Porsche Cayenne Turbo S)</option>`;
             
             records.forEach(car => {
+                if (!car || !car.fobId) return;
                 const opt = document.createElement('option');
                 opt.value = car.fobId;
                 opt.innerText = `🏷️ Брелок ${car.fobId} (${car.carBrand || 'Машина'} ${car.carModel || ''})`;
                 picker.appendChild(opt);
             });
             
-            // restore value if still exists
             const options = Array.from(picker.options).map(o => o.value);
             if (options.includes(savedValue)) {
                 picker.value = savedValue;
-            } else {
-                picker.value = 'default';
-                renderCarData(DEFAULT_CAR);
             }
         }
 
-        // populate select picker
+        // populate select picker without forcing display on screen
         function updateFobPicker() {
-            // 1. Initial render from local cache
             const localCars = getSavedCars();
             populatePickerWithRecords(localCars);
             
-            // 2. Fetch and merge cloud list asynchronously
             syncAndLoadFromCloud((mergedList) => {
-                const picker = document.getElementById('fob-picker');
-                if (picker && picker.value !== 'default') {
-                    const activeFob = picker.value;
-                    const matched = mergedList.find(c => c.fobId === activeFob);
-                    if (matched) {
-                        renderCarData(matched);
+                populatePickerWithRecords(mergedList);
+                // Only update displayed logbook if user is already actively viewing a car logbook
+                const logbookScreen = document.getElementById('car-logbook-screen');
+                if (logbookScreen && !logbookScreen.classList.contains('hidden') && window._currentCarData) {
+                    const currentFob = window._currentCarData.fobId;
+                    if (currentFob) {
+                        const matched = mergedList.find(c => (c.fobId || c.fob_id) === currentFob);
+                        if (matched) {
+                            renderCarData(matched);
+                        }
                     }
                 }
             });
@@ -737,6 +721,10 @@
             const logbookScreen = document.getElementById('car-logbook-screen');
             if (entryScreen) entryScreen.classList.remove('hidden');
             if (logbookScreen) logbookScreen.classList.add('hidden');
+            const statusEl = document.getElementById('entry-status-msg');
+            if (statusEl) statusEl.classList.add('hidden');
+            const input = document.getElementById('entry-plate-input');
+            if (input) input.focus();
         }
 
         function showLogbookScreen() {
@@ -1273,24 +1261,10 @@
             }
         }
 
-        // Event listener for cross-interface storage coordination
+        // Event listener for cross-interface storage coordination (keeps data in sync without forcing screen change)
         window.addEventListener('storage', (e) => {
             if (e.key === 'mobil1_sto_all_diagnostics') {
                 updateFobPicker();
-                const savedValue = document.getElementById('fob-picker').value;
-                if (savedValue !== 'default') {
-                    selectFobRecord(savedValue);
-                } else {
-                    // Try to auto-select the latest scanned car if we are at default!
-                    const cars = getSavedCars();
-                    if (cars.length > 0) {
-                        const latestCar = cars[cars.length - 1];
-                        document.getElementById('fob-picker').value = latestCar.fobId;
-                        renderCarData(latestCar);
-                    } else {
-                        renderCarData(DEFAULT_CAR);
-                    }
-                }
             }
         });
 
@@ -1298,7 +1272,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             setLanguage(currentLang);
             
-            // Auto-fetch Supabase configuration from server if running in fullstack mode
+            // Check if URL contains ?fob=... or ?nfc=... or ?fobId=... or ?plate=...
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('nfc');
+            const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
+            
+            // Auto-fetch Supabase configuration from server in background
             fetch('/api/supabase-config')
                 .then(r => r.ok ? r.json() : null)
                 .then(cfg => {
@@ -1311,49 +1290,23 @@
                 .catch(() => {
                     updateFobPicker();
                 });
-            
-            // Check if URL contains ?fob=... or ?nfc=... or ?fobId=... or ?plate=...
-            const urlParams = new URLSearchParams(window.location.search);
-            const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('nfc');
-            const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
-            
-            // Detect if this device is used by an STO Master / Mechanic
-            const isMasterDevice = localStorage.getItem('sto_master_authorized') === 'true' || localStorage.getItem('sto_is_master_device') === 'true';
 
+            // If scanned a specific FOB parameter
             if (queryFob) {
-                if (isMasterDevice) {
-                    window.location.replace(`sto_internal.html?fob=${encodeURIComponent(queryFob)}`);
-                    return;
-                }
-
-                // Check if options contains this fob, else add temporary option
-                const picker = document.getElementById('fob-picker');
-                if (picker) {
-                    let exists = false;
-                    for (let i = 0; i < picker.options.length; i++) {
-                        if (picker.options[i].value === queryFob) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists) {
-                        const newOpt = document.createElement('option');
-                        newOpt.value = queryFob;
-                        newOpt.innerText = `🔑 Отсканированный брелок (${queryFob})`;
-                        picker.appendChild(newOpt);
-                    }
-                    picker.value = queryFob;
-                }
                 selectFobRecord(queryFob);
                 return;
-            } else if (queryPlate) {
+            } 
+            
+            // If opened with specific license plate parameter
+            if (queryPlate) {
                 const input = document.getElementById('entry-plate-input');
                 if (input) input.value = queryPlate;
                 searchByPlate();
                 return;
             }
 
-            // By default when opening via QR scan without fob ID: Show Entry Screen asking for car plate!
+            // Fresh entrance / General QR scan without parameters:
+            // ALWAYS show clean entry screen requesting license plate!
             showEntryScreen();
         });
     </script>
