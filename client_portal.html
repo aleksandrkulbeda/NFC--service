@@ -630,13 +630,26 @@
                 if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
                     const localRecords = getSavedCars();
                     const merged = [...localRecords];
+                    const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
                     
                     cloudRecords.forEach(rawItem => {
                         const item = (rawItem.data && typeof rawItem.data === 'object') ? { ...rawItem.data, ...rawItem } : rawItem;
                         const cleanFob = item.fobId || item.fob_id;
-                        if (!cleanFob) return;
-                        const exists = merged.some(localCar => (localCar.fobId || localCar.fob_id) === cleanFob);
-                        if (!exists) {
+                        const cleanPlate = normalize(item.licensePlate || item.carPlate || item.carNumber || item.car_number);
+                        if (!cleanFob && !cleanPlate) return;
+
+                        const existingIdx = merged.findIndex(localCar => {
+                            const lFob = localCar.fobId || localCar.fob_id;
+                            const lPlate = normalize(localCar.licensePlate || localCar.carPlate || localCar.carNumber || localCar.car_number);
+                            if (cleanFob && lFob && cleanFob === lFob) return true;
+                            if (cleanPlate && lPlate && cleanPlate === lPlate) return true;
+                            return false;
+                        });
+
+                        if (existingIdx >= 0) {
+                            // Supabase cloud data takes precedence over old local cache!
+                            merged[existingIdx] = { ...merged[existingIdx], ...item };
+                        } else {
                             merged.push(item);
                         }
                     });
@@ -651,13 +664,13 @@
                 }
             };
 
-            // Direct browser fetch from Supabase (for static hosting)
+            // Direct browser fetch from Supabase (for static hosting or real-time cloud data)
             const client = getSupabaseClient();
             if (client) {
                 client.from('diagnostics')
                     .select('*')
                     .order('updated_at', { ascending: false })
-                    .limit(100)
+                    .limit(150)
                     .then(({ data, error }) => {
                         if (!error && Array.isArray(data)) {
                             handleCloudData(data);
@@ -753,20 +766,44 @@
             }
 
             if (statusEl) {
-                statusEl.innerText = dict.searchingPlate || "Поиск автомобиля в базе СТО...";
+                statusEl.innerText = dict.searchingPlate || "Поиск актуальных данных автомобиля...";
                 statusEl.className = "text-xs py-2 px-3 rounded-xl bg-blue-950/50 border border-blue-800/40 text-blue-300 text-center font-medium";
                 statusEl.classList.remove('hidden');
             }
 
-            const cars = getSavedCars();
             const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
+            let matched = null;
 
-            // 1. Search in local saved records (cached on this device)
-            let matched = cars.find(c => {
-                const plate = normalize(c.carNumber || c.carPlate || c.licensePlate);
-                const fob = normalize(c.fobId || c.fob_id);
-                return (plate && (plate.includes(query) || query.includes(plate))) || (fob && (fob.includes(query) || query.includes(fob)));
-            });
+            // 1. Direct real-time search in Supabase Cloud database FIRST (freshest data)
+            const client = getSupabaseClient();
+            if (client) {
+                try {
+                    const { data, error } = await client.from('diagnostics')
+                        .select('*')
+                        .order('updated_at', { ascending: false })
+                        .limit(100);
+
+                    if (!error && Array.isArray(data) && data.length > 0) {
+                        const cleanSearchPhone = rawQuery.replace(/[\s\-_+()]/g, '');
+                        const found = data.find(row => {
+                            const rec = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
+                            const p = normalize(rec.licensePlate || rec.carNumber || rec.carPlate || rec.car_number);
+                            const f = normalize(rec.fobId || rec.fob_id || row.fob_id || row.fobId);
+                            const ph = String(rec.ownerPhone || rec.clientPhone || '').replace(/[\s\-_+()]/g, '');
+                            return (p && (p.includes(query) || query.includes(p))) ||
+                                   (f && (f.includes(query) || query.includes(f))) ||
+                                   (cleanSearchPhone.length >= 4 && ph && ph.includes(cleanSearchPhone));
+                        });
+
+                        if (found) {
+                            matched = (found.data && typeof found.data === 'object') ? { ...found.data, ...found } : found;
+                            saveCarToLocalStorage(matched);
+                        }
+                    }
+                } catch(e) {
+                    console.warn("Supabase plate query exception:", e);
+                }
+            }
 
             // 2. Search via Server API endpoint (/api/diagnostics?q=...)
             if (!matched) {
@@ -784,37 +821,14 @@
                 }
             }
 
-            // 3. Search directly in Supabase Cloud database
+            // 3. Fallback to locally cached records (for offline mode)
             if (!matched) {
-                const client = getSupabaseClient();
-                if (client) {
-                    try {
-                        const { data, error } = await client.from('diagnostics')
-                            .select('*')
-                            .order('updated_at', { ascending: false })
-                            .limit(100);
-
-                        if (!error && Array.isArray(data) && data.length > 0) {
-                            const cleanSearchPhone = rawQuery.replace(/[\s\-_+()]/g, '');
-                            const found = data.find(row => {
-                                const rec = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
-                                const p = normalize(rec.licensePlate || rec.carNumber || rec.carPlate || rec.car_number);
-                                const f = normalize(rec.fobId || rec.fob_id || row.fob_id || row.fobId);
-                                const ph = String(rec.ownerPhone || rec.clientPhone || '').replace(/[\s\-_+()]/g, '');
-                                return (p && (p.includes(query) || query.includes(p))) ||
-                                       (f && (f.includes(query) || query.includes(f))) ||
-                                       (cleanSearchPhone.length >= 4 && ph && ph.includes(cleanSearchPhone));
-                            });
-
-                            if (found) {
-                                matched = (found.data && typeof found.data === 'object') ? { ...found.data, ...found } : found;
-                                saveCarToLocalStorage(matched);
-                            }
-                        }
-                    } catch(e) {
-                        console.warn("Supabase plate query error:", e);
-                    }
-                }
+                const cars = getSavedCars();
+                matched = cars.find(c => {
+                    const plate = normalize(c.carNumber || c.carPlate || c.licensePlate);
+                    const fob = normalize(c.fobId || c.fob_id);
+                    return (plate && (plate.includes(query) || query.includes(plate))) || (fob && (fob.includes(query) || query.includes(fob)));
+                });
             }
 
             // If found -> display vehicle digital logbook!
@@ -826,7 +840,7 @@
                 return;
             }
 
-            // If not found -> show clear error message without opening demo Porsche
+            // If not found -> show clear error message
             if (statusEl) {
                 statusEl.innerText = (currentLang === 'kk')
                     ? `"${rawQuery}" мемлекеттік нөмірлі көлік әлі СТО базасында тіркелмеген.`
@@ -1211,10 +1225,24 @@
 
         // Save record to local storage cache for instant offline sub-50ms loads
         function saveCarToLocalStorage(car) {
-            if (!car || !car.fobId) return;
+            if (!car) return;
+            const fob = car.fobId || car.fob_id;
+            const plate = car.licensePlate || car.carPlate || car.carNumber || car.car_number;
+            if (!fob && !plate) return;
+
             try {
                 let records = getSavedCars();
-                const idx = records.findIndex(c => c.fobId === car.fobId);
+                const normalize = (str) => String(str || '').toUpperCase().replace(/[\s\-_]/g, '');
+                const cleanPlate = normalize(plate);
+
+                const idx = records.findIndex(c => {
+                    const cFob = c.fobId || c.fob_id;
+                    const cPlate = normalize(c.licensePlate || c.carPlate || c.carNumber || c.car_number);
+                    if (fob && cFob && fob === cFob) return true;
+                    if (cleanPlate && cPlate && cleanPlate === cPlate) return true;
+                    return false;
+                });
+
                 if (idx >= 0) {
                     records[idx] = { ...records[idx], ...car };
                 } else {
@@ -1236,9 +1264,9 @@
                 return;
             }
             
-            // 1. Instantly display locally cached values
+            // 1. Instantly display locally cached values (zero latency UX)
             const cars = getSavedCars();
-            const matched = cars.find(c => c.fobId === fobId);
+            const matched = cars.find(c => (c.fobId || c.fob_id) === fobId);
             if (matched) {
                 renderCarData(matched);
                 if (cacheBadge) {
@@ -1249,31 +1277,16 @@
                 cacheBadge.classList.add('hidden');
             }
             
-            // 2. Fetch from backend server API
-            fetch(`/api/diagnostics?fobId=${encodeURIComponent(fobId)}`)
-                .then(r => r.ok ? r.json() : null)
-                .then(serverRecord => {
-                    if (serverRecord && (serverRecord.fobId || serverRecord.carBrand || serverRecord.licensePlate)) {
-                        saveCarToLocalStorage(serverRecord);
-                        renderCarData(serverRecord);
-                        if (cacheBadge) {
-                            cacheBadge.classList.remove('hidden');
-                            cacheBadge.classList.add('flex');
-                        }
-                    }
-                })
-                .catch(() => {});
-
-            // 3. Direct browser fetch from Supabase (for static hosting without server!)
+            // 2. Fetch fresh record from Supabase Cloud directly
             const client = getSupabaseClient();
             if (client && !window._supabaseTableMissing) {
+                const cleanTarget = String(fobId).trim().toUpperCase();
                 client.from('diagnostics')
                     .select('*')
                     .order('updated_at', { ascending: false })
                     .limit(50)
                     .then(({ data, error }) => {
                         if (!error && Array.isArray(data)) {
-                            const cleanTarget = String(fobId).trim().toUpperCase();
                             const found = data.find(row => {
                                 const rec = (row.data && typeof row.data === 'object') ? { ...row.data, ...row } : row;
                                 const f = String(rec.fobId || rec.fob_id || row.fob_id || row.fobId || '').trim().toUpperCase();
@@ -1291,10 +1304,23 @@
                             }
                         }
                     })
-                    .catch(() => {
-                        // Silent fallback
-                    });
+                    .catch(() => {});
             }
+
+            // 3. Fetch from backend server API
+            fetch(`/api/diagnostics?fobId=${encodeURIComponent(fobId)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(serverRecord => {
+                    if (serverRecord && (serverRecord.fobId || serverRecord.carBrand || serverRecord.licensePlate)) {
+                        saveCarToLocalStorage(serverRecord);
+                        renderCarData(serverRecord);
+                        if (cacheBadge) {
+                            cacheBadge.classList.remove('hidden');
+                            cacheBadge.classList.add('flex');
+                        }
+                    }
+                })
+                .catch(() => {});
         }
 
         // Event listener for cross-interface storage coordination (keeps data in sync without forcing screen change)
