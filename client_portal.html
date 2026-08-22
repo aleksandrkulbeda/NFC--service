@@ -1151,9 +1151,45 @@
             key: "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"  // Например: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         };
 
+        // Utility: allow setting Supabase credentials dynamically from browser console or URL
+        window.setSupabaseKeys = function(url, key) {
+            if (url) localStorage.setItem('mobil1_supabase_url', url.trim());
+            if (key) localStorage.setItem('mobil1_supabase_key', key.trim());
+            window._supabaseClient = null;
+            console.log("✓ Ключи Supabase успешно сохранены в локальную память браузера!");
+            updateFobPicker();
+        };
+
         function getSupabaseConfig() {
-            const url = (window._supabaseServerUrl || SUPABASE_CONFIG.url || localStorage.getItem('mobil1_supabase_url') || '').trim();
-            const key = (window._supabaseServerKey || SUPABASE_CONFIG.key || localStorage.getItem('mobil1_supabase_key') || '').trim();
+            // Check URL query parameters for dynamic setup (e.g. ?sb_url=...&sb_key=...)
+            try {
+                const p = new URLSearchParams(window.location.search);
+                const qUrl = p.get('supabase_url') || p.get('sb_url') || p.get('sbUrl');
+                const qKey = p.get('supabase_key') || p.get('sb_key') || p.get('sbKey') || p.get('anon_key');
+                if (qUrl && qKey) {
+                    localStorage.setItem('mobil1_supabase_url', qUrl.trim());
+                    localStorage.setItem('mobil1_supabase_key', qKey.trim());
+                }
+            } catch(e) {}
+
+            const url = (
+                window._supabaseServerUrl || 
+                SUPABASE_CONFIG.url || 
+                localStorage.getItem('mobil1_supabase_url') || 
+                localStorage.getItem('supabase_url') || 
+                localStorage.getItem('VITE_SUPABASE_URL') || 
+                ''
+            ).trim();
+
+            const key = (
+                window._supabaseServerKey || 
+                SUPABASE_CONFIG.key || 
+                localStorage.getItem('mobil1_supabase_key') || 
+                localStorage.getItem('supabase_key') || 
+                localStorage.getItem('VITE_SUPABASE_ANON_KEY') || 
+                ''
+            ).trim();
+
             return { url, key };
         }
 
@@ -1168,7 +1204,7 @@
                 }
                 return window._supabaseClient;
             } catch(e) {
-                console.error("Supabase client init error:", e);
+                console.warn("Supabase client init exception:", e);
                 return null;
             }
         }
@@ -1277,19 +1313,34 @@
             const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('nfc');
             const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
             
-            // Auto-fetch Supabase configuration from server in background
-            fetch('/api/supabase-config')
-                .then(r => r.ok ? r.json() : null)
-                .then(cfg => {
-                    if (cfg && cfg.configured) {
-                        window._supabaseServerUrl = cfg.supabaseUrl;
-                        window._supabaseServerKey = cfg.supabaseKey;
-                    }
-                    updateFobPicker();
-                })
-                .catch(() => {
-                    updateFobPicker();
-                });
+            // Check if already configured via embedded code, URL, or local storage
+            const currentCfg = getSupabaseConfig();
+            if (currentCfg.url && currentCfg.key) {
+                updateFobPicker();
+            } else {
+                // Safely probe backend server if running in fullstack Node.js environment
+                fetch('/api/supabase-config', { headers: { 'Accept': 'application/json' } })
+                    .then(r => {
+                        if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
+                            return r.json();
+                        }
+                        return null;
+                    })
+                    .then(cfg => {
+                        if (cfg && cfg.configured && cfg.supabaseUrl && cfg.supabaseKey) {
+                            window._supabaseServerUrl = cfg.supabaseUrl;
+                            window._supabaseServerKey = cfg.supabaseKey;
+                            try {
+                                localStorage.setItem('mobil1_supabase_url', cfg.supabaseUrl);
+                                localStorage.setItem('mobil1_supabase_key', cfg.supabaseKey);
+                            } catch(e) {}
+                        }
+                        updateFobPicker();
+                    })
+                    .catch(() => {
+                        updateFobPicker();
+                    });
+            }
 
             // If scanned a specific FOB parameter
             if (queryFob) {
