@@ -817,9 +817,45 @@
             key: "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"  // Например: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         };
 
+        // Utility: allow setting Supabase credentials dynamically from browser console or URL
+        window.setSupabaseKeys = function(url, key) {
+            if (url) localStorage.setItem('mobil1_supabase_url', url.trim());
+            if (key) localStorage.setItem('mobil1_supabase_key', key.trim());
+            window._supabaseClient = null;
+            console.log("✓ Ключи Supabase успешно сохранены в локальную память браузера!");
+            updateNetworkStatusUI();
+        };
+
         function getSupabaseConfig() {
-            const url = (SUPABASE_CONFIG.url || localStorage.getItem('mobil1_supabase_url') || '').trim();
-            const key = (SUPABASE_CONFIG.key || localStorage.getItem('mobil1_supabase_key') || '').trim();
+            // Check URL query parameters for dynamic setup (e.g. ?sb_url=...&sb_key=...)
+            try {
+                const p = new URLSearchParams(window.location.search);
+                const qUrl = p.get('supabase_url') || p.get('sb_url') || p.get('sbUrl');
+                const qKey = p.get('supabase_key') || p.get('sb_key') || p.get('sbKey') || p.get('anon_key');
+                if (qUrl && qKey) {
+                    localStorage.setItem('mobil1_supabase_url', qUrl.trim());
+                    localStorage.setItem('mobil1_supabase_key', qKey.trim());
+                }
+            } catch(e) {}
+
+            const url = (
+                window._supabaseServerUrl || 
+                SUPABASE_CONFIG.url || 
+                localStorage.getItem('mobil1_supabase_url') || 
+                localStorage.getItem('supabase_url') || 
+                localStorage.getItem('VITE_SUPABASE_URL') || 
+                ''
+            ).trim();
+
+            const key = (
+                window._supabaseServerKey || 
+                SUPABASE_CONFIG.key || 
+                localStorage.getItem('mobil1_supabase_key') || 
+                localStorage.getItem('supabase_key') || 
+                localStorage.getItem('VITE_SUPABASE_ANON_KEY') || 
+                ''
+            ).trim();
+
             return { url, key };
         }
 
@@ -834,7 +870,7 @@
                 }
                 return window._supabaseClient;
             } catch(e) {
-                console.error("Supabase client init error:", e);
+                console.warn("Supabase client init exception:", e);
                 return null;
             }
         }
@@ -1811,24 +1847,48 @@
             scanNfcFob();
         }
 
-        function processScannedFobUid(readUid) {
+        async function processScannedFobUid(readUid) {
             document.getElementById('scan-spinner')?.classList.add('hidden');
             document.getElementById('scan-success')?.classList.remove('hidden');
 
             const cleanUid = readUid.trim().toUpperCase();
 
-            // Check if tag UID is already bound to a car in localStorage database
+            // 1. Check if tag UID is already bound to a car in localStorage database
             let list = [];
             try {
                 const stored = localStorage.getItem('mobil1_sto_all_diagnostics');
                 if (stored) list = JSON.parse(stored);
             } catch(e) {}
 
-            const matched = list.find(item => item.fobId && item.fobId.toUpperCase() === cleanUid);
+            let matched = list.find(item => item.fobId && item.fobId.toUpperCase() === cleanUid);
+
+            // 2. If not found in localStorage, check Supabase cloud
+            if (!matched) {
+                const client = getSupabaseClient();
+                if (client) {
+                    try {
+                        const { data, error } = await client
+                            .from('diagnostics')
+                            .select('*')
+                            .eq('fob_id', cleanUid)
+                            .order('updated_at', { ascending: false })
+                            .limit(1);
+
+                        if (!error && Array.isArray(data) && data.length > 0) {
+                            matched = (data[0].data && typeof data[0].data === 'object') ? { ...data[0], ...data[0].data } : data[0];
+                            // Save to local list for offline caching
+                            list.push(matched);
+                            try { localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list)); } catch(e) {}
+                        }
+                    } catch(e) {
+                        console.warn("Supabase check on scan error:", e);
+                    }
+                }
+            }
 
             if (matched) {
                 // Bound car found!
-                state.fobId = matched.fobId;
+                state.fobId = matched.fobId || cleanUid;
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
@@ -2016,7 +2076,10 @@
                 console.error("Error reading db", e);
             }
             
-            let existingIndex = list.findIndex(item => (state.fobId && item.fobId === state.fobId) || (state.licensePlate && item.licensePlate === state.licensePlate));
+            let existingIndex = list.findIndex(item => {
+                if (state.fobId && item.fobId && item.fobId.toUpperCase() === state.fobId.toUpperCase()) return true;
+                return false;
+            });
             if (existingIndex >= 0) {
                 list[existingIndex] = { ...list[existingIndex], ...vehicleRecord };
             } else {
@@ -2024,6 +2087,13 @@
             }
             
             localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
+            
+            // Sync to Supabase cloud in background
+            try {
+                if (typeof saveToSupabaseDirect === 'function' && state.fobId) {
+                    saveToSupabaseDirect(vehicleRecord);
+                }
+            } catch(e) {}
             
             // Maintain persistent post state tabs
             saveCurrentPostState();
