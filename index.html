@@ -22,7 +22,7 @@
             }
         }
     </script>
-<script src="/_aistudio-iframe.js?v=2f1c016a"></script></head>
+<script src="/_aistudio-iframe.js?v=2c34bde1"></script></head>
 <body class="bg-[#040D1D] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-500 selection:text-white">
 
     <!-- HEADER -->
@@ -915,8 +915,15 @@
             const { url, key } = getSupabaseConfig();
             if (typeof window.supabase === 'undefined' || !url || !key) return null;
             try {
+                // Strict Singleton with Auth lock disabled: eliminates GoTrue lock contention & duplicate instance warnings
                 if (!window._supabaseClient || window._supabaseClientUrl !== url || window._supabaseClientKey !== key) {
-                    window._supabaseClient = window.supabase.createClient(url, key);
+                    window._supabaseClient = window.supabase.createClient(url, key, {
+                        auth: {
+                            persistSession: false,
+                            autoRefreshToken: false,
+                            detectSessionInUrl: false
+                        }
+                    });
                     window._supabaseClientUrl = url;
                     window._supabaseClientKey = key;
                 }
