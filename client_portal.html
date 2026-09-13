@@ -1368,6 +1368,8 @@
 
                 const itemSto = item.stationName || (data && data.stationName) || 'NFC SERViS Center';
 
+                const displayMileage = item.mileageOilDvs ? formatKm(item.mileageOilDvs, '—', itemUnit) : (item.mileageOilKpp ? formatKm(item.mileageOilKpp, '—', itemUnit) : '—');
+
                 html += `
                     <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs relative hover:border-slate-700 transition-colors">
                         <div class="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-2 gap-2">
@@ -1376,14 +1378,16 @@
                                 <span class="text-white font-bold">${item.timestamp || '—'}</span>
                                 <span class="text-[10px] bg-slate-900 border border-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono">🏢 ${itemSto}</span>
                             </div>
-                            <span class="text-emerald-400 font-mono font-bold">${formatKm(item.mileageOilDvs, '—', itemUnit)}</span>
+                            <span class="text-emerald-400 font-mono font-bold">${displayMileage}</span>
                         </div>
 
                         <div class="space-y-1.5 pt-0.5">
-                            <div class="flex items-center justify-between text-[11px]">
-                                <span class="text-slate-400">${dict.oilTypeLabel || 'Моторное масло'}:</span>
-                                <span class="text-white font-medium">${item.oilTypeDvs || 'Mobil 1'} ${item.oilVolumeDvs ? '(' + item.oilVolumeDvs + ' л)' : ''}</span>
-                            </div>
+                            ${item.oilTypeDvs ? `
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400">${dict.oilTypeLabel || 'Моторное масло'}:</span>
+                                    <span class="text-white font-medium">${item.oilTypeDvs} ${item.oilVolumeDvs ? '(' + item.oilVolumeDvs + ' л)' : ''}</span>
+                                </div>
+                            ` : ''}
 
                             ${item.nextOilDvs ? `
                                 <div class="flex items-center justify-between text-[11px]">
