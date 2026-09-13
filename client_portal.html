@@ -1135,10 +1135,73 @@
 
         // Render functions
         function renderCarData(data) {
+            if (!data) return;
             window._currentCarData = data;
             showLogbookScreen();
             const dict = translations[currentLang] || translations.ru;
             const carUnit = data.mileageUnit || dict.unitKm || 'км';
+
+            // Parse maintenance history if present
+            let history = [];
+            if (data) {
+                if (Array.isArray(data.history)) {
+                    history = data.history;
+                } else if (typeof data.history === 'string' && data.history.trim()) {
+                    try {
+                        const parsed = JSON.parse(data.history);
+                        if (Array.isArray(parsed)) history = parsed;
+                    } catch(e) {}
+                }
+            }
+
+            // Latest service entry ("последняя запись")
+            const latestEntry = (history && history.length > 0) ? history[0] : null;
+
+            // Universal field resolver with full fallback hierarchy:
+            // 1. Checks latest history entry
+            // 2. If absent/empty in latest entry, takes from root car object (data)
+            // 3. If absent in root object, checks previous history entries (from newest to oldest)
+            function resolveField(fieldName, fallback = '') {
+                if (latestEntry && latestEntry[fieldName] !== undefined && latestEntry[fieldName] !== null && String(latestEntry[fieldName]).trim() !== '') {
+                    return latestEntry[fieldName];
+                }
+                if (data && data[fieldName] !== undefined && data[fieldName] !== null && String(data[fieldName]).trim() !== '') {
+                    return data[fieldName];
+                }
+                if (history && history.length > 0) {
+                    for (let i = 0; i < history.length; i++) {
+                        const h = history[i];
+                        if (h && h[fieldName] !== undefined && h[fieldName] !== null && String(h[fieldName]).trim() !== '') {
+                            return h[fieldName];
+                        }
+                    }
+                }
+                return fallback;
+            }
+
+            // Consolidate both DVS and KPP fields onto data so that the entire portal operates on full data
+            data.oilTypeDvs = resolveField('oilTypeDvs', data.oilTypeDvs || '');
+            data.oilVolumeDvs = resolveField('oilVolumeDvs', data.oilVolumeDvs || '');
+            data.mileageOilDvs = resolveField('mileageOilDvs', data.mileageOilDvs || '');
+            data.nextOilDvs = resolveField('nextOilDvs', data.nextOilDvs || '');
+
+            data.kppType = resolveField('kppType', data.kppType || 'АКПП');
+            data.oilTypeKpp = resolveField('oilTypeKpp', data.oilTypeKpp || '');
+            data.mileageOilKpp = resolveField('mileageOilKpp', data.mileageOilKpp || '');
+            data.nextOilKpp = resolveField('nextOilKpp', data.nextOilKpp || '');
+
+            // Filters
+            data.oilFilter = resolveField('oilFilter', data.oilFilter || '');
+            data.airFilter = resolveField('airFilter', data.airFilter || '');
+            data.fuelFilter = resolveField('fuelFilter', data.fuelFilter || '');
+            data.cabinFilter = resolveField('cabinFilter', data.cabinFilter || '');
+
+            // Hydraulics & Coolant
+            data.oilTypeHydro = resolveField('oilTypeHydro', data.oilTypeHydro || '');
+            data.mileageOilHydro = resolveField('mileageOilHydro', data.mileageOilHydro || '');
+            data.nextOilHydro = resolveField('nextOilHydro', data.nextOilHydro || '');
+            data.coolantType = resolveField('coolantType', data.coolantType || '');
+            data.freezeTemp = resolveField('freezeTemp', data.freezeTemp || '');
 
             // ID/Fob header
             document.getElementById('portal-fob-id').innerText = 'ID: ' + (data.fobId || '#???');
@@ -1156,7 +1219,7 @@
                 stoBadge.innerText = (dict.stoPrefix || '🏢 СТО: ') + (data.stationName || 'NFC SERViS Center');
             }
             
-            let formattedDate = data.timestamp || data.serviceDate || data.lastServiceDate;
+            let formattedDate = (latestEntry && latestEntry.timestamp) || data.timestamp || data.serviceDate || data.lastServiceDate;
             if (!formattedDate && data.updated_at) {
                 try {
                     formattedDate = new Date(data.updated_at).toLocaleDateString('ru-RU');
@@ -1172,12 +1235,13 @@
             let warningTitle = document.getElementById('warning-title');
             let warningText = document.getElementById('warning-text');
             
-            // Warning Banner setup (Odometer check instruction + WhatsApp booking)
+            // 1. DVS Warning Banner setup (Odometer check instruction + WhatsApp booking)
             let plannedNextKm = data.nextOilDvs;
             if (!plannedNextKm && data.mileageOilDvs) {
                 const curNum = parseInt(String(data.mileageOilDvs).replace(/\D/g, ''), 10);
                 if (!isNaN(curNum) && curNum > 0) {
                     plannedNextKm = (curNum + 8000).toString();
+                    data.nextOilDvs = plannedNextKm;
                 }
             }
             let nextKmFormatted = formatKm(plannedNextKm, '—', carUnit);
@@ -1191,13 +1255,20 @@
                 nextKmEl.innerText = nextKmFormatted;
             }
 
-            // KPP / Transmission Warning Card logic
+            // 2. KPP / Transmission Warning Card logic (nextOilKpp & kppType)
+            if (!data.nextOilKpp && data.mileageOilKpp) {
+                const curKppNum = parseInt(String(data.mileageOilKpp).replace(/\D/g, ''), 10);
+                if (!isNaN(curKppNum) && curKppNum > 0) {
+                    data.nextOilKpp = (curKppNum + 50000).toString();
+                }
+            }
+
             const kppWarningCard = document.getElementById('warning-kpp-card');
             const kppNextKmEl = document.getElementById('warning-next-kpp-km');
             const kppTypeLabelEl = document.getElementById('warning-kpp-type-label');
 
             if (kppWarningCard) {
-                const kppTypeStr = data.kppType || dict.kppTypeDefault || 'КПП';
+                const kppTypeStr = data.kppType || 'АКПП';
                 if (kppTypeLabelEl) {
                     kppTypeLabelEl.innerText = kppTypeStr;
                 }
@@ -1207,7 +1278,7 @@
                     kppNextKmEl.innerText = formatKm(data.nextOilKpp, '—', carUnit);
                 }
 
-                // If no KPP next oil data is specified, keep visible with '—' or toggle smoothly
+                // Always display KPP warning card simultaneously on main screen
                 kppWarningCard.style.display = 'block';
             }
             
@@ -1227,7 +1298,7 @@
                 }
             }
             
-            // Oil DVS general fields
+            // Oil DVS general fields (Engine module)
             document.getElementById('oil-type-desc').innerText = data.oilTypeDvs || '—';
             document.getElementById('oil-mileage-change').innerText = formatKm(data.mileageOilDvs, '—', carUnit);
             document.getElementById('oil-volume-desc').innerText = data.oilVolumeDvs ? (data.oilVolumeDvs + (String(data.oilVolumeDvs).includes('л') ? '' : ' л')) : '—';
@@ -1240,7 +1311,7 @@
             setFilterState('cabin-filter-check', 'cabin-filter-status', 'cabin-filter-desc', data.cabinFilter, data.cabinFilterChecked, 'Салонный фильтр');
             
             // KPP/Transmission fields
-            document.getElementById('kpp-fluid-type').innerText = data.oilTypeKpp ? `${data.oilTypeKpp} • ${data.kppType || 'АКПП'}` : (data.kppType || '—');
+            document.getElementById('kpp-fluid-type').innerText = data.oilTypeKpp ? `${data.oilTypeKpp} • ${data.kppType || 'АКПП'}` : (data.kppType || 'АКПП');
             document.getElementById('kpp-mileage-change').innerText = formatKm(data.mileageOilKpp, '—', carUnit);
             document.getElementById('kpp-next-change').innerText = formatKm(data.nextOilKpp, '—', carUnit);
             
