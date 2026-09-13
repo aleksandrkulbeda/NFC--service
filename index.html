@@ -2241,7 +2241,7 @@
             });
             
             // If history array empty but rec exists with service date, create virtual first history item
-            if (history.length === 0 && rec && (rec.timestamp || rec.mileageOilDvs)) {
+            if (history.length === 0 && rec && (rec.timestamp || rec.mileageOilDvs || rec.mileageOilKpp)) {
                 history = [{
                     timestamp: rec.timestamp || 'Зафиксированное ТО',
                     mileageUnit: rec.mileageUnit || 'км',
@@ -2262,6 +2262,65 @@
                     freezeTemp: rec.freezeTemp || '',
                     notesDvs: rec.notesDvs || ''
                 }];
+            }
+
+            // UNIFIED CONTINUITY: Fill missing DVS / KPP data from previous visits or vehicle card
+            for (let i = 0; i < history.length; i++) {
+                const item = history[i];
+
+                if (!item.oilTypeDvs && !item.mileageOilDvs) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].oilTypeDvs || history[j].mileageOilDvs) {
+                            item.oilTypeDvs = history[j].oilTypeDvs || '';
+                            item.oilVolumeDvs = item.oilVolumeDvs || history[j].oilVolumeDvs || '';
+                            item.mileageOilDvs = history[j].mileageOilDvs || '';
+                            item.nextOilDvs = item.nextOilDvs || history[j].nextOilDvs || '';
+                            item._dvsFromPrev = true;
+                            break;
+                        }
+                    }
+                    if (!item.oilTypeDvs && rec && (rec.oilTypeDvs || rec.mileageOilDvs)) {
+                        item.oilTypeDvs = rec.oilTypeDvs || '';
+                        item.oilVolumeDvs = item.oilVolumeDvs || rec.oilVolumeDvs || '';
+                        item.mileageOilDvs = rec.mileageOilDvs || '';
+                        item.nextOilDvs = item.nextOilDvs || rec.nextOilDvs || '';
+                        item._dvsFromPrev = true;
+                    }
+                }
+
+                if (!item.oilTypeKpp && !item.mileageOilKpp) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].oilTypeKpp || history[j].mileageOilKpp) {
+                            item.oilTypeKpp = history[j].oilTypeKpp || '';
+                            item.kppType = item.kppType || history[j].kppType || 'АКПП';
+                            item.mileageOilKpp = history[j].mileageOilKpp || '';
+                            item.nextOilKpp = item.nextOilKpp || history[j].nextOilKpp || '';
+                            item._kppFromPrev = true;
+                            break;
+                        }
+                    }
+                    if (!item.oilTypeKpp && rec && (rec.oilTypeKpp || rec.mileageOilKpp)) {
+                        item.oilTypeKpp = rec.oilTypeKpp || '';
+                        item.kppType = item.kppType || rec.kppType || 'АКПП';
+                        item.mileageOilKpp = rec.mileageOilKpp || '';
+                        item.nextOilKpp = item.nextOilKpp || rec.nextOilKpp || '';
+                        item._kppFromPrev = true;
+                    }
+                }
+
+                if (!item.coolantType) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].coolantType) {
+                            item.coolantType = history[j].coolantType;
+                            item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
+                            break;
+                        }
+                    }
+                    if (!item.coolantType && rec && rec.coolantType) {
+                        item.coolantType = rec.coolantType;
+                        item.freezeTemp = item.freezeTemp || rec.freezeTemp;
+                    }
+                }
             }
 
             // Slice to last 5 entries for STO internal portal preview
@@ -2293,6 +2352,8 @@
 
                 const itemSto = item.stationName || (rec && rec.stationName) || 'NFC SERViS Center';
 
+                const displayMileage = item.mileageOilDvs ? (item.mileageOilDvs + ' ' + itemUnit) : (item.mileageOilKpp ? (item.mileageOilKpp + ' ' + itemUnit) : '—');
+
                 html += `
                     <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs space-y-2 relative hover:border-slate-700 transition-all">
                         <div class="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-2 gap-1.5">
@@ -2301,18 +2362,19 @@
                                 <span class="text-slate-200 font-bold">📅 ${item.timestamp || 'Дата не указана'}</span>
                                 <span class="text-[10px] bg-slate-950 border border-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono">🏢 ${itemSto}</span>
                             </div>
-                            <span class="text-emerald-400 font-mono font-bold">${item.mileageOilDvs ? item.mileageOilDvs + ' ' + itemUnit : '—'}</span>
+                            <span class="text-emerald-400 font-mono font-bold">${displayMileage}</span>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-0.5">
                             <div>
-                                <span class="text-slate-400">Моторное масло:</span> 
+                                <span class="text-slate-400">🛢️ Моторное масло:</span> 
                                 <strong class="text-slate-100">${item.oilTypeDvs || 'Замена масла'}</strong> 
                                 ${item.oilVolumeDvs ? `<span class="text-slate-400">(${item.oilVolumeDvs} л)</span>` : ''}
+                                ${item._dvsFromPrev && item.mileageOilDvs ? `<span class="text-[10px] text-slate-400 block font-mono">замена при: ${item.mileageOilDvs} ${itemUnit}</span>` : ''}
                             </div>
                             ${item.nextOilDvs ? `
                             <div>
-                                <span class="text-slate-400">След. замена:</span> 
+                                <span class="text-slate-400">След. замена ДВС:</span> 
                                 <strong class="text-blue-400 font-mono font-bold">${item.nextOilDvs} ${itemUnit}</strong>
                             </div>
                             ` : ''}
@@ -2325,10 +2387,19 @@
                         ` : ''}
 
                         ${item.oilTypeKpp ? `
-                            <div class="text-[11px] text-slate-300 pt-0.5 flex items-center gap-1.5">
-                                <span class="text-slate-400">⚙️ КПП (${item.kppType || 'Трансмиссия'}):</span>
-                                <strong class="text-slate-200">${item.oilTypeKpp}</strong>
-                                ${item.mileageOilKpp ? `<span class="text-slate-400 font-mono font-bold">(${item.mileageOilKpp} ${itemUnit})</span>` : ''}
+                            <div class="text-[11px] text-slate-300 pt-0.5 flex flex-wrap items-center justify-between gap-1 border-t border-slate-800/60 pt-1">
+                                <div>
+                                    <span class="text-slate-400">⚙️ КПП (${item.kppType || 'Трансмиссия'}):</span>
+                                    <strong class="text-slate-200">${item.oilTypeKpp}</strong>
+                                    ${item.mileageOilKpp ? `<span class="text-amber-300 font-mono font-bold">(${item.mileageOilKpp} ${itemUnit})</span>` : ''}
+                                    ${item._kppFromPrev ? `<span class="text-[9px] bg-slate-800 text-slate-400 px-1 rounded ml-1">действует</span>` : ''}
+                                </div>
+                                ${item.nextOilKpp ? `
+                                <div>
+                                    <span class="text-slate-400">След:</span>
+                                    <strong class="text-purple-400 font-mono font-bold">${item.nextOilKpp} ${itemUnit}</strong>
+                                </div>
+                                ` : ''}
                             </div>
                         ` : ''}
 
@@ -2439,10 +2510,10 @@
                 airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.airFilter) || '')),
                 fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.fuelFilter) || '')),
                 cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.cabinFilter) || '')),
-                kppType: post.formData.kppType || (existingRecord ? existingRecord.kppType : '') || 'АКПП',
-                oilTypeKpp: post.formData.oilTypeKpp || (existingRecord ? existingRecord.oilTypeKpp : '') || '',
-                mileageOilKpp: post.formData.mileageOilKpp || (existingRecord ? existingRecord.mileageOilKpp : '') || '',
-                nextOilKpp: post.formData.nextOilKpp || (existingRecord ? existingRecord.nextOilKpp : '') || '',
+                kppType: post.formData.kppType || 'АКПП',
+                oilTypeKpp: post.formData.oilTypeKpp || '',
+                mileageOilKpp: post.formData.mileageOilKpp || '',
+                nextOilKpp: post.formData.nextOilKpp || '',
                 coolantType: post.formData.coolantType || (existingRecord ? existingRecord.coolantType : '') || '',
                 freezeTemp: post.formData.freezeTemp || (existingRecord ? existingRecord.freezeTemp : '') || '',
                 notesDvs: post.formData.notesDvs || (existingRecord ? existingRecord.notesDvs : '') || '',
@@ -2496,11 +2567,11 @@
                 fuelFilterChecked: post.formData.fuelFilterChecked || (ex.fuelFilterChecked || false),
                 cabinFilterChecked: post.formData.cabinFilterChecked || (ex.cabinFilterChecked || false),
                 
-                // Transmission (KPP) data: update if entered, otherwise preserve previous values
-                kppType: (post.formData.kppType && post.formData.kppType.trim()) ? post.formData.kppType : (ex.kppType || 'АКПП'),
-                oilTypeKpp: (post.formData.oilTypeKpp && post.formData.oilTypeKpp.trim()) ? post.formData.oilTypeKpp : (ex.oilTypeKpp || ''),
-                mileageOilKpp: (post.formData.mileageOilKpp && post.formData.mileageOilKpp.trim()) ? post.formData.mileageOilKpp : (ex.mileageOilKpp || ''),
-                nextOilKpp: (post.formData.nextOilKpp && post.formData.nextOilKpp.trim()) ? post.formData.nextOilKpp : (ex.nextOilKpp || ''),
+                // Transmission (KPP) data: reliably transmit from form
+                kppType: post.formData.kppType || 'АКПП',
+                oilTypeKpp: post.formData.oilTypeKpp || '',
+                mileageOilKpp: post.formData.mileageOilKpp || '',
+                nextOilKpp: post.formData.nextOilKpp || '',
                 
                 // Hydraulics
                 oilTypeHydro: (post.formData.oilTypeHydro && post.formData.oilTypeHydro.trim()) ? post.formData.oilTypeHydro : (ex.oilTypeHydro || ''),
