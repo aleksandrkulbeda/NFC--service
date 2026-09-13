@@ -1318,7 +1318,7 @@
             });
 
             // If history is empty but data contains a service session, synthesize a single history entry
-            if (history.length === 0 && data && (data.timestamp || data.mileageOilDvs)) {
+            if (history.length === 0 && data && (data.timestamp || data.mileageOilDvs || data.mileageOilKpp)) {
                 history = [{
                     timestamp: data.timestamp || 'Зафиксированное ТО',
                     mileageUnit: recordUnit,
@@ -1339,6 +1339,72 @@
                     freezeTemp: data.freezeTemp || '',
                     notesDvs: data.notesDvs || ''
                 }];
+            }
+
+            // SMART CONTINUITY / UNIFIED VIEW:
+            // If a service entry was specifically for KPP (e.g. 1 week after engine oil change) or specifically for DVS,
+            // ensure each card retains a unified view of the car's state by carrying forward existing DVS or KPP specifications.
+            for (let i = 0; i < history.length; i++) {
+                const item = history[i];
+
+                // If this entry lacks DVS info, back-fill from subsequent (older) entries or overall vehicle record
+                if (!item.oilTypeDvs && !item.mileageOilDvs) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].oilTypeDvs || history[j].mileageOilDvs) {
+                            item.oilTypeDvs = history[j].oilTypeDvs || '';
+                            item.oilVolumeDvs = item.oilVolumeDvs || history[j].oilVolumeDvs || '';
+                            item.mileageOilDvs = history[j].mileageOilDvs || '';
+                            item.nextOilDvs = item.nextOilDvs || history[j].nextOilDvs || '';
+                            item._dvsFromPrev = true;
+                            item._dvsTimestamp = history[j].timestamp;
+                            break;
+                        }
+                    }
+                    if (!item.oilTypeDvs && data && (data.oilTypeDvs || data.mileageOilDvs)) {
+                        item.oilTypeDvs = data.oilTypeDvs || '';
+                        item.oilVolumeDvs = item.oilVolumeDvs || data.oilVolumeDvs || '';
+                        item.mileageOilDvs = data.mileageOilDvs || '';
+                        item.nextOilDvs = item.nextOilDvs || data.nextOilDvs || '';
+                        item._dvsFromPrev = true;
+                    }
+                }
+
+                // If this entry lacks KPP info, back-fill from subsequent (older) entries or overall vehicle record
+                if (!item.oilTypeKpp && !item.mileageOilKpp) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].oilTypeKpp || history[j].mileageOilKpp) {
+                            item.oilTypeKpp = history[j].oilTypeKpp || '';
+                            item.kppType = item.kppType || history[j].kppType || 'АКПП';
+                            item.mileageOilKpp = history[j].mileageOilKpp || '';
+                            item.nextOilKpp = item.nextOilKpp || history[j].nextOilKpp || '';
+                            item._kppFromPrev = true;
+                            item._kppTimestamp = history[j].timestamp;
+                            break;
+                        }
+                    }
+                    if (!item.oilTypeKpp && data && (data.oilTypeKpp || data.mileageOilKpp)) {
+                        item.oilTypeKpp = data.oilTypeKpp || '';
+                        item.kppType = item.kppType || data.kppType || 'АКПП';
+                        item.mileageOilKpp = data.mileageOilKpp || '';
+                        item.nextOilKpp = item.nextOilKpp || data.nextOilKpp || '';
+                        item._kppFromPrev = true;
+                    }
+                }
+
+                // Similarly, carry forward coolant if missing
+                if (!item.coolantType) {
+                    for (let j = i + 1; j < history.length; j++) {
+                        if (history[j].coolantType) {
+                            item.coolantType = history[j].coolantType;
+                            item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
+                            break;
+                        }
+                    }
+                    if (!item.coolantType && data && data.coolantType) {
+                        item.coolantType = data.coolantType;
+                        item.freezeTemp = item.freezeTemp || data.freezeTemp;
+                    }
+                }
             }
 
             const totalCount = history.length;
@@ -1384,8 +1450,14 @@
                         <div class="space-y-1.5 pt-0.5">
                             ${item.oilTypeDvs ? `
                                 <div class="flex items-center justify-between text-[11px]">
-                                    <span class="text-slate-400">${dict.oilTypeLabel || 'Моторное масло'}:</span>
-                                    <span class="text-white font-medium">${item.oilTypeDvs} ${item.oilVolumeDvs ? '(' + item.oilVolumeDvs + ' л)' : ''}</span>
+                                    <span class="text-slate-400 flex items-center gap-1">
+                                        <span>🛢️ ${dict.oilTypeLabel || 'Моторное масло'}:</span>
+                                        ${item._dvsFromPrev ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded" title="Данные актуального регламента ДВС">действует</span>' : ''}
+                                    </span>
+                                    <span class="text-white font-medium text-right">
+                                        ${item.oilTypeDvs} ${item.oilVolumeDvs ? '(' + item.oilVolumeDvs + ' л)' : ''}
+                                        ${item._dvsFromPrev && item.mileageOilDvs ? `<span class="text-slate-400 text-[10px] block font-mono">замена при: ${formatKm(item.mileageOilDvs, '—', itemUnit)}</span>` : ''}
+                                    </span>
                                 </div>
                             ` : ''}
 
@@ -1406,15 +1478,28 @@
                             ` : ''}
 
                             ${item.oilTypeKpp ? `
-                                <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-900">
-                                    <span class="text-slate-400">${dict.kppFluidLabel || 'Масло КПП'}:</span>
-                                    <span class="text-slate-200 font-medium">${item.oilTypeKpp} ${item.mileageOilKpp ? '(' + formatKm(item.mileageOilKpp, '—', itemUnit) + ')' : ''}</span>
+                                <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-900">
+                                    <span class="text-slate-400 flex items-center gap-1">
+                                        <span>⚙️ ${dict.kppFluidLabel || 'Масло КПП'} (${item.kppType || 'Трансмиссия'}):</span>
+                                        ${item._kppFromPrev ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded" title="Данные регламента КПП">действует</span>' : ''}
+                                    </span>
+                                    <span class="text-slate-200 font-medium text-right">
+                                        ${item.oilTypeKpp}
+                                        ${item.mileageOilKpp ? `<span class="text-amber-300 font-mono text-[10px] block">(${formatKm(item.mileageOilKpp, '—', itemUnit)})</span>` : ''}
+                                    </span>
+                                </div>
+                            ` : ''}
+
+                            ${item.nextOilKpp ? `
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400">${dict.kppNextLabel || 'След. замена КПП'}:</span>
+                                    <span class="text-purple-400 font-mono font-bold">${formatKm(item.nextOilKpp, '—', itemUnit)}</span>
                                 </div>
                             ` : ''}
 
                             ${item.coolantType ? `
-                                <div class="flex items-center justify-between text-[11px]">
-                                    <span class="text-slate-400">${dict.coolantTypeLabel || 'Антифриз'}:</span>
+                                <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-900/60">
+                                    <span class="text-slate-400">❄️ ${dict.coolantTypeLabel || 'Антифриз'}:</span>
                                     <span class="text-cyan-400 font-medium">${item.coolantType} ${item.freezeTemp ? '(' + item.freezeTemp + ')' : ''}</span>
                                 </div>
                             ` : ''}
