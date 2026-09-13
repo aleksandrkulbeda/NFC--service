@@ -2431,23 +2431,23 @@
                 mileageUnit: currentUnit,
                 stationName: activeStoProfile.stationName || 'NFC SERViS Center',
                 stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (707) 123-45-67',
-                mileageOilDvs: post.formData.mileageOilDvs || '',
-                nextOilDvs: post.formData.nextOilDvs || '',
-                oilTypeDvs: post.formData.oilTypeDvs || '',
-                oilVolumeDvs: post.formData.oilVolumeDvs || '',
-                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ''),
-                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ''),
-                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ''),
-                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ''),
-                kppType: post.formData.kppType || 'АКПП',
-                oilTypeKpp: post.formData.oilTypeKpp || '',
-                mileageOilKpp: post.formData.mileageOilKpp || '',
-                nextOilKpp: post.formData.nextOilKpp || '',
-                coolantType: post.formData.coolantType || '',
-                freezeTemp: post.formData.freezeTemp || '',
-                notesDvs: post.formData.notesDvs || '',
-                notesKpp: post.formData.notesKpp || '',
-                notesCooling: post.formData.notesCooling || ''
+                mileageOilDvs: post.formData.mileageOilDvs || (existingRecord ? existingRecord.mileageOilDvs : '') || '',
+                nextOilDvs: post.formData.nextOilDvs || (existingRecord ? existingRecord.nextOilDvs : '') || '',
+                oilTypeDvs: post.formData.oilTypeDvs || (existingRecord ? existingRecord.oilTypeDvs : '') || '',
+                oilVolumeDvs: post.formData.oilVolumeDvs || (existingRecord ? existingRecord.oilVolumeDvs : '') || '',
+                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.oilFilter) || '')),
+                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.airFilter) || '')),
+                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.fuelFilter) || '')),
+                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.cabinFilter) || '')),
+                kppType: post.formData.kppType || (existingRecord ? existingRecord.kppType : '') || 'АКПП',
+                oilTypeKpp: post.formData.oilTypeKpp || (existingRecord ? existingRecord.oilTypeKpp : '') || '',
+                mileageOilKpp: post.formData.mileageOilKpp || (existingRecord ? existingRecord.mileageOilKpp : '') || '',
+                nextOilKpp: post.formData.nextOilKpp || (existingRecord ? existingRecord.nextOilKpp : '') || '',
+                coolantType: post.formData.coolantType || (existingRecord ? existingRecord.coolantType : '') || '',
+                freezeTemp: post.formData.freezeTemp || (existingRecord ? existingRecord.freezeTemp : '') || '',
+                notesDvs: post.formData.notesDvs || (existingRecord ? existingRecord.notesDvs : '') || '',
+                notesKpp: post.formData.notesKpp || (existingRecord ? existingRecord.notesKpp : '') || '',
+                notesCooling: post.formData.notesCooling || (existingRecord ? existingRecord.notesCooling : '') || ''
             };
 
             // Deduplicate: If previous entry was saved on the same day/session with same mileage, update it
@@ -2455,7 +2455,8 @@
             if (prevHistory.length > 0) {
                 const firstEntry = prevHistory[0];
                 const isSameDate = firstEntry.timestamp && firstEntry.timestamp.split(' ')[0] === formattedDate.split(' ')[0];
-                const isSameMileage = firstEntry.mileageOilDvs === post.formData.mileageOilDvs;
+                const isSameMileage = (firstEntry.mileageOilDvs && firstEntry.mileageOilDvs === post.formData.mileageOilDvs) ||
+                                      (firstEntry.mileageOilKpp && firstEntry.mileageOilKpp === post.formData.mileageOilKpp);
                 if (isSameDate && isSameMileage) {
                     prevHistory[0] = currentHistoryEntry;
                     fullHistory = [...prevHistory];
@@ -2466,44 +2467,59 @@
                 fullHistory = [currentHistoryEntry];
             }
 
-            // Create flat record matching portal-friendly structure
+            // Create flat record matching portal-friendly structure, safely merging with existing data
+            const ex = existingRecord || {};
             const record = {
+                ...ex,
                 fobId: post.fobId,
-                mileageUnit: currentUnit,
-                stationName: activeStoProfile.stationName || 'NFC SERViS Center',
-                stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (707) 123-45-67',
-                carBrand: post.carBrand,
-                carModel: post.carModel,
-                carYear: post.carYear || state.carYear || '',
-                licensePlate: post.licensePlate || state.licensePlate || '',
-                oilTypeDvs: post.formData.oilTypeDvs,
-                oilVolumeDvs: post.formData.oilVolumeDvs,
-                mileageOilDvs: post.formData.mileageOilDvs,
-                nextOilDvs: post.formData.nextOilDvs,
-                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ''),
-                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ''),
-                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ''),
-                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ''),
-                oilFilterChecked: post.formData.oilFilterChecked || false,
-                airFilterChecked: post.formData.airFilterChecked || false,
-                fuelFilterChecked: post.formData.fuelFilterChecked || false,
-                cabinFilterChecked: post.formData.cabinFilterChecked || false,
-                kppType: post.formData.kppType || 'АКПП',
-                oilTypeKpp: post.formData.oilTypeKpp || 'Synthetic ATF',
-                mileageOilKpp: post.formData.mileageOilKpp || '',
-                nextOilKpp: post.formData.nextOilKpp || '',
-                oilTypeHydro: post.formData.oilTypeHydro || '',
-                mileageOilHydro: post.formData.mileageOilHydro || '',
-                nextOilHydro: post.formData.nextOilHydro || '',
-                coolantType: post.formData.coolantType || '',
-                freezeTemp: post.formData.freezeTemp || '',
-                shiftsSmooth: post.formData.shiftsSmooth,
-                backlashOk: post.formData.backlashOk,
-                radiatorOk: post.formData.radiatorOk,
-                pumpOk: post.formData.pumpOk,
-                notesDvs: post.formData.notesDvs,
-                notesKpp: post.formData.notesKpp,
-                notesCooling: post.formData.notesCooling,
+                mileageUnit: currentUnit || ex.mileageUnit || 'км',
+                stationName: activeStoProfile.stationName || ex.stationName || 'NFC SERViS Center',
+                stationWhatsapp: activeStoProfile.stationWhatsapp || ex.stationWhatsapp || '+7 (707) 123-45-67',
+                carBrand: post.carBrand || ex.carBrand || '',
+                carModel: post.carModel || ex.carModel || '',
+                carYear: post.carYear || state.carYear || ex.carYear || '',
+                licensePlate: post.licensePlate || state.licensePlate || ex.licensePlate || '',
+                
+                // Engine (DVS) data: update if entered, otherwise preserve previous values
+                oilTypeDvs: (post.formData.oilTypeDvs && post.formData.oilTypeDvs.trim()) ? post.formData.oilTypeDvs : (ex.oilTypeDvs || ''),
+                oilVolumeDvs: (post.formData.oilVolumeDvs && post.formData.oilVolumeDvs.trim()) ? post.formData.oilVolumeDvs : (ex.oilVolumeDvs || ''),
+                mileageOilDvs: (post.formData.mileageOilDvs && post.formData.mileageOilDvs.trim()) ? post.formData.mileageOilDvs : (ex.mileageOilDvs || ''),
+                nextOilDvs: (post.formData.nextOilDvs && post.formData.nextOilDvs.trim()) ? post.formData.nextOilDvs : (ex.nextOilDvs || ''),
+                
+                // Filters: preserve previous if not updated in current submission
+                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : (ex.oilFilter || '')),
+                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : (ex.airFilter || '')),
+                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : (ex.fuelFilter || '')),
+                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : (ex.cabinFilter || '')),
+                oilFilterChecked: post.formData.oilFilterChecked || (ex.oilFilterChecked || false),
+                airFilterChecked: post.formData.airFilterChecked || (ex.airFilterChecked || false),
+                fuelFilterChecked: post.formData.fuelFilterChecked || (ex.fuelFilterChecked || false),
+                cabinFilterChecked: post.formData.cabinFilterChecked || (ex.cabinFilterChecked || false),
+                
+                // Transmission (KPP) data: update if entered, otherwise preserve previous values
+                kppType: (post.formData.kppType && post.formData.kppType.trim()) ? post.formData.kppType : (ex.kppType || 'АКПП'),
+                oilTypeKpp: (post.formData.oilTypeKpp && post.formData.oilTypeKpp.trim()) ? post.formData.oilTypeKpp : (ex.oilTypeKpp || ''),
+                mileageOilKpp: (post.formData.mileageOilKpp && post.formData.mileageOilKpp.trim()) ? post.formData.mileageOilKpp : (ex.mileageOilKpp || ''),
+                nextOilKpp: (post.formData.nextOilKpp && post.formData.nextOilKpp.trim()) ? post.formData.nextOilKpp : (ex.nextOilKpp || ''),
+                
+                // Hydraulics
+                oilTypeHydro: (post.formData.oilTypeHydro && post.formData.oilTypeHydro.trim()) ? post.formData.oilTypeHydro : (ex.oilTypeHydro || ''),
+                mileageOilHydro: (post.formData.mileageOilHydro && post.formData.mileageOilHydro.trim()) ? post.formData.mileageOilHydro : (ex.mileageOilHydro || ''),
+                nextOilHydro: (post.formData.nextOilHydro && post.formData.nextOilHydro.trim()) ? post.formData.nextOilHydro : (ex.nextOilHydro || ''),
+                
+                // Coolant & Technical states
+                coolantType: (post.formData.coolantType && post.formData.coolantType.trim()) ? post.formData.coolantType : (ex.coolantType || ''),
+                freezeTemp: (post.formData.freezeTemp && post.formData.freezeTemp.trim()) ? post.formData.freezeTemp : (ex.freezeTemp || ''),
+                shiftsSmooth: (post.formData.shiftsSmooth !== undefined && post.formData.shiftsSmooth !== false) ? post.formData.shiftsSmooth : (ex.shiftsSmooth !== undefined ? ex.shiftsSmooth : true),
+                backlashOk: (post.formData.backlashOk !== undefined && post.formData.backlashOk !== false) ? post.formData.backlashOk : (ex.backlashOk !== undefined ? ex.backlashOk : true),
+                radiatorOk: (post.formData.radiatorOk !== undefined && post.formData.radiatorOk !== false) ? post.formData.radiatorOk : (ex.radiatorOk !== undefined ? ex.radiatorOk : true),
+                pumpOk: (post.formData.pumpOk !== undefined && post.formData.pumpOk !== false) ? post.formData.pumpOk : (ex.pumpOk !== undefined ? ex.pumpOk : true),
+                
+                // Notes: append or keep existing if not provided
+                notesDvs: (post.formData.notesDvs && post.formData.notesDvs.trim()) ? post.formData.notesDvs : (ex.notesDvs || ''),
+                notesKpp: (post.formData.notesKpp && post.formData.notesKpp.trim()) ? post.formData.notesKpp : (ex.notesKpp || ''),
+                notesCooling: (post.formData.notesCooling && post.formData.notesCooling.trim()) ? post.formData.notesCooling : (ex.notesCooling || ''),
+                
                 timestamp: formattedDate,
                 history: fullHistory
             };
