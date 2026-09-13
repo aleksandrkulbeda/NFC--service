@@ -225,11 +225,21 @@
                 <div class="space-y-3 relative z-10">
                     <h3 class="font-extrabold text-sm sm:text-base leading-snug" id="warning-title" data-i18n="warningTitle">Внимание! Проверьте показания спидометра на панели приборов вашего авто</h3>
                     
-                    <!-- КРАСНАЯ ПЛАШКА С КРУПНЫМ КУРСИВНЫМ ПРОБЕГОМ И АНИМАЦИЕЙ -->
+                    <!-- КРАСНАЯ ПЛАШКА С КРУПНЫМ КУРСИВНЫМ ПРОБЕГОМ ДВС -->
                     <div class="pulse-red-card border-2 rounded-2xl p-3.5 text-center shadow-xl my-1 transition-all">
-                        <span class="block text-[10px] sm:text-[11px] uppercase tracking-wider text-red-100 font-extrabold" data-i18n="nextOilChangeAt">След. замена масла на пробеге:</span>
+                        <span class="block text-[10px] sm:text-[11px] uppercase tracking-wider text-red-100 font-extrabold" data-i18n="nextOilChangeAt">След. замена масла ДВС на пробеге:</span>
                         <span id="warning-next-km" class="block text-2xl sm:text-3xl font-black font-mono text-white tracking-widest my-1 drop-shadow-md">—</span>
                         <span class="block text-[10px] text-red-100/90 font-medium" data-i18n="onReachKm">При достижении этой цифры записаться на замену</span>
+                    </div>
+
+                    <!-- ФИОЛЕТОВАЯ/ТЕМНАЯ ПЛАШКА РЕГЛАМЕНТА ЗАМЕНЫ МАСЛА В КПП (СТРОГО СНИЗУ В ВЕРТИКАЛЬНЫЙ СТЕК) -->
+                    <div id="warning-kpp-card" class="border-2 border-purple-400/80 bg-purple-950/90 rounded-2xl p-3.5 text-center shadow-xl my-1 transition-all">
+                        <div class="flex items-center justify-center gap-1.5 mb-1">
+                            <span class="text-[10px] sm:text-[11px] uppercase tracking-wider text-purple-200 font-extrabold" data-i18n="nextKppOilChangeAt">След. замена масла КПП на пробеге:</span>
+                            <span id="warning-kpp-type-label" class="inline-block px-1.5 py-0.5 rounded bg-purple-800/80 text-purple-100 text-[9px] font-black uppercase tracking-wider">АКПП</span>
+                        </div>
+                        <span id="warning-next-kpp-km" class="block text-2xl sm:text-3xl font-black font-mono text-white tracking-widest my-1 drop-shadow-md">—</span>
+                        <span class="block text-[10px] text-purple-200/90 font-medium" data-i18n="onReachKppKm">Долгосрочный регламент коробки передач</span>
                     </div>
 
                     <p class="text-[11px] text-orange-100/90 leading-relaxed hidden" id="warning-text"></p>
@@ -507,7 +517,11 @@
                 testFobOption: "🏆 Тестовый брелок (Porsche Cayenne Turbo S)",
                 warningBadge: "Контроль пробега",
                 warningTitle: "Внимание! Проверьте показания спидометра на панели приборов вашего авто",
-                warningNextLabel: "ЗАПЛАНИРОВАННЫЙ ПРОБЕГ СЛЕДУЮЩЕЙ ЗАМЕНЫ:",
+                nextOilChangeAt: "След. замена масла ДВС на пробеге:",
+                nextKppOilChangeAt: "След. замена масла КПП на пробеге:",
+                onReachKm: "При достижении этой цифры записаться на замену",
+                onReachKppKm: "Долгосрочный регламент коробки передач",
+                kppTypeDefault: "КПП",
                 whatsappBtn: "Записаться на ТО через WhatsApp",
                 engineSection: "Двигатель (ДВС)",
                 dvsSub: "Контроль состояния моторного масла",
@@ -575,7 +589,11 @@
                 testFobOption: "🏆 Сынақ салпыншағы (Porsche Cayenne Turbo S)",
                 warningBadge: "Жүрісті бақылау",
                 warningTitle: "Назар аударыңыз! Автокөлігіңіздің құралдар панеліндегі спидометр көрсеткішін тексеріңіз",
-                warningNextLabel: "КЕЛЕСІ АУЫСТЫРУДЫҢ ЖОСПАРЛАНҒАН ЖҮРІСІ:",
+                nextOilChangeAt: "ІШҚ майын келесі ауыстыру жүрісі:",
+                nextKppOilChangeAt: "БҚ майын келесі ауыстыру жүрісі:",
+                onReachKm: "Осы көрсеткішке жеткенде ауыстыруға жазылыңыз",
+                onReachKppKm: "Беріліс қорабының ұзақмерзімді регламенті",
+                kppTypeDefault: "БҚ",
                 whatsappBtn: "WhatsApp арқылы ТҚК-ға жазылу",
                 engineSection: "Қозғалтқыш (ІШҚ)",
                 dvsSub: "Мотор майының күйін бақылау",
@@ -1171,6 +1189,26 @@
             let nextKmEl = document.getElementById('warning-next-km');
             if (nextKmEl) {
                 nextKmEl.innerText = nextKmFormatted;
+            }
+
+            // KPP / Transmission Warning Card logic
+            const kppWarningCard = document.getElementById('warning-kpp-card');
+            const kppNextKmEl = document.getElementById('warning-next-kpp-km');
+            const kppTypeLabelEl = document.getElementById('warning-kpp-type-label');
+
+            if (kppWarningCard) {
+                const kppTypeStr = data.kppType || dict.kppTypeDefault || 'КПП';
+                if (kppTypeLabelEl) {
+                    kppTypeLabelEl.innerText = kppTypeStr;
+                }
+                
+                if (kppNextKmEl) {
+                    // Always show data.nextOilKpp formatted with current car mileage units (km / mi)
+                    kppNextKmEl.innerText = formatKm(data.nextOilKpp, '—', carUnit);
+                }
+
+                // If no KPP next oil data is specified, keep visible with '—' or toggle smoothly
+                kppWarningCard.style.display = 'block';
             }
             
             let waBtn = document.getElementById('warning-whatsapp-btn');
