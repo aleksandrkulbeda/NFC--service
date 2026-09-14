@@ -658,73 +658,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
     </main>
 
-    <!-- SUCCESS & NFC / QR CODE CLIENT LINK MODAL -->
-    <div id="modal-nfc-qr" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-mobilSlate border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative text-slate-100">
-            <button type="button" onclick="closeNfcQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-
-            <div class="text-center space-y-2">
-                <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">ТО успешно зафиксировано!</h3>
-                <p class="text-xs text-slate-400">Автомобиль привязан к базе СТО и готов к записи на брелок.</p>
-            </div>
-
-            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 text-center space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                    <span class="text-xs text-slate-400">Чип брелка: <strong id="modal-fob-id" class="text-blue-300 font-mono">MOB1-77A91</strong></span>
-                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded font-mono">ФИЗИЧЕСКИЙ БРЕЛОК</span>
-                </div>
-
-                <!-- Instructions Card -->
-                <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-left space-y-2 text-xs">
-                    <div class="flex items-start space-x-2 text-slate-200">
-                        <span class="text-orange-400 font-bold">1.</span>
-                        <span><strong>Запись в NFC:</strong> Нажмите кнопку ниже и приложите физический брелок к смартфону мастера.</span>
-                    </div>
-                    <div class="flex items-start space-x-2 text-slate-200">
-                        <span class="text-orange-400 font-bold">2.</span>
-                        <span><strong>Для клиента с NFC:</strong> Прикладывает свой телефон к брелоку на ключах и сразу открывает книжку.</span>
-                    </div>
-                    <div class="flex items-start space-x-2 text-slate-200">
-                        <span class="text-orange-400 font-bold">3.</span>
-                        <span><strong>Для клиента БЕЗ NFC:</strong> Сканирует постоянный QR-код на обратной стороне брелока.</span>
-                    </div>
-                </div>
-
-                <!-- QR Code Display (for quick screen scan or verification) -->
-                <div class="bg-white p-2.5 rounded-xl inline-block mx-auto shadow-md">
-                    <img id="qr-code-img" src="" alt="Клиентский QR-код" class="w-36 h-36 object-contain">
-                </div>
-
-                <p class="text-[11px] text-slate-400">
-                    Прямая ссылка для входа по QR-коду брелока
-                </p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="space-y-2.5">
-                <button type="button" onclick="writeNfcTag()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white py-3 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.3 2.5a.75.75 0 011.06 0c4.14 4.14 4.14 10.86 0 15a.75.75 0 11-1.06-1.06 9.01 9.01 0 000-12.88.75.75 0 010-1.06zm1.76-1.77a11.25 11.25 0 010 15.92.75.75 0 01-1.06-1.06c4.01-4.01 4.01-10.51 0-14.52a.75.75 0 111.06-1.06zM5.3 6.5a.75.75 0 011.06 0 3.37 3.37 0 010 4.77.75.75 0 11-1.06-1.06 1.87 1.87 0 000-2.65.75.75 0 010-1.06zM3.5 12a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
-                    <span>Записать ссылку на физический NFC брелок</span>
-                </button>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="copyPortalUrl()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 px-3 rounded-xl font-semibold text-xs transition-all border border-slate-700 flex items-center justify-center space-x-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v9.25c0 .621-.504 1.125-1.125 1.125z"></path></svg>
-                        <span>Скопировать ссылку</span>
-                    </button>
-                    <button type="button" onclick="closeNfcQrModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-xs transition-all shadow">
-                        Готово (Завершить)
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- FOOTER -->
     <footer class="border-t border-slate-950 bg-slate-950/80 p-6 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -2237,13 +2170,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // Deduplicate items with same timestamp & mileage
-            const seen = new Set();
+            // Deduplicate items with same day or identical mileage/timestamp
+            const seenKeys = new Set();
             history = history.filter(item => {
                 if (!item) return false;
-                const key = `${item.timestamp || ''}_${item.mileageOilDvs || ''}_${item.oilTypeDvs || ''}`;
-                if (seen.has(key)) return false;
-                seen.add(key);
+                const d = item.timestamp ? item.timestamp.split(' ')[0] : (item.timestamp || '');
+                const mDvs = item.mileageOilDvs || '';
+                const mKpp = item.mileageOilKpp || '';
+                const key = `${d}_${mDvs}_${mKpp}_${item.oilTypeDvs || ''}`;
+                if (seenKeys.has(key)) return false;
+                seenKeys.add(key);
                 return true;
             });
             
@@ -2493,7 +2429,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         const parsed = JSON.parse(existingRecord.history);
                         if (Array.isArray(parsed)) prevHistory = parsed;
                     } catch(e) {}
-                } else if (existingRecord.timestamp || existingRecord.mileageOilDvs) {
+                } else if (existingRecord.timestamp || existingRecord.mileageOilDvs || existingRecord.mileageOilKpp) {
                     prevHistory.push({
                         id: 'hist_' + Date.now() + '_prev',
                         timestamp: existingRecord.timestamp || 'Ранее зафиксировано',
@@ -2543,15 +2479,28 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 notesCooling: post.formData.notesCooling || (existingRecord ? existingRecord.notesCooling : '') || ''
             };
 
-            // Deduplicate: If previous entry was saved on the same day/session with same mileage, update it
+            // Deduplicate: If an entry was already saved on the same date (day) or with the same mileage, update that entry instead of creating a second duplicate
+            const todayDatePart = formattedDate.split(' ')[0];
+            const curMileageDvs = String(post.formData.mileageOilDvs || '').trim();
+            const curMileageKpp = String(post.formData.mileageOilKpp || '').trim();
+
             let fullHistory = [];
             if (prevHistory.length > 0) {
-                const firstEntry = prevHistory[0];
-                const isSameDate = firstEntry.timestamp && firstEntry.timestamp.split(' ')[0] === formattedDate.split(' ')[0];
-                const isSameMileage = (firstEntry.mileageOilDvs && firstEntry.mileageOilDvs === post.formData.mileageOilDvs) ||
-                                      (firstEntry.mileageOilKpp && firstEntry.mileageOilKpp === post.formData.mileageOilKpp);
-                if (isSameDate && isSameMileage) {
-                    prevHistory[0] = currentHistoryEntry;
+                // Find matching entry index: same date (day) or same non-empty mileage
+                let matchIdx = prevHistory.findIndex(h => {
+                    if (!h) return false;
+                    const hDatePart = h.timestamp ? h.timestamp.split(' ')[0] : '';
+                    const isSameDay = hDatePart && hDatePart === todayDatePart;
+                    const hMileageDvs = String(h.mileageOilDvs || '').trim();
+                    const hMileageKpp = String(h.mileageOilKpp || '').trim();
+                    const isSameMileage = (curMileageDvs && hMileageDvs === curMileageDvs) ||
+                                          (curMileageKpp && hMileageKpp === curMileageKpp);
+                    return isSameDay || isSameMileage;
+                });
+
+                if (matchIdx !== -1) {
+                    // Update existing same-date or same-mileage entry
+                    prevHistory[matchIdx] = currentHistoryEntry;
                     fullHistory = [...prevHistory];
                 } else {
                     fullHistory = [currentHistoryEntry, ...prevHistory];
@@ -2559,6 +2508,19 @@ window.$RefreshSig$ = () => (type) => type;</script>
             } else {
                 fullHistory = [currentHistoryEntry];
             }
+
+            // Secondary safety check: deduplicate any identical date/mileage entries
+            const historySeen = new Set();
+            fullHistory = fullHistory.filter(item => {
+                if (!item) return false;
+                const dPart = item.timestamp ? item.timestamp.split(' ')[0] : (item.timestamp || '');
+                const mDvs = item.mileageOilDvs || '';
+                const mKpp = item.mileageOilKpp || '';
+                const key = `${dPart}_${mDvs}_${mKpp}`;
+                if (historySeen.has(key)) return false;
+                historySeen.add(key);
+                return true;
+            });
 
             // Create flat record matching portal-friendly structure, safely merging with existing data
             const ex = existingRecord || {};
@@ -2655,8 +2617,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 console.log("[Supabase Direct Sync] Currently offline. Saved locally, auto-sync will run when back online.");
             }
             
-            // Open NFC & QR Modal for STO staff & client tap
-            openNfcQrModal(record);
+            // Notify master of successful save
+            showNotificationToast("✓ ТО успешно зафиксировано в базу!");
             
             // Clear active post
             posts[activePostIndex] = createEmptyPostState();
@@ -2667,61 +2629,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
             // Force reload active post so it becomes empty (waiting screen)
             loadPostState(activePostIndex);
             renderPostTabs();
-        }
-
-        // NFC & QR CODE MODAL FUNCTIONS
-        let activePortalLink = '';
-
-        function openNfcQrModal(record) {
-            const modal = document.getElementById('modal-nfc-qr');
-            const fobElem = document.getElementById('modal-fob-id');
-            const qrImg = document.getElementById('qr-code-img');
-            
-            if (!modal) return;
-
-            const cleanFob = record.fobId || 'MOB1-77A91';
-            fobElem.innerText = cleanFob;
-
-            // Generate full client portal URL
-            const origin = window.location.origin;
-            const encodedFob = encodeURIComponent(cleanFob);
-            activePortalLink = `${origin}/client_portal.html?fob=${encodedFob}&sig=AUTH_MOBIL1_SECURE`;
-
-            // Build dynamic QR Code
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(activePortalLink)}`;
-            qrImg.src = qrApiUrl;
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeNfcQrModal() {
-            const modal = document.getElementById('modal-nfc-qr');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function copyPortalUrl() {
-            if (!activePortalLink) return;
-            navigator.clipboard.writeText(activePortalLink)
-                .then(() => alert("Ссылка на клиентскую сервисную книжку скопирована!\n\n" + activePortalLink))
-                .catch(() => prompt("Скопируйте ссылку вручную:", activePortalLink));
-        }
-
-        async function writeNfcTag() {
-            if (!('NDEFReader' in window)) {
-                alert("Ваш браузер или ПК не поддерживает прямую запись через Web NFC API.\n\nКлиент может отсканировать QR-код камерой смартфона — при этом ссылка автоматически откроется на его телефоне.");
-                return;
-            }
-
-            try {
-                const ndef = new NDEFReader();
-                alert("Приложите фирменный NFC брелок Mobil 1 к считывателю для записи данных...");
-                await ndef.write({
-                    records: [{ recordType: "url", data: activePortalLink }]
-                });
-                alert("✓ Данные успешно записаны на чип брелка Mobil 1!");
-            } catch (err) {
-                alert("Ошибка записи на NFC чип брелка:\n" + err.message);
-            }
         }
 
         // EXPORT ALL LOCAL DATABASE RECORDS
