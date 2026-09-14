@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070E1E">
@@ -2313,12 +2320,19 @@
                         if (history[j].coolantType) {
                             item.coolantType = history[j].coolantType;
                             item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
+                            item._coolantFromPrev = true;
+                            item._coolantMileage = history[j].mileageOilDvs || history[j].mileageOilKpp || '';
+                            item._coolantMileageUnit = history[j].mileageUnit || (rec && rec.mileageUnit) || 'км';
+                            item._coolantTimestamp = history[j].timestamp || '';
                             break;
                         }
                     }
                     if (!item.coolantType && rec && rec.coolantType) {
                         item.coolantType = rec.coolantType;
                         item.freezeTemp = item.freezeTemp || rec.freezeTemp;
+                        item._coolantFromPrev = true;
+                        item._coolantMileage = rec.mileageOilDvs || rec.mileageOilKpp || '';
+                        item._coolantMileageUnit = (rec && rec.mileageUnit) || 'км';
                     }
                 }
             }
@@ -2404,10 +2418,18 @@
                         ` : ''}
 
                         ${item.coolantType ? `
-                            <div class="text-[11px] text-slate-300 flex items-center gap-1.5">
-                                <span class="text-slate-400">❄️ Антифриз:</span>
-                                <strong class="text-cyan-400 font-medium">${item.coolantType}</strong>
-                                ${item.freezeTemp ? `<span class="text-slate-400">(${item.freezeTemp})</span>` : ''}
+                            <div class="text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-1 border-t border-slate-800/60 pt-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-400">❄️ Антифриз:</span>
+                                    <strong class="text-cyan-400 font-medium">${item.coolantType}</strong>
+                                    ${item.freezeTemp ? `<span class="text-slate-400">(${item.freezeTemp})</span>` : ''}
+                                    ${item._coolantFromPrev ? `<span class="text-[9px] bg-slate-800 text-slate-400 px-1 rounded ml-1">действует</span>` : ''}
+                                </div>
+                                ${item._coolantFromPrev && item._coolantMileage ? `
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-mono">замена при: ${item._coolantMileage} ${item._coolantMileageUnit || itemUnit}</span>
+                                </div>
+                                ` : ''}
                             </div>
                         ` : ''}
 
