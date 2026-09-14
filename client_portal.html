@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070E1E">
@@ -1462,18 +1469,25 @@
                     }
                 }
 
-                // Similarly, carry forward coolant if missing
+                // Similarly, carry forward coolant if missing, tracking the mileage and date when it was replaced
                 if (!item.coolantType) {
                     for (let j = i + 1; j < history.length; j++) {
                         if (history[j].coolantType) {
                             item.coolantType = history[j].coolantType;
                             item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
+                            item._coolantFromPrev = true;
+                            item._coolantMileage = history[j].mileageOilDvs || history[j].mileageOilKpp || '';
+                            item._coolantMileageUnit = history[j].mileageUnit || recordUnit;
+                            item._coolantTimestamp = history[j].timestamp || '';
                             break;
                         }
                     }
                     if (!item.coolantType && data && data.coolantType) {
                         item.coolantType = data.coolantType;
                         item.freezeTemp = item.freezeTemp || data.freezeTemp;
+                        item._coolantFromPrev = true;
+                        item._coolantMileage = data.mileageOilDvs || data.mileageOilKpp || '';
+                        item._coolantMileageUnit = recordUnit;
                     }
                 }
             }
@@ -1570,8 +1584,14 @@
 
                             ${item.coolantType ? `
                                 <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-900/60">
-                                    <span class="text-slate-400">❄️ ${dict.coolantTypeLabel || 'Антифриз'}:</span>
-                                    <span class="text-cyan-400 font-medium">${item.coolantType} ${item.freezeTemp ? '(' + item.freezeTemp + ')' : ''}</span>
+                                    <span class="text-slate-400 flex items-center gap-1">
+                                        <span>❄️ ${dict.coolantTypeLabel || 'Антифриз'}:</span>
+                                        ${item._coolantFromPrev ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded" title="Действует от предыдущей замены">действует</span>' : ''}
+                                    </span>
+                                    <span class="text-right">
+                                        <span class="text-cyan-400 font-medium">${item.coolantType} ${item.freezeTemp ? '(' + item.freezeTemp + ')' : ''}</span>
+                                        ${item._coolantFromPrev && item._coolantMileage ? `<span class="text-slate-400 text-[10px] block font-mono">замена при: ${formatKm(item._coolantMileage, '—', item._coolantMileageUnit || itemUnit)}</span>` : ''}
+                                    </span>
                                 </div>
                             ` : ''}
 
