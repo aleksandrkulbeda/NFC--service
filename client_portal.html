@@ -1385,13 +1385,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
             const recordUnit = (data && data.mileageUnit) ? data.mileageUnit : (dict.unitKm || 'км');
 
-            // Deduplicate items with same timestamp & mileage
-            const seen = new Set();
+            // Deduplicate items with same day or identical mileage/timestamp
+            const seenKeys = new Set();
             history = history.filter(item => {
                 if (!item) return false;
-                const key = `${item.timestamp || ''}_${item.mileageOilDvs || ''}_${item.oilTypeDvs || ''}`;
-                if (seen.has(key)) return false;
-                seen.add(key);
+                const d = item.timestamp ? item.timestamp.split(' ')[0] : (item.timestamp || '');
+                const mDvs = item.mileageOilDvs || '';
+                const mKpp = item.mileageOilKpp || '';
+                const key = `${d}_${mDvs}_${mKpp}_${item.oilTypeDvs || ''}`;
+                if (seenKeys.has(key)) return false;
+                seenKeys.add(key);
                 return true;
             });
 
@@ -1732,13 +1735,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const { url, key } = getSupabaseConfig();
             if (typeof window.supabase === 'undefined' || !url || !key) return null;
             try {
-                // Strict Singleton with Auth lock disabled: eliminates GoTrue lock contention & duplicate instance warnings
+                // Strict Singleton with Auth completely disabled: dummy lock & no storage
+                // Completely stops GoTrue from acquiring navigator.locks or checking session tokens
                 if (!window._supabaseClient || window._supabaseClientUrl !== url || window._supabaseClientKey !== key) {
                     window._supabaseClient = window.supabase.createClient(url, key, {
                         auth: {
                             persistSession: false,
                             autoRefreshToken: false,
-                            detectSessionInUrl: false
+                            detectSessionInUrl: false,
+                            storageKey: 'none',
+                            storage: {
+                                getItem: () => null,
+                                setItem: () => {},
+                                removeItem: () => {}
+                            },
+                            lock: async (_name, _acquireTimeout, fn) => await fn()
                         }
                     });
                     window._supabaseClientUrl = url;
