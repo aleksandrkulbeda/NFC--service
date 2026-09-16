@@ -524,6 +524,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                                     </div>
                                 </div>
 
+                                <!-- Drivetrain components checkboxes (Передний мост, Раздатка, Задний мост) -->
+                                <div class="space-y-2 pt-2 border-t border-slate-800/60">
+                                    <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Узлы трансмиссии / Замена масла</label>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <label class="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 cursor-pointer transition-all">
+                                            <input type="checkbox" id="check_front_axle" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                            <span class="text-xs text-slate-200 font-medium">Передний мост</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 cursor-pointer transition-all">
+                                            <input type="checkbox" id="check_transfer_case" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                            <span class="text-xs text-slate-200 font-medium">Раздатка</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 cursor-pointer transition-all">
+                                            <input type="checkbox" id="check_rear_axle" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+                                            <span class="text-xs text-slate-200 font-medium">Задний мост</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <!-- Hydraulics Oil Change Block -->
                                 <div class="space-y-3 pt-3 border-t border-slate-800/80">
                                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Замена масла в гидравлике (ГУР / Гидросистема)</label>
@@ -943,13 +962,23 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 } catch(e) {}
             }
 
-            // 3. Otherwise -> INSERT
+            // 3. Otherwise -> Try native upsert first, then fallback to INSERT/UPDATE
             try {
+                // Attempt upsert with onConflict on primary column
+                const { error: upsertErr } = await client.from("diagnostics").upsert(payload, { onConflict: colName });
+                if (!upsertErr) return { success: true };
+
+                // If upsert failed due to missing conflict target or code 409 / duplicate, try direct insert/update
                 const { error: insErr } = await client.from("diagnostics").insert(payload);
                 if (!insErr) return { success: true };
 
-                // Handle race condition or duplicate key
-                if (insErr.code === "23505" || (insErr.message && insErr.message.toLowerCase().includes("duplicate"))) {
+                // Handle race condition, HTTP 409 conflict, or duplicate key (23505)
+                const isConflict = insErr.code === "23505" || 
+                                   insErr.code === "409" || 
+                                   insErr.status === 409 || 
+                                   (insErr.message && (insErr.message.toLowerCase().includes("duplicate") || insErr.message.toLowerCase().includes("conflict")));
+
+                if (isConflict) {
                     const { error: upErr2 } = await client.from("diagnostics").update(payload).eq(colName, cleanFob);
                     if (!upErr2) return { success: true };
                     return { success: false, error: upErr2.message };
@@ -1514,6 +1543,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     oilTypeKpp: '',
                     mileageOilKpp: '',
                     nextOilKpp: '',
+                    checkFrontAxle: false,
+                    checkTransferCase: false,
+                    checkRearAxle: false,
                     oilTypeHydro: '',
                     mileageOilHydro: '',
                     nextOilHydro: '',
@@ -1633,6 +1665,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
             post.formData.oilTypeKpp = document.getElementById('oil_type_kpp')?.value || '';
             post.formData.mileageOilKpp = document.getElementById('mileage_oil_change_kpp')?.value || '';
             post.formData.nextOilKpp = document.getElementById('next_oil_change_kpp')?.value || '';
+            post.formData.checkFrontAxle = document.getElementById('check_front_axle')?.checked || false;
+            post.formData.checkTransferCase = document.getElementById('check_transfer_case')?.checked || false;
+            post.formData.checkRearAxle = document.getElementById('check_rear_axle')?.checked || false;
             post.formData.oilTypeHydro = document.getElementById('oil_type_hydro')?.value || '';
             post.formData.mileageOilHydro = document.getElementById('mileage_oil_change_hydro')?.value || '';
             post.formData.nextOilHydro = document.getElementById('next_oil_change_hydro')?.value || '';
@@ -1730,6 +1765,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (document.getElementById('oil_type_kpp')) document.getElementById('oil_type_kpp').value = post.formData.oilTypeKpp || '';
             if (document.getElementById('mileage_oil_change_kpp')) document.getElementById('mileage_oil_change_kpp').value = post.formData.mileageOilKpp || '';
             if (document.getElementById('next_oil_change_kpp')) document.getElementById('next_oil_change_kpp').value = post.formData.nextOilKpp || '';
+            if (document.getElementById('check_front_axle')) document.getElementById('check_front_axle').checked = post.formData.checkFrontAxle || false;
+            if (document.getElementById('check_transfer_case')) document.getElementById('check_transfer_case').checked = post.formData.checkTransferCase || false;
+            if (document.getElementById('check_rear_axle')) document.getElementById('check_rear_axle').checked = post.formData.checkRearAxle || false;
             if (document.getElementById('oil_type_hydro')) document.getElementById('oil_type_hydro').value = post.formData.oilTypeHydro || '';
             if (document.getElementById('mileage_oil_change_hydro')) document.getElementById('mileage_oil_change_hydro').value = post.formData.mileageOilHydro || '';
             if (document.getElementById('next_oil_change_hydro')) document.getElementById('next_oil_change_hydro').value = post.formData.nextOilHydro || '';
@@ -1847,6 +1885,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (document.getElementById('oil_type_kpp')) document.getElementById('oil_type_kpp').value = post.formData.oilTypeKpp || '';
                 if (document.getElementById('mileage_oil_change_kpp')) document.getElementById('mileage_oil_change_kpp').value = post.formData.mileageOilKpp || '';
                 if (document.getElementById('next_oil_change_kpp')) document.getElementById('next_oil_change_kpp').value = post.formData.nextOilKpp || '';
+                if (document.getElementById('check_front_axle')) document.getElementById('check_front_axle').checked = post.formData.checkFrontAxle || false;
+                if (document.getElementById('check_transfer_case')) document.getElementById('check_transfer_case').checked = post.formData.checkTransferCase || false;
+                if (document.getElementById('check_rear_axle')) document.getElementById('check_rear_axle').checked = post.formData.checkRearAxle || false;
                 if (document.getElementById('oil_type_hydro')) document.getElementById('oil_type_hydro').value = post.formData.oilTypeHydro || '';
                 if (document.getElementById('mileage_oil_change_hydro')) document.getElementById('mileage_oil_change_hydro').value = post.formData.mileageOilHydro || '';
                 if (document.getElementById('next_oil_change_hydro')) document.getElementById('next_oil_change_hydro').value = post.formData.nextOilHydro || '';
@@ -2039,6 +2080,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     if (matched.oilTypeKpp) post.formData.oilTypeKpp = matched.oilTypeKpp;
                     if (matched.mileageOilKpp) post.formData.mileageOilKpp = matched.mileageOilKpp;
                     if (matched.nextOilKpp) post.formData.nextOilKpp = matched.nextOilKpp;
+                    if (matched.checkFrontAxle !== undefined) post.formData.checkFrontAxle = !!matched.checkFrontAxle;
+                    if (matched.checkTransferCase !== undefined) post.formData.checkTransferCase = !!matched.checkTransferCase;
+                    if (matched.checkRearAxle !== undefined) post.formData.checkRearAxle = !!matched.checkRearAxle;
                     if (matched.oilTypeHydro) post.formData.oilTypeHydro = matched.oilTypeHydro;
                     if (matched.mileageOilHydro) post.formData.mileageOilHydro = matched.mileageOilHydro;
                     if (matched.nextOilHydro) post.formData.nextOilHydro = matched.nextOilHydro;
@@ -2102,7 +2146,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function searchByLicensePlate() {
-            const inputPlate = document.getElementById('search-license-plate')?.value.trim().toUpperCase() || '';
+            const inputElem = document.getElementById('search-license-plate');
+            const inputPlate = inputElem ? inputElem.value.trim().toUpperCase() : '';
             const resultBox = document.getElementById('search-result-info');
             
             if (!inputPlate) {
@@ -2119,11 +2164,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (stored) list = JSON.parse(stored);
             } catch(e) {}
             
-            const targetPlate = inputPlate.replace(/\s+/g, '');
-            const matched = list.find(item => item.licensePlate && item.licensePlate.toUpperCase().replace(/\s+/g, '') === targetPlate);
+            // Normalize target plate: uppercase, remove all whitespace and dashes
+            const normalizePlate = (str) => String(str || '').toUpperCase().replace(/[\s\-]+/g, '');
+            const targetPlate = normalizePlate(inputPlate);
+            
+            // Find all matching records
+            const matchingRecords = list.filter(item => item && item.licensePlate && normalizePlate(item.licensePlate) === targetPlate);
+            
+            // Pick most recent record by timestamp or id, or fallback to first match
+            let matched = null;
+            if (matchingRecords.length > 0) {
+                matched = matchingRecords.slice().sort((a, b) => {
+                    const timeA = a.timestamp ? new Date(a.timestamp).getTime() || 0 : 0;
+                    const timeB = b.timestamp ? new Date(b.timestamp).getTime() || 0 : 0;
+                    return timeB - timeA;
+                })[0];
+            }
             
             if (matched) {
-                state.fobId = matched.fobId || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
+                state.fobId = matched.fobId || matched.fob_id || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
@@ -2139,15 +2198,48 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone;
                 if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate;
                 
+                // Also pre-fill active post data
+                let post = posts[activePostIndex];
+                if (post) {
+                    post.fobId = state.fobId;
+                    post.carBrand = state.carBrand;
+                    post.carModel = state.carModel;
+                    post.licensePlate = state.licensePlate;
+                    if (post.formData) {
+                        if (matched.mileageUnit) post.formData.mileageUnit = matched.mileageUnit;
+                        if (matched.oilTypeDvs) post.formData.oilTypeDvs = matched.oilTypeDvs;
+                        if (matched.oilVolumeDvs) post.formData.oilVolumeDvs = matched.oilVolumeDvs;
+                        if (matched.mileageOilDvs) post.formData.mileageOilDvs = matched.mileageOilDvs;
+                        if (matched.nextOilDvs) post.formData.nextOilDvs = matched.nextOilDvs;
+                        if (matched.oilFilter) post.formData.oilFilter = matched.oilFilter;
+                        if (matched.airFilter) post.formData.airFilter = matched.airFilter;
+                        if (matched.fuelFilter) post.formData.fuelFilter = matched.fuelFilter;
+                        if (matched.cabinFilter) post.formData.cabinFilter = matched.cabinFilter;
+                        if (matched.kppType) post.formData.kppType = matched.kppType;
+                        if (matched.oilTypeKpp) post.formData.oilTypeKpp = matched.oilTypeKpp;
+                        if (matched.mileageOilKpp) post.formData.mileageOilKpp = matched.mileageOilKpp;
+                        if (matched.nextOilKpp) post.formData.nextOilKpp = matched.nextOilKpp;
+                        if (matched.checkFrontAxle !== undefined) post.formData.checkFrontAxle = !!matched.checkFrontAxle;
+                        if (matched.checkTransferCase !== undefined) post.formData.checkTransferCase = !!matched.checkTransferCase;
+                        if (matched.checkRearAxle !== undefined) post.formData.checkRearAxle = !!matched.checkRearAxle;
+                        if (matched.oilTypeHydro) post.formData.oilTypeHydro = matched.oilTypeHydro;
+                        if (matched.mileageOilHydro) post.formData.mileageOilHydro = matched.mileageOilHydro;
+                        if (matched.nextOilHydro) post.formData.nextOilHydro = matched.nextOilHydro;
+                        if (matched.coolantType) post.formData.coolantType = matched.coolantType;
+                        if (matched.freezeTemp) post.formData.freezeTemp = matched.freezeTemp;
+                    }
+                }
+
                 saveCurrentPostState();
                 renderPostTabs();
                 
                 if (resultBox) {
                     resultBox.classList.remove('hidden');
                     resultBox.innerHTML = `
-                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в локальной базе!</div>
+                        <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в базе!</div>
                         <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel} (${state.carYear || 'Год не указ.'})</div>
                         <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
+                        <div class="text-slate-400 text-[11px] font-mono text-cyan-400">Брелок: ${state.fobId}</div>
                         <div class="mt-2 flex space-x-2">
                             <button type="button" onclick="goToScreen2()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
                                 Данные ТС / Брелок
@@ -2167,22 +2259,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     `;
                 }
             }
-        }
-
-        function goToScreen3() {
-            document.getElementById('screen-waiting').classList.add('hidden');
-            document.getElementById('screen-chip-init').classList.add('hidden');
-            document.getElementById('screen-priority-alpha').classList.remove('hidden');
-            
-            // Update top summary bar
-            let summaryText = 'Брелок: ' + (state.fobId || 'Не указан');
-            if (state.carBrand || state.carModel) {
-                summaryText += ` (${state.carBrand} ${state.carModel})`.replace(/\s+/g, ' ');
-            }
-            document.getElementById('summary-car-info').innerText = summaryText;
-
-            // Render history for current fob
-            renderStoHistory(state.fobId);
         }
 
         function saveAndLinkChip() {
@@ -2336,71 +2412,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }];
             }
 
-            // UNIFIED CONTINUITY: Fill missing DVS / KPP data from previous visits or vehicle card
-            for (let i = 0; i < history.length; i++) {
-                const item = history[i];
+            // Each historical entry strictly contains only the maintenance actions performed at its timestamp.
+            // Aggressive back-filling/continuity mutation has been disabled.
 
-                if (!item.oilTypeDvs && !item.mileageOilDvs) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].oilTypeDvs || history[j].mileageOilDvs) {
-                            item.oilTypeDvs = history[j].oilTypeDvs || '';
-                            item.oilVolumeDvs = item.oilVolumeDvs || history[j].oilVolumeDvs || '';
-                            item.mileageOilDvs = history[j].mileageOilDvs || '';
-                            item.nextOilDvs = item.nextOilDvs || history[j].nextOilDvs || '';
-                            item._dvsFromPrev = true;
-                            break;
-                        }
-                    }
-                    if (!item.oilTypeDvs && rec && (rec.oilTypeDvs || rec.mileageOilDvs)) {
-                        item.oilTypeDvs = rec.oilTypeDvs || '';
-                        item.oilVolumeDvs = item.oilVolumeDvs || rec.oilVolumeDvs || '';
-                        item.mileageOilDvs = rec.mileageOilDvs || '';
-                        item.nextOilDvs = item.nextOilDvs || rec.nextOilDvs || '';
-                        item._dvsFromPrev = true;
-                    }
-                }
-
-                if (!item.oilTypeKpp && !item.mileageOilKpp) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].oilTypeKpp || history[j].mileageOilKpp) {
-                            item.oilTypeKpp = history[j].oilTypeKpp || '';
-                            item.kppType = item.kppType || history[j].kppType || 'АКПП';
-                            item.mileageOilKpp = history[j].mileageOilKpp || '';
-                            item.nextOilKpp = item.nextOilKpp || history[j].nextOilKpp || '';
-                            item._kppFromPrev = true;
-                            break;
-                        }
-                    }
-                    if (!item.oilTypeKpp && rec && (rec.oilTypeKpp || rec.mileageOilKpp)) {
-                        item.oilTypeKpp = rec.oilTypeKpp || '';
-                        item.kppType = item.kppType || rec.kppType || 'АКПП';
-                        item.mileageOilKpp = rec.mileageOilKpp || '';
-                        item.nextOilKpp = item.nextOilKpp || rec.nextOilKpp || '';
-                        item._kppFromPrev = true;
-                    }
-                }
-
-                if (!item.coolantType) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].coolantType) {
-                            item.coolantType = history[j].coolantType;
-                            item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
-                            item._coolantFromPrev = true;
-                            item._coolantMileage = history[j].mileageOilDvs || history[j].mileageOilKpp || '';
-                            item._coolantMileageUnit = history[j].mileageUnit || (rec && rec.mileageUnit) || 'км';
-                            item._coolantTimestamp = history[j].timestamp || '';
-                            break;
-                        }
-                    }
-                    if (!item.coolantType && rec && rec.coolantType) {
-                        item.coolantType = rec.coolantType;
-                        item.freezeTemp = item.freezeTemp || rec.freezeTemp;
-                        item._coolantFromPrev = true;
-                        item._coolantMileage = rec.mileageOilDvs || rec.mileageOilKpp || '';
-                        item._coolantMileageUnit = (rec && rec.mileageUnit) || 'км';
-                    }
-                }
-            }
 
             // Slice to last 5 entries for STO internal portal preview
             const totalCount = history.length;
@@ -2465,13 +2479,20 @@ window.$RefreshSig$ = () => (type) => type;</script>
                             </div>
                         ` : ''}
 
-                        ${item.oilTypeKpp ? `
+                        ${item.oilTypeKpp || item.checkFrontAxle || item.checkTransferCase || item.checkRearAxle ? `
                             <div class="text-[11px] text-slate-300 pt-0.5 flex flex-wrap items-center justify-between gap-1 border-t border-slate-800/60 pt-1">
                                 <div>
                                     <span class="text-slate-400">⚙️ КПП (${item.kppType || 'Трансмиссия'}):</span>
-                                    <strong class="text-slate-200">${item.oilTypeKpp}</strong>
+                                    <strong class="text-slate-200">${item.oilTypeKpp || 'Обслужена'}</strong>
                                     ${item.mileageOilKpp ? `<span class="text-amber-300 font-mono font-bold">(${item.mileageOilKpp} ${itemUnit})</span>` : ''}
                                     ${item._kppFromPrev ? `<span class="text-[9px] bg-slate-800 text-slate-400 px-1 rounded ml-1">действует</span>` : ''}
+                                    ${(item.checkFrontAxle || item.checkTransferCase || item.checkRearAxle) ? `
+                                        <span class="inline-flex gap-1 ml-1.5 flex-wrap">
+                                            ${item.checkFrontAxle ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-medium">✓ Пер. мост</span>' : ''}
+                                            ${item.checkTransferCase ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-medium">✓ Раздатка</span>' : ''}
+                                            ${item.checkRearAxle ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-medium">✓ Задн. мост</span>' : ''}
+                                        </span>
+                                    ` : ''}
                                 </div>
                                 ${item.nextOilKpp ? `
                                 <div>
@@ -2609,23 +2630,30 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 mileageUnit: currentUnit,
                 stationName: activeStoProfile.stationName || 'NFC SERViS Center',
                 stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (707) 123-45-67',
-                mileageOilDvs: post.formData.mileageOilDvs || (existingRecord ? existingRecord.mileageOilDvs : '') || '',
-                nextOilDvs: post.formData.nextOilDvs || (existingRecord ? existingRecord.nextOilDvs : '') || '',
-                oilTypeDvs: post.formData.oilTypeDvs || (existingRecord ? existingRecord.oilTypeDvs : '') || '',
-                oilVolumeDvs: post.formData.oilVolumeDvs || (existingRecord ? existingRecord.oilVolumeDvs : '') || '',
-                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.oilFilter) || '')),
-                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.airFilter) || '')),
-                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.fuelFilter) || '')),
-                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ((existingRecord && existingRecord.cabinFilter) || '')),
+                // Engine (DVS): store strictly what was entered in current service visit
+                mileageOilDvs: post.formData.mileageOilDvs || '',
+                nextOilDvs: post.formData.nextOilDvs || '',
+                oilTypeDvs: post.formData.oilTypeDvs || '',
+                oilVolumeDvs: post.formData.oilVolumeDvs || '',
+                // Filters: store strictly what was replaced in this visit
+                oilFilter: post.formData.oilFilter || (post.formData.oilFilterChecked ? 'Произведена замена' : ''),
+                airFilter: post.formData.airFilter || (post.formData.airFilterChecked ? 'Произведена замена' : ''),
+                fuelFilter: post.formData.fuelFilter || (post.formData.fuelFilterChecked ? 'Произведена замена' : ''),
+                cabinFilter: post.formData.cabinFilter || (post.formData.cabinFilterChecked ? 'Произведена замена' : ''),
+                // Transmission (KPP): store strictly what was entered in this visit
                 kppType: post.formData.kppType || 'АКПП',
                 oilTypeKpp: post.formData.oilTypeKpp || '',
                 mileageOilKpp: post.formData.mileageOilKpp || '',
                 nextOilKpp: post.formData.nextOilKpp || '',
-                coolantType: post.formData.coolantType || (existingRecord ? existingRecord.coolantType : '') || '',
-                freezeTemp: post.formData.freezeTemp || (existingRecord ? existingRecord.freezeTemp : '') || '',
-                notesDvs: post.formData.notesDvs || (existingRecord ? existingRecord.notesDvs : '') || '',
-                notesKpp: post.formData.notesKpp || (existingRecord ? existingRecord.notesKpp : '') || '',
-                notesCooling: post.formData.notesCooling || (existingRecord ? existingRecord.notesCooling : '') || ''
+                checkFrontAxle: !!post.formData.checkFrontAxle,
+                checkTransferCase: !!post.formData.checkTransferCase,
+                checkRearAxle: !!post.formData.checkRearAxle,
+                // Coolant & Technical notes: store strictly what was performed in this visit
+                coolantType: post.formData.coolantType || '',
+                freezeTemp: post.formData.freezeTemp || '',
+                notesDvs: post.formData.notesDvs || '',
+                notesKpp: post.formData.notesKpp || '',
+                notesCooling: post.formData.notesCooling || ''
             };
 
             // Deduplicate: If an entry was already saved on the same date (day) or with the same mileage, update that entry instead of creating a second duplicate
@@ -2700,11 +2728,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 fuelFilterChecked: post.formData.fuelFilterChecked || (ex.fuelFilterChecked || false),
                 cabinFilterChecked: post.formData.cabinFilterChecked || (ex.cabinFilterChecked || false),
                 
-                // Transmission (KPP) data: reliably transmit from form
-                kppType: post.formData.kppType || 'АКПП',
-                oilTypeKpp: post.formData.oilTypeKpp || '',
-                mileageOilKpp: post.formData.mileageOilKpp || '',
-                nextOilKpp: post.formData.nextOilKpp || '',
+                // Transmission (KPP) data: update if entered, otherwise preserve previous values
+                kppType: post.formData.kppType || ex.kppType || 'АКПП',
+                oilTypeKpp: (post.formData.oilTypeKpp && post.formData.oilTypeKpp.trim()) ? post.formData.oilTypeKpp : (ex.oilTypeKpp || ''),
+                mileageOilKpp: (post.formData.mileageOilKpp && post.formData.mileageOilKpp.trim()) ? post.formData.mileageOilKpp : (ex.mileageOilKpp || ''),
+                nextOilKpp: (post.formData.nextOilKpp && post.formData.nextOilKpp.trim()) ? post.formData.nextOilKpp : (ex.nextOilKpp || ''),
+                checkFrontAxle: post.formData.checkFrontAxle !== undefined ? post.formData.checkFrontAxle : (ex.checkFrontAxle || false),
+                checkTransferCase: post.formData.checkTransferCase !== undefined ? post.formData.checkTransferCase : (ex.checkTransferCase || false),
+                checkRearAxle: post.formData.checkRearAxle !== undefined ? post.formData.checkRearAxle : (ex.checkRearAxle || false),
                 
                 // Hydraulics
                 oilTypeHydro: (post.formData.oilTypeHydro && post.formData.oilTypeHydro.trim()) ? post.formData.oilTypeHydro : (ex.oilTypeHydro || ''),
