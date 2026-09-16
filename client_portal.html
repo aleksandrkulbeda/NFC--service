@@ -1422,78 +1422,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }];
             }
 
-            // SMART CONTINUITY / UNIFIED VIEW:
-            // If a service entry was specifically for KPP (e.g. 1 week after engine oil change) or specifically for DVS,
-            // ensure each card retains a unified view of the car's state by carrying forward existing DVS or KPP specifications.
-            for (let i = 0; i < history.length; i++) {
-                const item = history[i];
+            // Each historical entry strictly contains only the maintenance actions performed at its timestamp.
+            // Continuity back-filling across history items has been disabled.
 
-                // If this entry lacks DVS info, back-fill from subsequent (older) entries or overall vehicle record
-                if (!item.oilTypeDvs && !item.mileageOilDvs) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].oilTypeDvs || history[j].mileageOilDvs) {
-                            item.oilTypeDvs = history[j].oilTypeDvs || '';
-                            item.oilVolumeDvs = item.oilVolumeDvs || history[j].oilVolumeDvs || '';
-                            item.mileageOilDvs = history[j].mileageOilDvs || '';
-                            item.nextOilDvs = item.nextOilDvs || history[j].nextOilDvs || '';
-                            item._dvsFromPrev = true;
-                            item._dvsTimestamp = history[j].timestamp;
-                            break;
-                        }
-                    }
-                    if (!item.oilTypeDvs && data && (data.oilTypeDvs || data.mileageOilDvs)) {
-                        item.oilTypeDvs = data.oilTypeDvs || '';
-                        item.oilVolumeDvs = item.oilVolumeDvs || data.oilVolumeDvs || '';
-                        item.mileageOilDvs = data.mileageOilDvs || '';
-                        item.nextOilDvs = item.nextOilDvs || data.nextOilDvs || '';
-                        item._dvsFromPrev = true;
-                    }
-                }
-
-                // If this entry lacks KPP info, back-fill from subsequent (older) entries or overall vehicle record
-                if (!item.oilTypeKpp && !item.mileageOilKpp) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].oilTypeKpp || history[j].mileageOilKpp) {
-                            item.oilTypeKpp = history[j].oilTypeKpp || '';
-                            item.kppType = item.kppType || history[j].kppType || 'АКПП';
-                            item.mileageOilKpp = history[j].mileageOilKpp || '';
-                            item.nextOilKpp = item.nextOilKpp || history[j].nextOilKpp || '';
-                            item._kppFromPrev = true;
-                            item._kppTimestamp = history[j].timestamp;
-                            break;
-                        }
-                    }
-                    if (!item.oilTypeKpp && data && (data.oilTypeKpp || data.mileageOilKpp)) {
-                        item.oilTypeKpp = data.oilTypeKpp || '';
-                        item.kppType = item.kppType || data.kppType || 'АКПП';
-                        item.mileageOilKpp = data.mileageOilKpp || '';
-                        item.nextOilKpp = item.nextOilKpp || data.nextOilKpp || '';
-                        item._kppFromPrev = true;
-                    }
-                }
-
-                // Similarly, carry forward coolant if missing, tracking the mileage and date when it was replaced
-                if (!item.coolantType) {
-                    for (let j = i + 1; j < history.length; j++) {
-                        if (history[j].coolantType) {
-                            item.coolantType = history[j].coolantType;
-                            item.freezeTemp = item.freezeTemp || history[j].freezeTemp;
-                            item._coolantFromPrev = true;
-                            item._coolantMileage = history[j].mileageOilDvs || history[j].mileageOilKpp || '';
-                            item._coolantMileageUnit = history[j].mileageUnit || recordUnit;
-                            item._coolantTimestamp = history[j].timestamp || '';
-                            break;
-                        }
-                    }
-                    if (!item.coolantType && data && data.coolantType) {
-                        item.coolantType = data.coolantType;
-                        item.freezeTemp = item.freezeTemp || data.freezeTemp;
-                        item._coolantFromPrev = true;
-                        item._coolantMileage = data.mileageOilDvs || data.mileageOilKpp || '';
-                        item._coolantMileageUnit = recordUnit;
-                    }
-                }
-            }
 
             const totalCount = history.length;
             if (badge) badge.innerText = `${totalCount} ${totalCount === 1 ? 'ТО' : 'ТО'}`;
@@ -1565,14 +1496,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
                                 </div>
                             ` : ''}
 
-                            ${item.oilTypeKpp ? `
+                            ${item.oilTypeKpp || item.checkFrontAxle || item.checkTransferCase || item.checkRearAxle ? `
                                 <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-900">
-                                    <span class="text-slate-400 flex items-center gap-1">
+                                    <span class="text-slate-400 flex items-center gap-1 flex-wrap">
                                         <span>⚙️ ${dict.kppFluidLabel || 'Масло КПП'} (${item.kppType || 'Трансмиссия'}):</span>
                                         ${item._kppFromPrev ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded" title="Данные регламента КПП">действует</span>' : ''}
+                                        ${(item.checkFrontAxle || item.checkTransferCase || item.checkRearAxle) ? `
+                                            <span class="inline-flex gap-1 flex-wrap">
+                                                ${item.checkFrontAxle ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1 py-0.2 rounded font-medium">✓ Пер. мост</span>' : ''}
+                                                ${item.checkTransferCase ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1 py-0.2 rounded font-medium">✓ Раздатка</span>' : ''}
+                                                ${item.checkRearAxle ? '<span class="bg-blue-950/70 border border-blue-800/60 text-blue-300 text-[9px] px-1 py-0.2 rounded font-medium">✓ Задн. мост</span>' : ''}
+                                            </span>
+                                        ` : ''}
                                     </span>
                                     <span class="text-slate-200 font-medium text-right">
-                                        ${item.oilTypeKpp}
+                                        ${item.oilTypeKpp || 'Обслужена'}
                                         ${item.mileageOilKpp ? `<span class="text-amber-300 font-mono text-[10px] block">(${formatKm(item.mileageOilKpp, '—', itemUnit)})</span>` : ''}
                                     </span>
                                 </div>
