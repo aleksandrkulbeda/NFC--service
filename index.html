@@ -74,6 +74,13 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono hidden sm:inline">🔑 Чип СТО</span>
                 </button>
 
+                <!-- Announcement Management Button -->
+                <button onclick="openStoAnnouncementModal()" id="header-announcement-btn" title="Опубликовать или изменить объявление для клиентов СТО" class="bg-blue-600/15 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 hover:text-blue-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer">
+                    <span class="text-sm">📢</span>
+                    <span class="hidden sm:inline">Объявление</span>
+                    <span id="header-announcement-indicator" class="hidden w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </button>
+
                 <!-- Data Backup / Load Local DB & Cloud Sync Buttons -->
                 <div class="flex items-center space-x-1.5 sm:space-x-2 bg-slate-950/80 border border-slate-800 p-1 rounded-xl">
                     <button onclick="manualSyncSupabase()" id="btn-sync-cloud" title="Синхронизировать данные с облачной базой Supabase" class="bg-purple-600/10 hover:bg-purple-600/25 border border-purple-500/20 text-purple-400 hover:text-purple-300 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex items-center space-x-1 sm:space-x-1.5 cursor-pointer">
@@ -229,6 +236,28 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         </button>
                     </div>
                     <div id="search-result-info" class="hidden text-xs mt-2 p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1"></div>
+                </div>
+
+                <!-- STO ANNOUNCEMENT DASHBOARD WIDGET (Для клиентов в приложении) -->
+                <div class="bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-950 border border-blue-500/30 rounded-2xl p-4 text-left space-y-3 mt-4 shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm">📢</span>
+                            <span class="text-xs font-bold text-white">Объявление для клиентов</span>
+                        </div>
+                        <span id="screen1-announcement-status-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                            Не опубликовано
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" id="screen1-announcement-preview-text">
+                        Сообщите клиентам о переезде, смене адреса или важной информации в их сервисной книжке.
+                    </p>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-[10px] text-slate-400" id="screen1-announcement-station-name">СТО: NFC SERViS Center</span>
+                        <button type="button" onclick="openStoAnnouncementModal()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow cursor-pointer">
+                            Редактировать
+                        </button>
+                    </div>
                 </div>
 
                 <!-- B2B WHOLESALE SUPPLY BANNER FOR STO (ОПТОВЫЕ ПОСТАВКИ ФИЛЬТРОВ) -->
@@ -818,6 +847,97 @@ window.$RefreshSig$ = () => (type) => type;</script>
         </div>
     </div>
 
+    <!-- STO CLIENT ANNOUNCEMENT MANAGEMENT MODAL -->
+    <div id="sto-announcement-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-blue-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative text-slate-100 space-y-5">
+            <button type="button" onclick="closeStoAnnouncementModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none cursor-pointer">✕</button>
+            
+            <div class="flex items-center space-x-3.5 border-b border-slate-800 pb-4">
+                <div class="w-12 h-12 bg-blue-600/20 border border-blue-500/40 rounded-2xl flex items-center justify-center text-2xl text-blue-400 shrink-0 shadow-lg shadow-blue-900/20">
+                    📢
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-white flex items-center gap-2">
+                        <span>Объявление для клиентов СТО</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Отображается в клиентском портале прямо над блоком пробега</p>
+                </div>
+            </div>
+
+            <!-- Current Station Scope Info -->
+            <div class="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Текущая активная станция:</span>
+                    <span id="announcement-modal-station-name" class="font-bold text-amber-400">NFC SERViS Center</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-slate-500">Целевая аудитория:</span>
+                    <span class="text-blue-300 font-mono">Клиенты этой станции</span>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form onsubmit="handleAnnouncementFormSubmit(event)" class="space-y-4">
+                <!-- Toggle Publish Switch -->
+                <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-xl">
+                    <div>
+                        <label for="announcement-toggle-active" class="text-xs font-bold text-white block cursor-pointer">
+                            Опубликовать объявление
+                        </label>
+                        <span class="text-[11px] text-slate-400 block mt-0.5" id="announcement-toggle-hint">
+                            Включите переключатель, чтобы клиенты увидели объявление
+                        </span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="announcement-toggle-active" class="sr-only peer" onchange="updateAnnouncementToggleUI()">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
+
+                <!-- Free Text Input Area -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                            Текст объявления
+                        </label>
+                        <span class="text-[10px] text-slate-400" id="announcement-char-counter">0 / 500</span>
+                    </div>
+                    <textarea id="announcement-text-input" rows="4" maxlength="500" placeholder="Напишите текст объявления в свободной форме (например: Внимание! С 1 числа мы переезжаем на новый адрес: ул. ... Будем рады видеть вас на новом месте!)." class="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl p-3.5 text-xs text-white outline-none leading-relaxed resize-none font-sans" oninput="updateAnnouncementCharCount()"></textarea>
+                    <p class="text-[10px] text-slate-400">Произвольный текст без шаблонов — пишите любую информацию, акции или новый адрес при переезде.</p>
+                </div>
+
+                <!-- Live Preview in Modal -->
+                <div class="space-y-1.5 pt-1">
+                    <span class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Предпросмотр (как увидит клиент):</span>
+                    <div class="rounded-xl p-3.5 border text-white transition-all bg-gradient-to-r from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-blue-500/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">📢</span>
+                            <span class="text-[9px] font-black uppercase text-blue-300 bg-blue-950/90 px-1.5 py-0.5 rounded border border-blue-500/40">Объявление СТО</span>
+                            <span class="text-[11px] font-bold text-white truncate" id="announcement-preview-station-title">СТО</span>
+                        </div>
+                        <p class="text-xs text-slate-100 font-medium whitespace-pre-wrap leading-relaxed min-h-[38px]" id="announcement-live-preview-box">
+                            (Текст объявления появится здесь)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Status Message -->
+                <div id="announcement-status-msg" class="hidden text-xs p-3 rounded-xl text-center font-semibold"></div>
+
+                <!-- Action Buttons -->
+                <div class="pt-2 flex gap-2.5">
+                    <button type="button" onclick="closeStoAnnouncementModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
+                        Закрыть
+                    </button>
+                    <button type="submit" id="btn-save-announcement" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-blue-950/40 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                        <span>Сохранить в базу</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- INTERACTIVE SCRIPT (Vanilla JS for multi-screen client-only flow with multi-post support) -->
     <script>
         // =========================================================================
@@ -1021,6 +1141,20 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 pin: '1234'
             },
             {
+                chipUid: 'STO-CHIP-30003',
+                stationName: 'Mobil 1 Аксукент',
+                stationWhatsapp: '+7 (777) 123-45-67',
+                stationCity: 'Аксукент',
+                pin: '1234'
+            },
+            {
+                chipUid: 'STO-CHIP-30004',
+                stationName: 'Mobil Шымкент',
+                stationWhatsapp: '+7 (777) 888-99-00',
+                stationCity: 'Шымкент',
+                pin: '1234'
+            },
+            {
                 chipUid: 'STO-CHIP-20002',
                 stationName: 'Автосервис Эксперт-Авто',
                 stationWhatsapp: '+7 (777) 555-44-33',
@@ -1140,6 +1274,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (el) {
                 el.innerText = 'СТО: ' + (activeStoProfile.stationName || 'NFC SERViS Center');
             }
+            const s1Name = document.getElementById('screen1-announcement-station-name');
+            if (s1Name) {
+                s1Name.innerText = 'СТО: ' + (activeStoProfile.stationName || 'NFC SERViS Center');
+            }
+            // Refresh announcement badge and status for active profile
+            loadCurrentStationAnnouncement();
         }
 
         function renderStoChipSelectOptions(selectedUid) {
@@ -3207,6 +3347,293 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (supplyBanner) supplyBanner.classList.add('hidden');
                 if (partsOrderBar) partsOrderBar.classList.add('hidden');
             }
+        }
+
+        // =========================================================================
+        // STO CLIENT ANNOUNCEMENT SYSTEM (RELOCATION / NOTICES / PROMOS)
+        // =========================================================================
+        let currentStationAnnouncement = null;
+
+        function updateAnnouncementCharCount() {
+            const textarea = document.getElementById('announcement-text-input');
+            const counter = document.getElementById('announcement-char-counter');
+            const preview = document.getElementById('announcement-live-preview-box');
+            if (textarea && counter) {
+                counter.innerText = `${textarea.value.length} / 500`;
+            }
+            if (textarea && preview) {
+                preview.innerText = textarea.value.trim() || '(Текст объявления появится здесь)';
+            }
+        }
+
+        function updateAnnouncementToggleUI() {
+            const toggle = document.getElementById('announcement-toggle-active');
+            const hint = document.getElementById('announcement-toggle-hint');
+            if (!toggle || !hint) return;
+            if (toggle.checked) {
+                hint.innerText = 'Объявление будет видно клиентам этой СТО в приложении';
+                hint.className = 'text-[11px] text-emerald-400 font-semibold block mt-0.5';
+            } else {
+                hint.innerText = 'Объявление скрыто (клиенты не увидят его)';
+                hint.className = 'text-[11px] text-slate-400 block mt-0.5';
+            }
+        }
+
+        async function loadCurrentStationAnnouncement() {
+            const stationName = (activeStoProfile && activeStoProfile.stationName) || 'NFC SERViS Center';
+            const stationChip = (activeStoProfile && activeStoProfile.stoFobId) || '';
+
+            let found = null;
+
+            // 1. Check Supabase
+            const client = getSupabaseClient();
+            if (client) {
+                try {
+                    const { data: list, error } = await client
+                        .from('banners')
+                        .select('*')
+                        .in('target', ['sto_announcement', 'sto_announcement_all'])
+                        .order('updated_at', { ascending: false });
+
+                    if (!error && Array.isArray(list)) {
+                        for (const b of list) {
+                            const bStation = (b.station_name || '').trim().toLowerCase();
+                            const curStation = stationName.trim().toLowerCase();
+                            const bChip = (b.sto_fob_id || '').trim().toLowerCase();
+                            const curChip = stationChip.trim().toLowerCase();
+
+                            if ((bStation && curStation && (bStation === curStation || curStation.includes(bStation) || bStation.includes(curStation))) ||
+                                (bChip && curChip && bChip === curChip)) {
+                                found = b;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[STO Announcement] Load from Supabase failed:', e);
+                }
+            }
+
+            // 2. Check localStorage fallback registry
+            if (!found) {
+                try {
+                    const raw = localStorage.getItem('sto_announcements_registry');
+                    if (raw) {
+                        const registry = JSON.parse(raw);
+                        if (Array.isArray(registry)) {
+                            const curStation = stationName.trim().toLowerCase();
+                            const curChip = stationChip.trim().toLowerCase();
+                            found = registry.find(a => {
+                                const aStation = (a.station_name || '').trim().toLowerCase();
+                                const aChip = (a.sto_fob_id || '').trim().toLowerCase();
+                                if (aStation && curStation && (aStation === curStation || curStation.includes(aStation) || aStation.includes(curStation))) return true;
+                                if (aChip && curChip && aChip === curChip) return true;
+                                return false;
+                            }) || null;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            currentStationAnnouncement = found;
+            renderAnnouncementStatusUI();
+            return found;
+        }
+
+        function renderAnnouncementStatusUI() {
+            const headerIndicator = document.getElementById('header-announcement-indicator');
+            const s1Badge = document.getElementById('screen1-announcement-status-badge');
+            const s1Preview = document.getElementById('screen1-announcement-preview-text');
+
+            const hasActive = currentStationAnnouncement && currentStationAnnouncement.is_active && (currentStationAnnouncement.description || currentStationAnnouncement.title || '');
+
+            if (headerIndicator) {
+                if (hasActive) {
+                    headerIndicator.classList.remove('hidden');
+                } else {
+                    headerIndicator.classList.add('hidden');
+                }
+            }
+
+            if (s1Badge) {
+                if (hasActive) {
+                    s1Badge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/90 text-emerald-300 border border-emerald-500/40';
+                    s1Badge.innerText = '🟢 Опубликовано';
+                } else {
+                    s1Badge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
+                    s1Badge.innerText = 'Не опубликовано';
+                }
+            }
+
+            if (s1Preview) {
+                if (hasActive) {
+                    const text = (currentStationAnnouncement.description || currentStationAnnouncement.title || '').trim();
+                    s1Preview.innerText = `«${text}»`;
+                    s1Preview.className = 'text-[11px] text-blue-200 font-medium leading-relaxed line-clamp-2';
+                } else {
+                    s1Preview.innerText = 'Сообщите клиентам о переезде, смене адреса или важной информации в их сервисной книжке.';
+                    s1Preview.className = 'text-[11px] text-slate-300 leading-relaxed';
+                }
+            }
+        }
+
+        function openStoAnnouncementModal() {
+            const modal = document.getElementById('sto-announcement-modal');
+            const stationNameEl = document.getElementById('announcement-modal-station-name');
+            const previewStationEl = document.getElementById('announcement-preview-station-title');
+            const toggle = document.getElementById('announcement-toggle-active');
+            const textarea = document.getElementById('announcement-text-input');
+            const statusMsg = document.getElementById('announcement-status-msg');
+
+            if (statusMsg) statusMsg.classList.add('hidden');
+
+            const stationName = (activeStoProfile && activeStoProfile.stationName) || 'NFC SERViS Center';
+            if (stationNameEl) stationNameEl.innerText = stationName;
+            if (previewStationEl) previewStationEl.innerText = stationName;
+
+            if (currentStationAnnouncement) {
+                if (toggle) toggle.checked = !!currentStationAnnouncement.is_active;
+                if (textarea) textarea.value = currentStationAnnouncement.description || currentStationAnnouncement.title || currentStationAnnouncement.text || '';
+            } else {
+                if (toggle) toggle.checked = false;
+                if (textarea) textarea.value = '';
+            }
+
+            updateAnnouncementCharCount();
+            updateAnnouncementToggleUI();
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeStoAnnouncementModal() {
+            const modal = document.getElementById('sto-announcement-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function handleAnnouncementFormSubmit(e) {
+            if (e) e.preventDefault();
+
+            const toggle = document.getElementById('announcement-toggle-active');
+            const textarea = document.getElementById('announcement-text-input');
+            const statusMsg = document.getElementById('announcement-status-msg');
+            const saveBtn = document.getElementById('btn-save-announcement');
+
+            const isActive = !!(toggle && toggle.checked);
+            const text = (textarea ? textarea.value : '').trim();
+
+            if (isActive && !text) {
+                if (statusMsg) {
+                    statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-red-950/80 border border-red-500/50 text-red-300 block';
+                    statusMsg.innerText = '⚠️ Введите текст объявления перед публикацией!';
+                    statusMsg.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = 'Сохранение...';
+            }
+
+            const stationName = (activeStoProfile && activeStoProfile.stationName) || 'NFC SERViS Center';
+            const stationFob = (activeStoProfile && activeStoProfile.stoFobId) || '';
+
+            const record = {
+                title: 'Объявление СТО',
+                description: text,
+                button_text: '',
+                action_url: '',
+                target: 'sto_announcement',
+                is_active: isActive,
+                station_name: stationName,
+                sto_fob_id: stationFob,
+                sort_order: 1,
+                updated_at: new Date().toISOString()
+            };
+
+            // 1. Save to localStorage registry cache
+            try {
+                let registry = [];
+                const raw = localStorage.getItem('sto_announcements_registry');
+                if (raw) registry = JSON.parse(raw);
+                if (!Array.isArray(registry)) registry = [];
+
+                const curStation = stationName.trim().toLowerCase();
+                const curFob = stationFob.trim().toLowerCase();
+                const idx = registry.findIndex(a => {
+                    const aStation = (a.station_name || '').trim().toLowerCase();
+                    const aFob = (a.sto_fob_id || '').trim().toLowerCase();
+                    if (aStation && curStation && aStation === curStation) return true;
+                    if (aFob && curFob && aFob === curFob) return true;
+                    return false;
+                });
+
+                if (idx >= 0) {
+                    registry[idx] = Object.assign({}, registry[idx], record);
+                } else {
+                    registry.push(record);
+                }
+                localStorage.setItem('sto_announcements_registry', JSON.stringify(registry));
+            } catch (err) {
+                console.warn('[STO Announcement] localStorage save error:', err);
+            }
+
+            // 2. Save to Supabase 'banners' table
+            let supabaseSaved = false;
+            const client = getSupabaseClient();
+            if (client) {
+                try {
+                    // Check if record exists in banners table for this station
+                    const { data: existing } = await client
+                        .from('banners')
+                        .select('id')
+                        .eq('target', 'sto_announcement')
+                        .eq('station_name', stationName)
+                        .limit(1);
+
+                    if (existing && existing.length > 0) {
+                        const { error } = await client
+                            .from('banners')
+                            .update({
+                                description: text,
+                                is_active: isActive,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', existing[0].id);
+                        if (!error) supabaseSaved = true;
+                    } else {
+                        const { error } = await client
+                            .from('banners')
+                            .insert([record]);
+                        if (!error) supabaseSaved = true;
+                    }
+                } catch (err) {
+                    console.warn('[STO Announcement] Supabase upload failed:', err);
+                }
+            }
+
+            currentStationAnnouncement = record;
+            renderAnnouncementStatusUI();
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                    <span>Сохранить в базу</span>
+                `;
+            }
+
+            if (statusMsg) {
+                statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 block';
+                statusMsg.innerText = isActive 
+                    ? `✅ Объявление успешно опубликовано для клиентов СТО "${stationName}"!` 
+                    : `✅ Объявление снято с публикации для клиентов СТО "${stationName}".`;
+                statusMsg.classList.remove('hidden');
+            }
+
+            setTimeout(() => {
+                closeStoAnnouncementModal();
+            }, 1200);
         }
 
         // Initialize on load
