@@ -219,6 +219,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     </div>
                 </div>
 
+                <!-- STO OFFICIAL ANNOUNCEMENT BANNER (e.g. Relocation, Notice, Promo) -->
+                <div id="sto-announcement-card" class="hidden rounded-2xl p-4 sm:p-5 border text-white shadow-xl transition-all relative overflow-hidden bg-gradient-to-r from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-blue-500/40">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0 shadow-inner">
+                                <span class="text-base leading-none">📢</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider text-blue-300 bg-blue-950/80 border border-blue-500/40 px-2 py-0.5 rounded" id="sto-announcement-badge" data-i18n="announcementBadge">Объявление СТО</span>
+                                <h4 class="text-xs sm:text-sm font-bold text-white mt-0.5 leading-tight" id="sto-announcement-station">СТО</h4>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeStoAnnouncementBanner()" class="text-slate-400 hover:text-white transition-colors p-1 text-sm leading-none" title="Скрыть объявление">✕</button>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-800/80">
+                        <p class="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap" id="sto-announcement-text"></p>
+                    </div>
+                </div>
+
             <!-- CRITICAL STATUS BLOCK WITH EXTREMELY BRIGHT ORANGE PULSATION -->
             <div id="warning-container" class="p-5 rounded-2xl text-white flex flex-col justify-between space-y-4 animate-brand-orange-pulse relative overflow-hidden">
                 <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
@@ -585,7 +604,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceDesc: "Официальный полис ОГПО в Единой базе (ЕСБД) за 2 минуты без визита в офис со скидкой и моментальной регистрацией.",
                 insurancePerk1: "Моментально в ЕСБД",
                 insurancePerk2: "Кэшбэк и бонусы",
-                insuranceBtn: "Рассчитать и оформить полис"
+                insuranceBtn: "Рассчитать и оформить полис",
+                announcementBadge: "Объявление СТО"
             },
             kk: {
                 masterMode: "СТО Шебері режимі",
@@ -657,7 +677,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceDesc: "Кеңсеге бармай-ақ 2 минутта Бірыңғай базада (ЕСБД) тіркелетін ресми ОГПО полисі, жеңілдіктер мен бонустар.",
                 insurancePerk1: "ЕСБД-да лезде тіркеу",
                 insurancePerk2: "Кэшбэк және бонустар",
-                insuranceBtn: "Полисті есептеу және рәсімдеу"
+                insuranceBtn: "Полисті есептеу және рәсімдеу",
+                announcementBadge: "СТО Хабарландыруы"
             }
         };
 
@@ -1363,6 +1384,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
             // Dynamically load partner insurance banner from Supabase
             loadClientBannerFromSupabase();
+
+            // Load STO specific announcement banner (e.g. relocation notice)
+            loadStoAnnouncement(data);
         }
 
         function renderClientHistory(data) {
@@ -1750,6 +1774,96 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 console.warn('Banner fetch error:', err);
                 bannerCard.classList.add('hidden');
             }
+        }
+
+        // Load station-specific announcement (relocation, notices, custom text)
+        async function loadStoAnnouncement(carData) {
+            const card = document.getElementById('sto-announcement-card');
+            const stationEl = document.getElementById('sto-announcement-station');
+            const textEl = document.getElementById('sto-announcement-text');
+            if (!card || !textEl) return;
+
+            const stationName = (carData && (carData.stationName || carData.station_name)) || '';
+            const stationFob = (carData && (carData.stoFobId || carData.sto_fob_id || carData.station_chip)) || '';
+
+            let foundAnnouncement = null;
+
+            // 1. Try fetching from Supabase 'banners' table (filtered by station or target)
+            const client = getSupabaseClient();
+            if (client) {
+                try {
+                    const { data: list, error } = await client
+                        .from('banners')
+                        .select('*')
+                        .eq('is_active', true)
+                        .in('target', ['sto_announcement', 'sto_announcement_all'])
+                        .order('updated_at', { ascending: false });
+
+                    if (!error && Array.isArray(list) && list.length > 0) {
+                        for (const b of list) {
+                            if (b.target === 'sto_announcement_all') {
+                                foundAnnouncement = b;
+                                break;
+                            }
+                            const bStation = (b.station_name || '').trim().toLowerCase();
+                            const curStation = stationName.trim().toLowerCase();
+                            const bChip = (b.sto_fob_id || '').trim().toLowerCase();
+                            const curChip = stationFob.trim().toLowerCase();
+
+                            if ((bStation && curStation && (bStation === curStation || curStation.includes(bStation) || bStation.includes(curStation))) ||
+                                (bChip && curChip && bChip === curChip)) {
+                                foundAnnouncement = b;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[StoAnnouncement] Supabase check error:', e);
+                }
+            }
+
+            // 2. Fallback to localStorage cache / offline announcement registry
+            if (!foundAnnouncement) {
+                try {
+                    const raw = localStorage.getItem('sto_announcements_registry');
+                    if (raw) {
+                        const registry = JSON.parse(raw);
+                        if (Array.isArray(registry)) {
+                            const curStation = stationName.trim().toLowerCase();
+                            const curChip = stationFob.trim().toLowerCase();
+                            const match = registry.find(a => {
+                                if (!a.is_active) return false;
+                                const aStation = (a.station_name || '').trim().toLowerCase();
+                                const aChip = (a.sto_fob_id || '').trim().toLowerCase();
+                                if (aStation && curStation && (aStation === curStation || curStation.includes(aStation) || aStation.includes(curStation))) return true;
+                                if (aChip && curChip && aChip === curChip) return true;
+                                if (a.target === 'sto_announcement_all') return true;
+                                return false;
+                            });
+                            if (match) {
+                                foundAnnouncement = match;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 3. Render or hide
+            const announcementText = foundAnnouncement ? (foundAnnouncement.description || foundAnnouncement.title || foundAnnouncement.text || '') : '';
+            if (foundAnnouncement && foundAnnouncement.is_active && announcementText.trim()) {
+                if (stationEl) {
+                    stationEl.innerText = foundAnnouncement.station_name || stationName || 'СТО';
+                }
+                textEl.innerText = announcementText.trim();
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        }
+
+        function closeStoAnnouncementBanner() {
+            const card = document.getElementById('sto-announcement-card');
+            if (card) card.classList.add('hidden');
         }
 
         // Save record to local storage cache for instant offline sub-50ms loads
