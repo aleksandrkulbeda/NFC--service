@@ -3585,21 +3585,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 // 1. Search for existing announcement in banners table
                 const { data: existingRows, error: searchErr } = await client
                     .from('banners')
-                    .select('id, target, title, description, is_active')
+                    .select('*')
                     .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
                     .limit(1);
 
                 if (searchErr) {
                     supabaseError = searchErr;
                 } else if (existingRows && existingRows.length > 0) {
-                    const rowId = existingRows[0].id;
-                    const existingTitle = existingRows[0].title;
-                    const safeTitle = (existingTitle && String(existingTitle).trim()) || 'Объявление СТО';
+                    const row = existingRows[0];
+                    const rowId = row.id;
+                    const safeTitle = (row.title && String(row.title).trim()) || 'Объявление СТО';
+                    const safeActionUrl = (row.action_url && String(row.action_url).trim()) || '#';
+                    const safeBtnText = (row.button_text && String(row.button_text).trim()) || '';
 
                     const updateData = {
                         title: safeTitle,
                         description: text,
-                        is_active: isActive
+                        is_active: isActive,
+                        action_url: safeActionUrl,
+                        button_text: safeBtnText
                     };
 
                     // Try updating with updated_at timestamp first
@@ -3622,12 +3626,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         supabaseSuccess = true;
                     }
                 } else {
-                    // 2. Insert new announcement row into 'banners' (always providing a non-null title)
+                    // 2. Insert new announcement row into 'banners' (satisfying NOT NULL constraints: title, action_url, button_text, sort_order)
                     const newBannerPayload = {
                         title: 'Объявление СТО',
                         description: text,
                         target: 'sto_announcement',
-                        is_active: isActive
+                        is_active: isActive,
+                        action_url: '#',
+                        button_text: '',
+                        sort_order: 1
                     };
 
                     let insertRes = await client
