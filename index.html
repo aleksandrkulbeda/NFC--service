@@ -875,7 +875,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 </div>
                 <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-900">
                     <span class="text-slate-500">Таблица:</span>
-                    <span class="text-purple-300 font-mono font-bold">banners (target = 'sto_announcement')</span>
+                    <span class="text-purple-300 font-mono font-bold">banners</span>
                 </div>
             </div>
 
@@ -3402,19 +3402,23 @@ window.$RefreshSig$ = () => (type) => type;</script>
         async function loadCurrentStationAnnouncement() {
             let found = null;
 
-            // 1. Check Supabase 'banners' table (using standard columns only)
+            // 1. Check Supabase 'banners' table
             const client = getSupabaseClient();
             if (client) {
                 try {
+                    // Try client_announcement or client target first
                     const { data: list, error } = await client
                         .from('banners')
                         .select('id, target, title, description, is_active')
-                        .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
-                        .limit(5);
+                        .in('target', ['client_announcement', 'announcement', 'client', 'sto_announcement', 'sto_relocation'])
+                        .order('id', { ascending: false })
+                        .limit(10);
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        // Prefer active row if multiple exist
-                        found = list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1) || list[0];
+                        // Find one marked as announcement or the active client announcement
+                        found = list.find(b => b.target === 'client_announcement' || b.target === 'announcement' || (b.title && b.title.includes('Объявление'))) 
+                             || list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1) 
+                             || list[0];
                     }
                 } catch (e) {
                     console.warn('[STO Announcement] Load from Supabase failed:', e);
@@ -3512,11 +3516,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     const { data: list, error } = await client
                         .from('banners')
                         .select('id, target, title, description, is_active')
-                        .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
-                        .limit(5);
+                        .in('target', ['client_announcement', 'announcement', 'client', 'sto_announcement', 'sto_relocation'])
+                        .order('id', { ascending: false })
+                        .limit(10);
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        const b = list.find(row => row.is_active === true || row.is_active === 'true' || row.is_active === 1) || list[0];
+                        const b = list.find(row => row.target === 'client_announcement' || row.target === 'announcement' || (row.title && row.title.includes('Объявление'))) 
+                               || list.find(row => row.is_active === true || row.is_active === 'true' || row.is_active === 1) 
+                               || list[0];
                         currentStationAnnouncement = b;
                         if (toggle) toggle.checked = !!(b.is_active === true || b.is_active === 'true' || b.is_active === 1);
                         if (textarea) textarea.value = b.description || b.title || '';
@@ -3586,13 +3593,22 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const { data: existingRows, error: searchErr } = await client
                     .from('banners')
                     .select('*')
-                    .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
-                    .limit(1);
+                    .in('target', ['client_announcement', 'announcement', 'client', 'sto_announcement', 'sto_relocation'])
+                    .order('id', { ascending: false })
+                    .limit(10);
 
-                if (searchErr) {
-                    supabaseError = searchErr;
-                } else if (existingRows && existingRows.length > 0) {
-                    const row = existingRows[0];
+                // Priority: find row with specific title or target
+                let existingAnnouncementRow = null;
+                if (!searchErr && Array.isArray(existingRows) && existingRows.length > 0) {
+                    existingAnnouncementRow = existingRows.find(r => 
+                        r.target === 'client_announcement' || 
+                        r.target === 'announcement' || 
+                        (r.title && (r.title.includes('Объявление') || r.title.includes('STO') || r.title.includes('СТО')))
+                    );
+                }
+
+                if (existingAnnouncementRow) {
+                    const row = existingAnnouncementRow;
                     const rowId = row.id;
                     const safeTitle = (row.title && String(row.title).trim()) || 'Объявление СТО';
                     const safeActionUrl = (row.action_url && String(row.action_url).trim()) || '#';
@@ -3626,25 +3642,43 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         supabaseSuccess = true;
                     }
                 } else {
-                    // 2. Insert new announcement row into 'banners' (satisfying NOT NULL constraints: title, action_url, button_text, sort_order)
-                    const newBannerPayload = {
-                        title: 'Объявление СТО',
-                        description: text,
-                        target: 'sto_announcement',
-                        is_active: isActive,
-                        action_url: '#',
-                        button_text: '',
-                        sort_order: 1
-                    };
+                    // 2. Insert new announcement row into 'banners'
+                    // Test permitted target values: usually CHECK (target IN ('client', 'sto')) or ('client', 'sto', 'all')
+                    const candidateTargets = ['client', 'announcement', 'sto'];
+                    let lastInsertErr = null;
 
-                    let insertRes = await client
-                        .from('banners')
-                        .insert([newBannerPayload]);
+                    for (const candTarget of candidateTargets) {
+                        const newBannerPayload = {
+                            title: 'Объявление СТО',
+                            description: text,
+                            target: candTarget,
+                            is_active: isActive,
+                            action_url: '#',
+                            button_text: '',
+                            sort_order: 1
+                        };
 
-                    if (insertRes.error) {
-                        supabaseError = insertRes.error;
-                    } else {
-                        supabaseSuccess = true;
+                        let insertRes = await client
+                            .from('banners')
+                            .insert([newBannerPayload]);
+
+                        if (!insertRes.error) {
+                            supabaseSuccess = true;
+                            supabaseError = null;
+                            break;
+                        } else {
+                            lastInsertErr = insertRes.error;
+                            // If it's a target check constraint violation, try next candidate target
+                            if (insertRes.error.message && insertRes.error.message.includes('banners_target_check')) {
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!supabaseSuccess) {
+                        supabaseError = lastInsertErr;
                     }
                 }
             } catch (err) {
