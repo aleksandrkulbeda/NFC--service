@@ -115,8 +115,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 <div class="flex items-center gap-2">
                     <!-- LANGUAGE TOGGLE BUTTONS -->
                     <div class="flex items-center bg-slate-900 border border-slate-800 rounded-full p-0.5 font-mono text-[10px] shadow-inner">
-                        <button id="lang-btn-ru" type="button" onclick="setLanguage('ru')" class="px-2 py-0.5 rounded-full font-bold transition-all bg-orange-500 text-slate-950">RU</button>
                         <button id="lang-btn-kk" type="button" onclick="setLanguage('kk')" class="px-2 py-0.5 rounded-full font-bold transition-all text-slate-400 hover:text-white">ҚАЗ</button>
+                        <button id="lang-btn-ru" type="button" onclick="setLanguage('ru')" class="px-2 py-0.5 rounded-full font-bold transition-all bg-orange-500 text-slate-950">RU</button>
                     </div>
                     <div id="fast-cache-badge" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[9px] font-mono shadow-sm">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -124,6 +124,28 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     </div>
                     <div class="text-[10px] text-slate-400 bg-slate-800/80 border border-slate-700/50 px-2.5 py-1 rounded-full font-mono" id="portal-fob-id">
                         ID: #77A91
+                    </div>
+                </div>
+            </div>
+
+            <!-- GLOBAL STO OFFICIAL ANNOUNCEMENT BANNER (Beautiful Purple Box) -->
+            <div id="sto-announcement-card" class="hidden rounded-2xl p-4 sm:p-5 text-white shadow-2xl transition-all relative overflow-hidden bg-gradient-to-r from-purple-950 via-[#2d124d] to-indigo-950 border border-purple-500/60 shadow-purple-950/50 my-2">
+                <div class="absolute -right-8 -bottom-8 w-28 h-28 bg-purple-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="relative z-10">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center text-purple-200 shrink-0 shadow-lg shadow-purple-900/40">
+                                <span class="text-base leading-none">📢</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider text-purple-200 bg-purple-900/90 border border-purple-400/40 px-2 py-0.5 rounded shadow-sm" id="sto-announcement-badge">Объявление СТО</span>
+                                <h4 class="text-xs sm:text-sm font-bold text-white mt-0.5 leading-tight" id="sto-announcement-station">Важное уведомление</h4>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeStoAnnouncementBanner()" class="text-purple-300 hover:text-white transition-colors p-1 text-sm leading-none bg-purple-900/40 hover:bg-purple-800/60 rounded-lg border border-purple-500/30" title="Скрыть объявление">✕</button>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-purple-500/30">
+                        <p class="text-xs sm:text-sm text-purple-100 font-medium leading-relaxed whitespace-pre-wrap" id="sto-announcement-text"></p>
                     </div>
                 </div>
             </div>
@@ -216,25 +238,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         <span class="bg-[#0D1E3A] text-blue-400 px-2 py-0.5 rounded border border-blue-900/40 font-bold" id="car-license-plate">KZ 777 MOB 01</span>
                         <span class="bg-amber-950/60 text-amber-300 px-2 py-0.5 rounded border border-amber-800/50 flex items-center gap-1 font-bold" id="car-sto-badge">🏢 NFC SERVIS Center</span>
                         <span id="car-last-service">• Последнее ТО: —</span>
-                    </div>
-                </div>
-
-                <!-- STO OFFICIAL ANNOUNCEMENT BANNER (e.g. Relocation, Notice, Promo) -->
-                <div id="sto-announcement-card" class="hidden rounded-2xl p-4 sm:p-5 border text-white shadow-xl transition-all relative overflow-hidden bg-gradient-to-r from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-blue-500/40">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0 shadow-inner">
-                                <span class="text-base leading-none">📢</span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-blue-300 bg-blue-950/80 border border-blue-500/40 px-2 py-0.5 rounded" id="sto-announcement-badge" data-i18n="announcementBadge">Объявление СТО</span>
-                                <h4 class="text-xs sm:text-sm font-bold text-white mt-0.5 leading-tight" id="sto-announcement-station">СТО</h4>
-                            </div>
-                        </div>
-                        <button type="button" onclick="closeStoAnnouncementBanner()" class="text-slate-400 hover:text-white transition-colors p-1 text-sm leading-none" title="Скрыть объявление">✕</button>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-slate-800/80">
-                        <p class="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap" id="sto-announcement-text"></p>
                     </div>
                 </div>
 
@@ -1724,59 +1727,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
-        // Dynamic Supabase Banner Loader for Client Portal (controlled via Supabase is_active)
+        // Dynamic Supabase Banner Loader for Client Portal (partner banner hidden per user preference)
         async function loadClientBannerFromSupabase() {
             const bannerCard = document.getElementById('partner-insurance-banner');
-            if (!bannerCard) return;
-
-            const client = getSupabaseClient();
-            if (!client) {
-                bannerCard.classList.add('hidden');
-                return;
-            }
-
-            try {
-                const { data: banners, error } = await client
-                    .from('banners')
-                    .select('*')
-                    .eq('target', 'client')
-                    .eq('is_active', true)
-                    .order('sort_order', { ascending: true })
-                    .limit(1);
-
-                if (error || !banners || banners.length === 0) {
-                    bannerCard.classList.add('hidden');
-                    return;
-                }
-
-                const banner = banners[0];
-
-                if (banner.title) {
-                    const titleEl = document.getElementById('insurance-banner-title');
-                    if (titleEl) titleEl.innerText = banner.title;
-                }
-                if (banner.description) {
-                    const descEl = document.getElementById('insurance-banner-desc');
-                    if (descEl) descEl.innerText = banner.description;
-                }
-                if (banner.button_text) {
-                    const btnTextEl = document.getElementById('insurance-btn-text');
-                    if (btnTextEl) btnTextEl.innerText = banner.button_text;
-                }
-                if (banner.action_url) {
-                    const btnEl = document.getElementById('insurance-action-btn');
-                    if (btnEl) btnEl.href = banner.action_url;
-                }
-
-                // Show banner only when active banner exists in Supabase
-                bannerCard.classList.remove('hidden');
-            } catch (err) {
-                console.warn('Banner fetch error:', err);
+            if (bannerCard) {
+                // Keep partner banner hidden; user requested only STO announcements from banners table
                 bannerCard.classList.add('hidden');
             }
         }
 
-        // Load station-specific announcement (relocation, notices, custom text)
+        // Load global STO announcement (relocation, notices, custom text) from 'banners' table
         async function loadStoAnnouncement(carData) {
             const card = document.getElementById('sto-announcement-card');
             const stationEl = document.getElementById('sto-announcement-station');
@@ -1784,37 +1744,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (!card || !textEl) return;
 
             const stationName = (carData && (carData.stationName || carData.station_name)) || '';
-            const stationFob = (carData && (carData.stoFobId || carData.sto_fob_id || carData.station_chip)) || '';
 
             let foundAnnouncement = null;
 
-            // 1. Try fetching from Supabase 'banners' table (filtered by station or target)
+            // 1. Try fetching from Supabase 'banners' table
             const client = getSupabaseClient();
             if (client) {
                 try {
                     const { data: list, error } = await client
                         .from('banners')
-                        .select('*')
-                        .eq('is_active', true)
-                        .in('target', ['sto_announcement', 'sto_announcement_all'])
-                        .order('updated_at', { ascending: false });
+                        .select('id, target, title, description, is_active')
+                        .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
+                        .limit(5);
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        for (const b of list) {
-                            if (b.target === 'sto_announcement_all') {
-                                foundAnnouncement = b;
-                                break;
-                            }
-                            const bStation = (b.station_name || '').trim().toLowerCase();
-                            const curStation = stationName.trim().toLowerCase();
-                            const bChip = (b.sto_fob_id || '').trim().toLowerCase();
-                            const curChip = stationFob.trim().toLowerCase();
-
-                            if ((bStation && curStation && (bStation === curStation || curStation.includes(bStation) || bStation.includes(curStation))) ||
-                                (bChip && curChip && bChip === curChip)) {
-                                foundAnnouncement = b;
-                                break;
-                            }
+                        const activeRow = list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1);
+                        if (activeRow) {
+                            foundAnnouncement = activeRow;
+                        } else {
+                            foundAnnouncement = list[0];
                         }
                     }
                 } catch (e) {
@@ -1822,43 +1770,37 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Fallback to localStorage cache / offline announcement registry
+            // 2. Fallback to localStorage cache / offline announcement
             if (!foundAnnouncement) {
                 try {
-                    const raw = localStorage.getItem('sto_announcements_registry');
+                    const raw = localStorage.getItem('sto_current_announcement') || localStorage.getItem('sto_announcements_registry');
                     if (raw) {
-                        const registry = JSON.parse(raw);
-                        if (Array.isArray(registry)) {
-                            const curStation = stationName.trim().toLowerCase();
-                            const curChip = stationFob.trim().toLowerCase();
-                            const match = registry.find(a => {
-                                if (!a.is_active) return false;
-                                const aStation = (a.station_name || '').trim().toLowerCase();
-                                const aChip = (a.sto_fob_id || '').trim().toLowerCase();
-                                if (aStation && curStation && (aStation === curStation || curStation.includes(aStation) || aStation.includes(curStation))) return true;
-                                if (aChip && curChip && aChip === curChip) return true;
-                                if (a.target === 'sto_announcement_all') return true;
-                                return false;
-                            });
-                            if (match) {
-                                foundAnnouncement = match;
-                            }
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) {
+                            foundAnnouncement = parsed.find(a => a.is_active) || parsed[0];
+                        } else if (parsed) {
+                            foundAnnouncement = parsed;
                         }
                     }
                 } catch (e) {}
             }
 
-            // 3. Render or hide
-            const announcementText = foundAnnouncement ? (foundAnnouncement.description || foundAnnouncement.title || foundAnnouncement.text || '') : '';
-            if (foundAnnouncement && foundAnnouncement.is_active && announcementText.trim()) {
-                if (stationEl) {
-                    stationEl.innerText = foundAnnouncement.station_name || stationName || 'СТО';
+            // 3. Render or hide (if active -> show purple box; if inactive -> hide)
+            if (foundAnnouncement) {
+                const isActive = (foundAnnouncement.is_active === true || foundAnnouncement.is_active === 'true' || foundAnnouncement.is_active === 1);
+                const announcementText = (foundAnnouncement.description || foundAnnouncement.title || foundAnnouncement.text || '').trim();
+
+                if (isActive && announcementText) {
+                    if (stationEl) {
+                        stationEl.innerText = stationName || 'Важное уведомление';
+                    }
+                    textEl.innerText = announcementText;
+                    card.classList.remove('hidden');
+                    return;
                 }
-                textEl.innerText = announcementText.trim();
-                card.classList.remove('hidden');
-            } else {
-                card.classList.add('hidden');
             }
+
+            card.classList.add('hidden');
         }
 
         function closeStoAnnouncementBanner() {
@@ -1940,6 +1882,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         updateFobPicker();
                     });
             }
+
+            // Always load global STO announcement immediately on page load
+            loadStoAnnouncement();
 
             // If scanned a specific NFC FOB parameter -> Load directly without showing plate search prompt!
             if (queryFob) {
