@@ -1754,15 +1754,28 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     const { data: list, error } = await client
                         .from('banners')
                         .select('id, target, title, description, is_active')
-                        .in('target', ['sto_announcement', 'sto_relocation', 'announcement'])
-                        .limit(5);
+                        .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
+                        .order('id', { ascending: false })
+                        .limit(10);
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        const activeRow = list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1);
-                        if (activeRow) {
-                            foundAnnouncement = activeRow;
+                        // Priority 1: explicitly designated announcement row
+                        const annRow = list.find(b => 
+                            (b.target === 'client_announcement' || b.target === 'announcement' || (b.title && b.title.includes('Объявление'))) &&
+                            (b.is_active === true || b.is_active === 'true' || b.is_active === 1)
+                        );
+                        if (annRow) {
+                            foundAnnouncement = annRow;
                         } else {
-                            foundAnnouncement = list[0];
+                            // Priority 2: any row with 'Объявление' in title even if inactive (to read text)
+                            const titleMatch = list.find(b => b.title && b.title.includes('Объявление'));
+                            if (titleMatch) {
+                                foundAnnouncement = titleMatch;
+                            } else {
+                                // Priority 3: first active row
+                                const activeRow = list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1);
+                                foundAnnouncement = activeRow || list[0];
+                            }
                         }
                     }
                 } catch (e) {
