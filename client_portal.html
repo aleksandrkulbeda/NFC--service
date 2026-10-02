@@ -1736,18 +1736,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
-        // Load global STO announcement (relocation, notices, custom text) from 'banners' table
+        // Load station-specific announcement from 'banners' table (strictly isolated for client's servicing station)
         async function loadStoAnnouncement(carData) {
             const card = document.getElementById('sto-announcement-card');
             const stationEl = document.getElementById('sto-announcement-station');
             const textEl = document.getElementById('sto-announcement-text');
             if (!card || !textEl) return;
 
-            const stationName = (carData && (carData.stationName || carData.station_name)) || '';
+            // Determine client's station from car maintenance card
+            const stationName = (carData && (carData.stationName || carData.station_name)) ? String(carData.stationName || carData.station_name).trim() : '';
+
+            // If carData is not loaded yet or station is unknown, do not show random station announcement
+            if (!stationName) {
+                card.classList.add('hidden');
+                return;
+            }
 
             let foundAnnouncement = null;
 
-            // 1. Try fetching from Supabase 'banners' table
+            // 1. Try fetching from Supabase 'banners' table strictly for this client's station
             const client = getSupabaseClient();
             if (client) {
                 try {
@@ -1756,26 +1763,17 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         .select('id, target, title, description, is_active')
                         .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
                         .order('id', { ascending: false })
-                        .limit(10);
+                        .limit(25);
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        // Priority 1: explicitly designated announcement row
-                        const annRow = list.find(b => 
-                            (b.target === 'client_announcement' || b.target === 'announcement' || (b.title && b.title.includes('Объявление'))) &&
-                            (b.is_active === true || b.is_active === 'true' || b.is_active === 1)
+                        const stationTag = `[${stationName}]`;
+                        // Strict isolation: only pick banner belonging to this car's station
+                        const match = list.find(b => 
+                            b.title && (b.title.includes(stationTag) || b.title === `Объявление: ${stationName}` || b.title.includes(stationName))
                         );
-                        if (annRow) {
-                            foundAnnouncement = annRow;
-                        } else {
-                            // Priority 2: any row with 'Объявление' in title even if inactive (to read text)
-                            const titleMatch = list.find(b => b.title && b.title.includes('Объявление'));
-                            if (titleMatch) {
-                                foundAnnouncement = titleMatch;
-                            } else {
-                                // Priority 3: first active row
-                                const activeRow = list.find(b => b.is_active === true || b.is_active === 'true' || b.is_active === 1);
-                                foundAnnouncement = activeRow || list[0];
-                            }
+
+                        if (match) {
+                            foundAnnouncement = match;
                         }
                     }
                 } catch (e) {
@@ -1783,29 +1781,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Fallback to localStorage cache / offline announcement
+            // 2. Fallback to localStorage cache isolated by station
             if (!foundAnnouncement) {
                 try {
-                    const raw = localStorage.getItem('sto_current_announcement') || localStorage.getItem('sto_announcements_registry');
+                    const storageKey = 'sto_announcement_' + encodeURIComponent(stationName);
+                    const raw = localStorage.getItem(storageKey);
                     if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) {
-                            foundAnnouncement = parsed.find(a => a.is_active) || parsed[0];
-                        } else if (parsed) {
-                            foundAnnouncement = parsed;
-                        }
+                        foundAnnouncement = JSON.parse(raw);
                     }
                 } catch (e) {}
             }
 
-            // 3. Render or hide (if active -> show purple box; if inactive -> hide)
+            // 3. Render or hide (strictly if active and matches station)
             if (foundAnnouncement) {
                 const isActive = (foundAnnouncement.is_active === true || foundAnnouncement.is_active === 'true' || foundAnnouncement.is_active === 1);
-                const announcementText = (foundAnnouncement.description || foundAnnouncement.title || foundAnnouncement.text || '').trim();
+                const announcementText = (foundAnnouncement.description || foundAnnouncement.text || '').trim();
 
                 if (isActive && announcementText) {
                     if (stationEl) {
-                        stationEl.innerText = stationName || 'Важное уведомление';
+                        stationEl.innerText = stationName;
                     }
                     textEl.innerText = announcementText;
                     card.classList.remove('hidden');
@@ -1813,6 +1807,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
+            // In all other cases (inactive or no announcement for this station) -> hide completely!
             card.classList.add('hidden');
         }
 
