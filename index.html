@@ -1164,8 +1164,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
             {
                 chipUid: 'STO-CHIP-30003',
                 stationName: 'Mobil 1 Аксукент',
-                stationWhatsapp: '+7 (777) 123-45-67',
-                stationGisUrl: 'https://2gis.kz/shymkent',
+                stationWhatsapp: '+7 (701) 599-11-18',
+                stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022',
                 stationCity: 'Аксукент',
                 pin: '1234'
             },
@@ -1187,12 +1187,33 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         ];
 
+        function normalizeStoKey(str) {
+            return String(str || '')
+                .toLowerCase()
+                .replace(/mobil\s*1/g, 'mobil1')
+                .replace(/[\s\-_]/g, '');
+        }
+
         function getStoChipRegistry() {
             try {
                 const stored = localStorage.getItem('nfc_servis_sto_chip_registry');
                 if (stored) {
                     const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        // Self-heal: ensure Aksukent has the exact verified firm link in cache
+                        parsed.forEach(r => {
+                            const key = normalizeStoKey(r.stationName);
+                            if (key.includes('аксукент') || r.chipUid === 'STO-CHIP-30003') {
+                                if (!r.stationGisUrl || r.stationGisUrl === 'https://2gis.kz/shymkent') {
+                                    r.stationGisUrl = 'https://2gis.kz/shymkent/firm/70000001080559022';
+                                }
+                                if (!r.stationWhatsapp || r.stationWhatsapp === '+7 (777) 123-45-67') {
+                                    r.stationWhatsapp = '+7 (701) 599-11-18';
+                                }
+                            }
+                        });
+                        return parsed;
+                    }
                 }
             } catch(e) {}
             return DEFAULT_STO_CHIP_REGISTRY;
@@ -1241,7 +1262,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
                     // Auto register into registry if not present
                     const registry = getStoChipRegistry();
-                    const existingIdx = registry.findIndex(r => r.chipUid.toLowerCase() === uid.toLowerCase() || r.stationName.toLowerCase() === name.toLowerCase());
+                    const normTarget = normalizeStoKey(name);
+                    const existingIdx = registry.findIndex(r => 
+                        (uid && r.chipUid && r.chipUid.toLowerCase() === uid.toLowerCase()) || 
+                        (normTarget && r.stationName && (normalizeStoKey(r.stationName) === normTarget || normalizeStoKey(r.stationName).includes(normTarget) || normTarget.includes(normalizeStoKey(r.stationName))))
+                    );
+
                     const record = {
                         chipUid: uid,
                         stationName: name,
@@ -1251,7 +1277,10 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         pin: pin
                     };
                     if (existingIdx >= 0) {
-                        registry[existingIdx] = record;
+                        registry[existingIdx].stationName = name;
+                        if (wa) registry[existingIdx].stationWhatsapp = wa;
+                        if (gisUrl) registry[existingIdx].stationGisUrl = gisUrl;
+                        activeStoProfile.stoFobId = registry[existingIdx].chipUid;
                     } else {
                         registry.push(record);
                     }
