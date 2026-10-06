@@ -29,7 +29,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
     </script>
-<script src="/_aistudio-iframe.js?v=2c34bde1"></script></head>
+<script src="/_aistudio-iframe.js?v=6634132a"></script></head>
 <body class="bg-[#040D1D] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-500 selection:text-white">
 
     <!-- HEADER -->
@@ -780,6 +780,18 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     <p class="text-[10px] text-slate-400">Мастер не может произвольно изменять имя СТО и номер — подмена данных сторонними сервисами невозможна.</p>
                 </div>
 
+                <!-- READONLY BOUND 2GIS URL -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Ссылка на 2ГИС СТО (Из Чипа)</label>
+                        <span class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">📍 2ГИС Отзывы</span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="input-sto-gis" readonly placeholder="https://2gis.kz/..." class="w-full bg-slate-950/80 border border-slate-800 text-slate-300 rounded-xl px-3.5 py-2.5 text-xs outline-none cursor-not-allowed font-medium font-mono">
+                    </div>
+                    <p class="text-[10px] text-slate-400">Ссылка для отзывов клиентов в 2ГИС, зашитая в чип данного СТО.</p>
+                </div>
+
                 <!-- 4-DIGIT PIN CODE PROTECTION -->
                 <div class="space-y-1.5 pt-1">
                     <div class="flex items-center justify-between">
@@ -1137,6 +1149,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 chipUid: 'STO-CHIP-88219',
                 stationName: 'NFC SERViS Center - Алматы',
                 stationWhatsapp: '+7 (707) 123-45-67',
+                stationGisUrl: 'https://2gis.kz/almaty',
                 stationCity: 'Алматы',
                 pin: '1234'
             },
@@ -1144,6 +1157,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 chipUid: 'STO-CHIP-10001',
                 stationName: 'Mobil 1 Premium Servis',
                 stationWhatsapp: '+7 (701) 999-88-77',
+                stationGisUrl: 'https://2gis.kz/astana',
                 stationCity: 'Астана',
                 pin: '1234'
             },
@@ -1151,6 +1165,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 chipUid: 'STO-CHIP-30003',
                 stationName: 'Mobil 1 Аксукент',
                 stationWhatsapp: '+7 (777) 123-45-67',
+                stationGisUrl: 'https://2gis.kz/shymkent',
                 stationCity: 'Аксукент',
                 pin: '1234'
             },
@@ -1158,6 +1173,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 chipUid: 'STO-CHIP-30004',
                 stationName: 'Mobil Шымкент',
                 stationWhatsapp: '+7 (777) 888-99-00',
+                stationGisUrl: 'https://2gis.kz/shymkent',
                 stationCity: 'Шымкент',
                 pin: '1234'
             },
@@ -1165,6 +1181,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 chipUid: 'STO-CHIP-20002',
                 stationName: 'Автосервис Эксперт-Авто',
                 stationWhatsapp: '+7 (777) 555-44-33',
+                stationGisUrl: 'https://2gis.kz/shymkent',
                 stationCity: 'Шымкент',
                 pin: '1234'
             }
@@ -1191,6 +1208,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             stoFobId: 'STO-CHIP-88219',
             stationName: 'NFC SERViS Center - Алматы',
             stationWhatsapp: '+7 (707) 123-45-67',
+            stationGisUrl: 'https://2gis.kz/almaty',
             pinCode: '1234'
         };
 
@@ -1199,15 +1217,17 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const params = new URLSearchParams(window.location.search);
                 const rawStoName = params.get('station_name') || params.get('sto') || params.get('sto_name') || params.get('station') || params.get('name');
                 const rawStoWa = params.get('station_phone') || params.get('wa') || params.get('whatsapp') || params.get('phone');
+                const rawGis = params.get('gis') || params.get('2gis') || params.get('gis_url') || params.get('map');
                 const chipUid = params.get('chip') || params.get('chip_uid') || params.get('fob') || params.get('uid');
                 const pin = params.get('pin') || params.get('p') || '1234';
 
-                if (rawStoName || rawStoWa || chipUid) {
+                if (rawStoName || rawStoWa || chipUid || rawGis) {
                     const name = rawStoName ? decodeURIComponent(rawStoName).replace(/_/g, ' ') : 'NFC SERViS СТО';
                     let wa = rawStoWa ? decodeURIComponent(rawStoWa) : '+7 (707) 123-45-67';
                     if (wa && !wa.startsWith('+')) {
                         wa = '+' + wa.replace(/\D/g, '');
                     }
+                    const gisUrl = rawGis ? decodeURIComponent(rawGis) : '';
                     const uid = chipUid || ('STO-CHIP-' + Math.abs(name.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0) % 90000 + 10000));
 
                     // Update active profile
@@ -1215,6 +1235,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         stoFobId: uid,
                         stationName: name,
                         stationWhatsapp: wa,
+                        stationGisUrl: gisUrl,
                         pinCode: pin
                     };
 
@@ -1225,6 +1246,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         chipUid: uid,
                         stationName: name,
                         stationWhatsapp: wa,
+                        stationGisUrl: gisUrl,
                         stationCity: 'Чип-Ссылка',
                         pin: pin
                     };
@@ -1311,6 +1333,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const bannerEl = document.getElementById('sto-chip-status-banner');
             const nameIn = document.getElementById('input-sto-name');
             const waIn = document.getElementById('input-sto-whatsapp');
+            const gisIn = document.getElementById('input-sto-gis');
             const loginBtn = document.getElementById('sto-login-btn');
             const pinErr = document.getElementById('sto-pin-error');
             if (pinErr) pinErr.classList.add('hidden');
@@ -1323,18 +1346,25 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 activeStoProfile.stoFobId = match.chipUid;
                 activeStoProfile.stationName = match.stationName;
                 activeStoProfile.stationWhatsapp = match.stationWhatsapp;
+                activeStoProfile.stationGisUrl = match.stationGisUrl || '';
                 activeStoProfile.pinCode = match.pin || '1234';
 
                 if (nameIn) nameIn.value = match.stationName;
                 if (waIn) waIn.value = match.stationWhatsapp;
+                if (gisIn) gisIn.value = match.stationGisUrl || '—';
 
                 if (bannerEl) {
                     bannerEl.innerHTML = `
                         <div class="bg-emerald-950/80 border border-emerald-500/40 p-3 rounded-xl flex items-start space-x-3 text-xs">
                             <div class="text-emerald-400 text-lg">✅</div>
-                            <div class="space-y-0.5">
+                            <div class="space-y-1">
                                 <span class="font-bold text-emerald-300 block">ЧИП ВЕРИФИЦИРОВАН В РЕЕСТРЕ</span>
-                                <p class="text-emerald-100/80 text-[11px]">Брелок привязан к <b>${match.stationName}</b>. Для входа введите 4-значный ПИН-код (по умолчанию 1234).</p>
+                                <p class="text-emerald-100/90 text-[11px] leading-relaxed">
+                                    Брелок привязан к <b>${match.stationName}</b>.<br>
+                                    <span class="text-slate-300">📱 WhatsApp:</span> <b>${match.stationWhatsapp}</b><br>
+                                    <span class="text-emerald-300">📍 Ссылка 2ГИС:</span> <b>${match.stationGisUrl || 'Не указана'}</b>
+                                </p>
+                                <p class="text-slate-400 text-[10px]">Для входа введите 4-значный ПИН-код (по умолчанию 1234).</p>
                             </div>
                         </div>
                     `;
@@ -1347,6 +1377,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 // UNREGISTERED REJECTED CHIP
                 if (nameIn) nameIn.value = '';
                 if (waIn) waIn.value = '';
+                if (gisIn) gisIn.value = '';
 
                 if (bannerEl) {
                     bannerEl.innerHTML = `
@@ -2810,12 +2841,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
+            if (!activeStoProfile.stationGisUrl && activeStoProfile.stationName) {
+                const regItem = getStoChipRegistry().find(r => (r.stationName && r.stationName.toLowerCase() === activeStoProfile.stationName.toLowerCase()) || (r.chipUid && r.chipUid.toLowerCase() === (activeStoProfile.stoFobId || '').toLowerCase()));
+                if (regItem && regItem.stationGisUrl) {
+                    activeStoProfile.stationGisUrl = regItem.stationGisUrl;
+                }
+            }
+
             const currentHistoryEntry = {
                 id: 'hist_' + Date.now(),
                 timestamp: formattedDate,
                 mileageUnit: currentUnit,
+                stoFobId: activeStoProfile.stoFobId || '',
                 stationName: activeStoProfile.stationName || 'NFC SERViS Center',
                 stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (707) 123-45-67',
+                stationGisUrl: activeStoProfile.stationGisUrl || '',
                 // Engine (DVS): store strictly what was entered in current service visit
                 mileageOilDvs: post.formData.mileageOilDvs || '',
                 nextOilDvs: post.formData.nextOilDvs || '',
@@ -2890,9 +2930,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const record = {
                 ...ex,
                 fobId: post.fobId,
+                stoFobId: activeStoProfile.stoFobId || ex.stoFobId || '',
                 mileageUnit: currentUnit || ex.mileageUnit || 'км',
                 stationName: activeStoProfile.stationName || ex.stationName || 'NFC SERViS Center',
                 stationWhatsapp: activeStoProfile.stationWhatsapp || ex.stationWhatsapp || '+7 (707) 123-45-67',
+                stationGisUrl: activeStoProfile.stationGisUrl || ex.stationGisUrl || '',
                 carBrand: post.carBrand || ex.carBrand || '',
                 carModel: post.carModel || ex.carModel || '',
                 carYear: post.carYear || state.carYear || ex.carYear || '',
