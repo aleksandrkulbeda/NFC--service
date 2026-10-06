@@ -779,6 +779,13 @@ window.$RefreshSig$ = () => (type) => type;</script>
             return String(plate || '').toUpperCase().replace(/[\s\-_#]/g, '').replace(/^KZ/, '');
         }
 
+        function normalizeStoKey(str) {
+            return String(str || '')
+                .toLowerCase()
+                .replace(/mobil\s*1/g, 'mobil1')
+                .replace(/[\s\-_]/g, '');
+        }
+
         // STO Registry lookup helper for strict isolation
         function getStoFromRegistry(stationName, stoFobId) {
             let registry = [];
@@ -806,8 +813,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     {
                         chipUid: 'STO-CHIP-30003',
                         stationName: 'Mobil 1 Аксукент',
-                        stationWhatsapp: '+7 (777) 123-45-67',
-                        stationGisUrl: 'https://2gis.kz/shymkent'
+                        stationWhatsapp: '+7 (701) 599-11-18',
+                        stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022'
                     },
                     {
                         chipUid: 'STO-CHIP-30004',
@@ -822,13 +829,31 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         stationGisUrl: 'https://2gis.kz/shymkent'
                     }
                 ];
+            } else {
+                // Self-heal: ensure Aksukent has the exact verified firm link in cache
+                registry.forEach(r => {
+                    const key = normalizeStoKey(r.stationName);
+                    if (key.includes('аксукент') || r.chipUid === 'STO-CHIP-30003') {
+                        if (!r.stationGisUrl || r.stationGisUrl === 'https://2gis.kz/shymkent') {
+                            r.stationGisUrl = 'https://2gis.kz/shymkent/firm/70000001080559022';
+                        }
+                        if (!r.stationWhatsapp || r.stationWhatsapp === '+7 (777) 123-45-67') {
+                            r.stationWhatsapp = '+7 (701) 599-11-18';
+                        }
+                    }
+                });
             }
-            const cleanName = String(stationName || '').trim().toLowerCase();
+            const cleanName = String(stationName || '').trim();
             const cleanFob = String(stoFobId || '').trim().toLowerCase();
+            const normTarget = normalizeStoKey(cleanName);
+
             return registry.find(item => {
                 if (cleanFob && item.chipUid && item.chipUid.toLowerCase() === cleanFob) return true;
-                if (cleanName && item.stationName && item.stationName.toLowerCase() === cleanName) return true;
-                if (cleanName && item.stationName && (item.stationName.toLowerCase().includes(cleanName) || cleanName.includes(item.stationName.toLowerCase()))) return true;
+                if (normTarget && item.stationName) {
+                    const normItem = normalizeStoKey(item.stationName);
+                    if (normItem === normTarget) return true;
+                    if (normItem.includes(normTarget) || normTarget.includes(normItem)) return true;
+                }
                 return false;
             });
         }
@@ -1420,11 +1445,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 // 1. First priority: Check 2GIS URL directly bound to this vehicle record or history
                 let gisUrl = (data.stationGisUrl || '').trim();
 
-                // 2. Second priority: If absent in car record, check if this car's specific STO has a registered 2GIS link
-                if (!gisUrl && data.stationName) {
+                // Check if current URL is merely a generic city link (lacks /firm/, /branches/, or go.2gis.com)
+                const isGenericCity = !gisUrl || (!gisUrl.includes('/firm/') && !gisUrl.includes('go.2gis.com') && !gisUrl.includes('/branches/'));
+
+                // 2. If absent or only a generic city link, upgrade with verified firm link for this specific STO
+                if ((!gisUrl || isGenericCity) && (data.stationName || data.stoFobId)) {
                     const stoInfo = getStoFromRegistry(data.stationName, data.stoFobId);
                     if (stoInfo && stoInfo.stationGisUrl) {
-                        gisUrl = stoInfo.stationGisUrl.trim();
+                        if (!gisUrl || (isGenericCity && (stoInfo.stationGisUrl.includes('/firm/') || stoInfo.stationGisUrl.includes('go.2gis.com')))) {
+                            gisUrl = stoInfo.stationGisUrl.trim();
+                        }
                     }
                 }
 
