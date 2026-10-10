@@ -2304,37 +2304,130 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const textEl = document.getElementById('sto-announcement-text');
             if (!card || !textEl) return;
 
+            if (carData) {
+                window._currentClientCarData = carData;
+            } else {
+                carData = window._currentClientCarData;
+            }
+
             // Determine client's station from car maintenance card
             const stationName = (carData && (carData.stationName || carData.station_name)) ? String(carData.stationName || carData.station_name).trim() : '';
+            const stationId = (carData && (carData.station_id || carData.stationId)) ? String(carData.station_id || carData.stationId).trim() : '';
 
             // If carData is not loaded yet or station is unknown, do not show random station announcement
-            if (!stationName) {
+            if (!stationName && !stationId) {
                 card.classList.add('hidden');
+                textEl.innerText = '';
                 return;
             }
 
-            let foundAnnouncement = null;
+            const normStation = normalizeStoKey(stationName);
+            const normId = normalizeStoKey(stationId);
 
-            // 1. Try fetching from Supabase 'banners' table strictly for this client's station
+            // 1. Check local cache first: if station explicitly disabled announcement in local storage, do not show!
+            const localKeysToCheck = [
+                'sto_announcement_' + encodeURIComponent(stationName),
+                'sto_announcement_' + encodeURIComponent(normStation),
+                stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
+                'sto_announcement_aksukent'
+            ].filter(Boolean);
+
+            let localExplicitlyDisabled = false;
+            for (const lk of localKeysToCheck) {
+                try {
+                    const raw = localStorage.getItem(lk);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && (parsed.is_active === false || parsed.is_active === 'false' || parsed.is_active === 0)) {
+                            localExplicitlyDisabled = true;
+                            break;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 2. Try fetching from Supabase 'banners' table strictly for this client's station
             const client = getSupabaseClient();
+            let supabaseResponded = false;
+
             if (client) {
                 try {
-                    const { data: list, error } = await client
+                    let { data: list, error } = await client
                         .from('banners')
-                        .select('id, target, title, description, is_active')
-                        .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
+                        .select('id, target, title, description, is_active, updated_at, created_at')
                         .order('id', { ascending: false })
-                        .limit(25);
+                        .limit(50);
 
-                    if (!error && Array.isArray(list) && list.length > 0) {
-                        const stationTag = `[${stationName}]`;
-                        // Strict isolation: only pick banner belonging to this car's station
-                        const match = list.find(b => 
-                            b.title && (b.title.includes(stationTag) || b.title === `Объявление: ${stationName}` || b.title.includes(stationName))
-                        );
+                    if ((error || !list) && client) {
+                        const fallbackRes = await client.from('banners').select('*').limit(50);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            list = fallbackRes.data;
+                            error = null;
+                        }
+                    }
 
-                        if (match) {
-                            foundAnnouncement = match;
+                    if (!error && Array.isArray(list)) {
+                        supabaseResponded = true;
+
+                        // Find ALL announcement rows matching this car's station
+                        const stationBanners = list.filter(b => {
+                            if (!b.title && !b.description) return false;
+                            const t = String(b.title || '');
+                            const normTitle = normalizeStoKey(t);
+                            return (
+                                t.includes(`[${stationName}]`) ||
+                                (normStation && normTitle.includes(normStation)) ||
+                                (normStation && normStation.includes(normTitle)) ||
+                                (normId && normTitle.includes(normId)) ||
+                                (normId && normId.includes(normTitle)) ||
+                                (stationName && t.includes(stationName)) ||
+                                (normStation.includes('aksukent') && normTitle.includes('aksukent'))
+                            );
+                        });
+
+                        if (stationBanners.length > 0) {
+                            // Sort chronologically: newest update first
+                            stationBanners.sort((a, b) => {
+                                const timeA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
+                                const timeB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
+                                if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+                                const numA = Number(a.id);
+                                const numB = Number(b.id);
+                                if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numB - numA;
+                                return String(b.id || '').localeCompare(String(a.id || ''));
+                            });
+
+                            const latest = stationBanners[0];
+                            const isLatestActive = (latest.is_active === true || latest.is_active === 'true' || latest.is_active === 1);
+                            const announcementText = (latest.description || latest.text || '').trim();
+
+                            // 🛑 CRITICAL CHECK: If station disabled the announcement or text is empty or local state is disabled, STRICTLY HIDE!
+                            if (!isLatestActive || !announcementText || localExplicitlyDisabled) {
+                                card.classList.add('hidden');
+                                textEl.innerText = '';
+                                return;
+                            }
+
+                            // Also verify there is at least one active row
+                            const hasAnyActive = stationBanners.some(b => (b.is_active === true || b.is_active === 'true' || b.is_active === 1) && (b.description || '').trim());
+                            if (!hasAnyActive) {
+                                card.classList.add('hidden');
+                                textEl.innerText = '';
+                                return;
+                            }
+
+                            // ✅ Valid active announcement for this station
+                            if (stationEl) {
+                                stationEl.innerText = stationName || 'СТО';
+                            }
+                            textEl.innerText = announcementText;
+                            card.classList.remove('hidden');
+                            return;
+                        } else {
+                            // Supabase is online and answered, but no announcement exists for this station.
+                            card.classList.add('hidden');
+                            textEl.innerText = '';
+                            return;
                         }
                     }
                 } catch (e) {
@@ -2342,40 +2435,47 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Fallback to localStorage cache isolated by station
-            if (!foundAnnouncement) {
+            // 3. Fallback to localStorage ONLY if Supabase was completely unreachable (network offline)
+            if (!supabaseResponded && !localExplicitlyDisabled) {
                 try {
-                    const storageKey = 'sto_announcement_' + encodeURIComponent(stationName);
-                    const raw = localStorage.getItem(storageKey);
-                    if (raw) {
-                        foundAnnouncement = JSON.parse(raw);
+                    for (const lk of localKeysToCheck) {
+                        const raw = localStorage.getItem(lk);
+                        if (raw) {
+                            const cached = JSON.parse(raw);
+                            const isCachedActive = (cached.is_active === true || cached.is_active === 'true' || cached.is_active === 1);
+                            const cachedText = (cached.description || cached.text || '').trim();
+                            if (isCachedActive && cachedText) {
+                                if (stationEl) stationEl.innerText = stationName || 'СТО';
+                                textEl.innerText = cachedText;
+                                card.classList.remove('hidden');
+                                return;
+                            }
+                        }
                     }
                 } catch (e) {}
             }
 
-            // 3. Render or hide (strictly if active and matches station)
-            if (foundAnnouncement) {
-                const isActive = (foundAnnouncement.is_active === true || foundAnnouncement.is_active === 'true' || foundAnnouncement.is_active === 1);
-                const announcementText = (foundAnnouncement.description || foundAnnouncement.text || '').trim();
-
-                if (isActive && announcementText) {
-                    if (stationEl) {
-                        stationEl.innerText = stationName;
-                    }
-                    textEl.innerText = announcementText;
-                    card.classList.remove('hidden');
-                    return;
-                }
-            }
-
-            // In all other cases (inactive or no announcement for this station) -> hide completely!
+            // In all other cases (inactive, disabled or no announcement for this station) -> hide completely!
             card.classList.add('hidden');
+            textEl.innerText = '';
         }
 
         function closeStoAnnouncementBanner() {
             const card = document.getElementById('sto-announcement-card');
             if (card) card.classList.add('hidden');
         }
+
+        // Real-time synchronization: listen for STO terminal publishing/disabling announcements
+        window.addEventListener('storage', (e) => {
+            if (e.key && (e.key.startsWith('sto_announcement') || e.key === 'sto_announcement_event')) {
+                loadStoAnnouncement(window._currentClientCarData);
+            }
+        });
+        window.addEventListener('message', (e) => {
+            if (e.data && (e.data.type === 'STO_ANNOUNCEMENT_DISABLED' || e.data.type === 'STO_ANNOUNCEMENT_UPDATED')) {
+                loadStoAnnouncement(window._currentClientCarData);
+            }
+        });
 
         // Save record to local storage cache for instant offline sub-50ms loads
         function saveCarToLocalStorage(car) {
