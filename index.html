@@ -70,8 +70,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 <!-- STO Station Profile / Auth Button -->
                 <button onclick="openStoAuthModal()" id="header-sto-btn" title="Профиль СТО и авторизация по брелку СТО" class="bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 hover:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span id="header-sto-name">СТО: NFC SERViS Center</span>
+                    <span id="header-sto-name">СТО: Mobil 1 Сервис Аксукент</span>
                     <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono hidden sm:inline">🔑 Чип СТО</span>
+                </button>
+
+
+                <!-- Blocked STO Chips Management Button (Anti-theft & Anti-tampering Protection for Stations) -->
+                <button onclick="openBlockedStoChipsModal()" id="header-blocked-chips-btn" title="Реестр и блокировка служебных чипов СТО (Защита от кражи и подделки данных злоумышленниками)" class="bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer">
+                    <span class="text-sm">🛡️</span>
+                    <span class="hidden md:inline">Блокировка чипов СТО</span>
+                    <span id="header-blocked-count-badge" class="bg-rose-500/30 text-rose-300 text-[10px] px-1.5 py-0.2 rounded font-mono font-bold">0</span>
                 </button>
 
                 <!-- Announcement Management Button -->
@@ -382,6 +390,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animation-pulse"></div>
                         <span class="text-xs text-slate-300 font-mono" id="summary-car-info">Авто не определено</span>
                     </div>
+                    <button type="button" onclick="openBlockedStoChipsModal()" id="diag-sto-security-btn" title="Проверить статус защиты и блокировки чипа СТО" class="text-slate-300 hover:text-white transition-colors text-xs flex items-center space-x-1.5 py-2 px-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl cursor-pointer">
+                        <span>🛡️ Чип СТО: Защита</span>
+                    </button>
                     <button type="button" onclick="goToScreen2()" class="text-slate-400 hover:text-white transition-colors text-xs flex items-center space-x-1 py-2 px-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"></path></svg>
                         <span>Назад к чипу</span>
@@ -717,6 +728,76 @@ window.$RefreshSig$ = () => (type) => type;</script>
         </div>
     </footer>
 
+    <!-- STO TERMINAL HARDWARE LOCK SCREEN (ANTI-LINK-COPYING & HARDWARE CHIP PROTECTION) -->
+    <div id="sto-terminal-lock-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-all hidden">
+        <div class="bg-slate-900/95 border-2 border-orange-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6 text-center">
+            
+            <!-- Lock Screen Header & Shield Icon -->
+            <div class="space-y-3">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-orange-500/15 border border-orange-500/40 flex items-center justify-center text-orange-400 text-3xl shadow-xl shadow-orange-500/20">
+                    🛡️
+                </div>
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
+                        <span>ТЕРМИНАЛ СТО ЗАБЛОКИРОВАН</span>
+                    </h2>
+                    <p class="text-xs text-orange-300 font-mono mt-1">Требуется аппаратная авторизация станции</p>
+                </div>
+                <div class="bg-slate-950/80 border border-slate-800 p-3 rounded-xl text-left text-xs text-slate-300 space-y-1">
+                    <p class="text-[11px] text-slate-300">
+                        🔒 <b>Защита от копирования ссылки:</b> Доступ к сервисным картам и базе клиентов открывается только после подтверждения служебного NFC-чипа СТО и ввода мастер-PIN на этом устройстве.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Hardware NFC Reader / Chip Selection Form -->
+            <form onsubmit="event.preventDefault(); handleTerminalUnlockSubmit();" class="space-y-4 text-left">
+                <!-- Chip identification -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Служебный чип СТО / Станция</label>
+                    <div class="flex gap-2">
+                        <select id="lock-screen-chip-select" onchange="onLockScreenChipChange(this.value)" class="flex-1 bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 outline-none cursor-pointer focus:border-orange-500">
+                            <!-- Populated dynamically with registered STO chips -->
+                        </select>
+                        <button type="button" onclick="scanStoNfcForLockScreen()" title="Приложить аппаратный чип к считывателю" class="bg-orange-600 hover:bg-orange-500 text-white px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer">
+                            <span>📱</span>
+                            <span class="hidden sm:inline">NFC</span>
+                        </button>
+                    </div>
+                    <div id="lock-screen-chip-info" class="text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                        <span class="font-mono text-orange-300 font-bold" id="lock-screen-chip-uid">STO-CHIP-30003</span>
+                        <span class="mx-1">•</span>
+                        <span id="lock-screen-station-name">Mobil 1 Сервис Аксукент</span>
+                    </div>
+                </div>
+
+                <!-- 4-digit Master PIN -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-orange-400 uppercase tracking-wider">Мастер-PIN станции (4 цифры)</label>
+                        <span class="text-[10px] text-slate-400 font-mono">по умолч. 1234</span>
+                    </div>
+                    <input type="password" maxlength="4" id="lock-screen-pin-input" placeholder="••••" autocomplete="off" class="w-full bg-slate-950 border-2 border-orange-500/60 text-orange-400 font-mono font-black text-2xl tracking-[0.5em] text-center rounded-xl py-3 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/20">
+                </div>
+
+                <!-- Error Display -->
+                <div id="lock-screen-error" class="hidden text-xs text-rose-300 bg-rose-950/80 border border-rose-500/60 p-2.5 rounded-xl text-center font-semibold">
+                    ❌ Неверный мастер-PIN!
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="lock-screen-unlock-btn" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-xl shadow-orange-900/40 cursor-pointer active:scale-[0.99] flex items-center justify-center space-x-2">
+                    <span>🔓</span>
+                    <span>Разблокировать терминал СТО</span>
+                </button>
+            </form>
+
+            <div class="text-[10px] text-slate-400 font-mono">
+                Сессия привязана к текущей вкладке браузера и аппаратному чипу СТО
+            </div>
+        </div>
+    </div>
+
     <!-- STO AUTHENTICATION & SECURE CHIP BINDING MODAL -->
     <div id="sto-auth-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-mobilSlate border border-slate-700/80 rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 max-h-[92vh] overflow-y-auto">
@@ -747,6 +828,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         <button type="button" onclick="scanStoAdminNfc()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold py-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                             <span>📱 Приложить чип СТО (NFC)</span>
                         </button>
+                    </div>
+
+                    <div class="pt-1.5 space-y-1">
+                        <label class="block text-[11px] font-semibold text-slate-400">Или выберите зарегистрированный чип СТО из базы:</label>
+                        <select id="sto-chip-select" onchange="onStoChipSelectChange(this.value)" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer">
+                        </select>
                     </div>
                 </div>
 
@@ -957,6 +1044,322 @@ window.$RefreshSig$ = () => (type) => type;</script>
         </div>
     </div>
 
+    <!-- BLOCKED STO CHIPS MANAGEMENT MODAL (ANTI-THEFT & DATA INTEGRITY PROTECTION) -->
+    <div id="blocked-sto-chips-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="max-w-2xl w-full bg-[#0B1528] border-2 border-rose-500/50 rounded-3xl p-5 sm:p-7 shadow-2xl relative space-y-5 text-slate-100 max-h-[92vh] overflow-y-auto">
+            <button type="button" onclick="closeBlockedStoChipsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">&times;</button>
+
+            <!-- Header -->
+            <div class="flex items-center space-x-3.5 border-b border-rose-500/30 pb-4">
+                <div class="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-2xl font-bold shrink-0 shadow-lg shadow-rose-950/40">
+                    🛡️
+                </div>
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-rose-400 font-black bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">БЕЗОПАСНОСТЬ СТО • ЗАЩИТА ОТ ВЗЛОМА</span>
+                    <h3 class="text-lg font-black text-white mt-0.5">Блокировка чипов СТО (Защита от изменения данных)</h3>
+                    <p class="text-xs text-slate-400">Блокировка служебных чипов мастеров при краже или утере для предотвращения искажения записей злоумышленниками</p>
+                </div>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex gap-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs">
+                <button type="button" id="tab-btn-sto-block-new" onclick="switchBlockedStoChipsTab('new')" class="flex-1 py-2 px-3 rounded-lg font-bold transition-all bg-rose-600 text-white shadow cursor-pointer">
+                    🚫 Заблокировать чип СТО
+                </button>
+                <button type="button" id="tab-btn-sto-block-list" onclick="switchBlockedStoChipsTab('list')" class="flex-1 py-2 px-3 rounded-lg font-bold transition-all text-slate-400 hover:text-white cursor-pointer">
+                    📋 Реестр чипов СТО (<span id="modal-sto-blocked-count">0</span> заблокировано)
+                </button>
+            </div>
+
+            <!-- TAB 1: FORM TO BLOCK AN STO CHIP -->
+            <div id="tab-content-sto-block-new" class="space-y-4">
+                <div class="bg-rose-950/40 border border-rose-800/40 rounded-xl p-3.5 text-xs text-rose-200/90 leading-relaxed space-y-1">
+                    <p class="font-bold text-rose-300 flex items-center gap-1.5">
+                        <span>⚠️ Внимание: Защита от фальсификации данных</span>
+                    </p>
+                    <p class="text-[11px] text-rose-200/80">
+                        Если служебный чип СТО был украден или утерян сотрудником, немедленно заблокируйте его. 
+                        Злоумышленники <b>не смогут авторизоваться</b> под данным сервисом, вносить ложные записи ТО и изменять пробег автомобилей.
+                    </p>
+                </div>
+
+                <form onsubmit="handleBlockStoChipFormSubmit(event)" class="space-y-3.5">
+                    <!-- Quick Select Registered Station -->
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-slate-300">Выберите станцию СТО или чип для блокировки:</label>
+                        <select id="select-block-sto-target" onchange="onSelectBlockStoTargetChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none cursor-pointer focus:border-rose-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Chip UID Input & NFC Scan -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label class="font-bold text-slate-300">UID служебного чипа СТО:</label>
+                            <span class="text-[10px] text-amber-400 font-mono">Аппаратный ключ мастера</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="input-block-sto-chip-uid" required placeholder="Например: STO-CHIP-30003" class="flex-1 bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono font-bold outline-none">
+                            <button type="button" onclick="scanStoNfcToBlockField()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer flex items-center space-x-1">
+                                <span>📱</span>
+                                <span class="hidden sm:inline">NFC Скан</span>
+                            </button>
+                            <button type="button" onclick="useCurrentActiveStoChipToBlock()" class="bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 px-3 py-2.5 rounded-xl text-xs font-bold border border-rose-800/60 cursor-pointer">
+                                Текущий СТО
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reason Selection -->
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-slate-300">Причина блокировки чипа СТО:</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <label class="flex items-center space-x-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="sto-block-reason" value="stolen" checked class="text-rose-600 focus:ring-0">
+                                <div>
+                                    <span class="font-bold text-rose-400 block">🚨 Украден</span>
+                                    <span class="text-[10px] text-slate-400">Кража чипа / угроза взлома</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center space-x-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="sto-block-reason" value="lost" class="text-rose-600 focus:ring-0">
+                                <div>
+                                    <span class="font-bold text-amber-400 block">🟡 Утерян</span>
+                                    <span class="text-[10px] text-slate-400">Потерян сотрудником СТО</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center space-x-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="sto-block-reason" value="compromised" class="text-rose-600 focus:ring-0">
+                                <div>
+                                    <span class="font-bold text-purple-400 block">⚠️ Скомпрометирован</span>
+                                    <span class="text-[10px] text-slate-400">Подозрение на подделку</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Station details -->
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-semibold text-slate-400">Станция СТО:</label>
+                            <input type="text" id="input-block-sto-station-name" readonly placeholder="Название СТО" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-semibold text-slate-400">ФИО ответственного мастера:</label>
+                            <input type="text" id="input-block-sto-master-name" placeholder="Мастер-приемщик" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-500">
+                        </div>
+                    </div>
+
+                    <!-- Note / Details -->
+                    <div class="space-y-1">
+                        <label class="block text-[11px] font-semibold text-slate-400">Примечание / Описание инцидента:</label>
+                        <textarea id="input-block-sto-notes" rows="2" placeholder="Например: Чип СТО похищен из мастерской ночью. Изменение данных немедленно заблокировано." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-rose-500"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-2 flex gap-2">
+                        <button type="button" onclick="closeBlockedStoChipsModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
+                            Отмена
+                        </button>
+                        <button type="submit" class="flex-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-rose-950/40 active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-2">
+                            <span>⛔ Заблокировать чип СТО (Запретить изменение данных)</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 2: LIST OF STO CHIPS & STATUS -->
+            <div id="tab-content-sto-block-list" class="space-y-3 hidden">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Все служебные чипы СТО в системе:</span>
+                    <button type="button" onclick="refreshBlockedStoChipsListUI()" class="text-blue-400 hover:text-blue-300 font-semibold cursor-pointer">🔄 Обновить</button>
+                </div>
+
+                <div id="blocked-sto-chips-list-container" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BLOCKED STO CHIP ALERT MODAL (TRIGGERED ON TAMPER ATTEMPT / SCANNING A BLOCKED STO CHIP) -->
+    <div id="blocked-sto-chip-alert-modal" class="fixed inset-0 bg-black/92 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gradient-to-b from-rose-950/95 via-[#120B15] to-[#0A0E1A] border-2 border-rose-500/80 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 text-slate-100">
+            <button type="button" onclick="closeBlockedStoChipAlertModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">&times;</button>
+
+            <div class="flex items-center space-x-3.5 border-b border-rose-500/30 pb-4">
+                <div class="w-14 h-14 rounded-2xl bg-rose-600/25 border-2 border-rose-500 flex items-center justify-center text-rose-400 text-3xl font-bold shrink-0 shadow-lg shadow-rose-900/50">
+                    🚨
+                </div>
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-rose-300 font-black bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">ТРЕВОГА БЕЗОПАСНОСТИ СТО</span>
+                    <h3 class="text-lg font-black text-white mt-0.5">СЛУЖЕБНЫЙ ЧИП СТО ЗАБЛОКИРОВАН!</h3>
+                </div>
+            </div>
+
+            <!-- Block Details Card -->
+            <div class="bg-slate-950/80 border border-rose-500/40 rounded-2xl p-4 space-y-2.5 text-xs">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">UID чипа СТО:</span>
+                    <span id="alert-sto-blocked-chip-uid" class="font-bold text-rose-300 font-mono text-sm bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/60">STO-CHIP-30003</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">Станция СТО:</span>
+                    <span id="alert-sto-blocked-station" class="font-bold text-white">Mobil 1 Сервис Аксукент</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">Статус / Причина:</span>
+                    <span id="alert-sto-blocked-reason" class="font-bold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/40">🚨 Украден</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">Дата блокировки:</span>
+                    <span id="alert-sto-blocked-date" class="font-mono text-slate-300">08.10.2026 14:30</span>
+                </div>
+                <div id="alert-sto-blocked-notes-box" class="pt-1 text-[11px] text-slate-300 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">Детали инцидента:</span> <span id="alert-sto-blocked-notes">Чип числится украденным. Вход заблокирован.</span>
+                </div>
+            </div>
+
+            <!-- Danger explanation -->
+            <div class="bg-rose-950/70 border border-rose-800/60 rounded-xl p-3.5 text-xs text-rose-100/90 leading-relaxed space-y-1">
+                <p class="font-bold text-rose-300">🔒 Защита от изменения данных активна:</p>
+                <p class="text-[11px] text-rose-100/80">
+                    Любые действия под данным чипом остановлены. Злоумышленники не могут изменить сервисные данные или пробег. Для продолжения работы выпустите новый чип СТО взамен скомпрометированного.
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col sm:flex-row gap-2.5 pt-1">
+                <button type="button" onclick="closeBlockedStoChipAlertModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition-all border border-slate-700 cursor-pointer">
+                    Понятно (Закрыть)
+                </button>
+                <button type="button" onclick="openRebindNewStoChipModalFromAlert()" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-blue-950/40 cursor-pointer flex items-center justify-center space-x-1.5">
+                    <span>🔑 Выпустить новый чип СТО</span>
+                </button>
+                <button type="button" onclick="promptUnblockStoChipFromAlert()" class="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-950/40 cursor-pointer flex items-center justify-center space-x-1.5">
+                    <span>🔓 Разблокировать (ПИН)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REBIND NEW STO CHIP MODAL (REPLACEMENT FOR COMPROMISED / STOLEN STO CHIP) -->
+    <div id="rebind-new-sto-chip-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gradient-to-b from-blue-950/95 to-slate-900 border-2 border-blue-500/60 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 text-slate-100">
+            <button type="button" onclick="closeRebindNewStoChipModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">&times;</button>
+
+            <div class="flex items-center space-x-3.5 border-b border-blue-500/30 pb-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/60 flex items-center justify-center text-blue-400 text-2xl font-bold shrink-0 shadow-lg shadow-blue-900/40">
+                    🔑
+                </div>
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-blue-400 font-black bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">БЕЗОПАСНАЯ ПЕРЕПРИВЯЗКА СТО</span>
+                    <h3 class="text-lg font-black text-white mt-0.5">Выпуск нового чипа СТО взамен украденного</h3>
+                    <p class="text-xs text-slate-400">Старый чип навсегда блокируется в черном списке, а станция получает новый защищенный ключ</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleRebindStoChipSubmit(event)" class="space-y-4 text-xs">
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>Станция СТО:</span>
+                        <strong id="rebind-sto-station-display" class="text-white">Mobil 1 Сервис Аксукент</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-rose-300">
+                        <span>Старый (украденный) чип СТО:</span>
+                        <span id="rebind-sto-old-chip-display" class="font-mono font-bold">STO-CHIP-30003</span>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-300">UID нового чипа СТО:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-new-sto-chip-uid" required placeholder="Например: STO-CHIP-30003-V2" class="flex-1 bg-slate-950 border border-blue-500/60 focus:border-blue-400 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono font-bold outline-none">
+                        <button type="button" onclick="generateRandomNewStoChipUid()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2.5 rounded-xl text-xs cursor-pointer">
+                            Сгенерировать
+                        </button>
+                        <button type="button" onclick="scanNfcToNewStoChipField()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2.5 rounded-xl text-xs cursor-pointer flex items-center space-x-1">
+                            <span>📱</span>
+                            <span>Скан</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 pt-0.5">Приложите новый служебный NFC-чип мастера к телефону/терминалу или нажмите «Сгенерировать».</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-300">Подтвердите мастер-ПИН станции (4 цифры):</label>
+                    <input type="password" maxlength="6" id="input-rebind-sto-pin" required placeholder="ПИН-код (по умолчанию 1234)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-mono font-bold outline-none">
+                </div>
+
+                <div class="bg-blue-950/40 border border-blue-800/40 rounded-xl p-3 text-blue-200/90 leading-relaxed text-[11px] space-y-1">
+                    <div>✓ Украденный старый чип навсегда остается в черном списке — злоумышленники никогда не смогут изменить данные.</div>
+                    <div>✓ Станция СТО мгновенно продолжит работу с новым защищенным чипом.</div>
+                </div>
+
+                <div class="flex gap-2.5 pt-2">
+                    <button type="button" onclick="closeRebindNewStoChipModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
+                        Отмена
+                    </button>
+                    <button type="submit" class="flex-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-950/40 cursor-pointer flex items-center justify-center space-x-1.5">
+                        <span>✓ Выпустить и привязать новый чип СТО</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOREIGN STATION VEHICLE ALERT MODAL (STRICT ISOLATION) -->
+    <div id="foreign-car-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gradient-to-b from-rose-950/95 to-slate-900 border-2 border-rose-500/80 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 text-slate-100">
+            <button type="button" onclick="closeForeignCarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">&times;</button>
+
+            <div class="flex items-center space-x-3.5 border-b border-rose-500/30 pb-4">
+                <div class="w-12 h-12 rounded-2xl bg-rose-600/20 border border-rose-500/60 flex items-center justify-center text-rose-400 text-2xl font-bold shrink-0 shadow-lg shadow-rose-900/40">
+                    ⛔
+                </div>
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-rose-400 font-black bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">ИЗОЛЯЦИЯ КЛИЕНТСКОЙ БАЗЫ</span>
+                    <h3 class="text-lg font-black text-white mt-0.5">Автомобиль другого СТО!</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/80 border border-rose-900/50 rounded-2xl p-4 space-y-2.5">
+                <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">Автомобиль:</span>
+                    <span id="foreign-modal-car" class="font-bold text-white text-sm">Toyota Camry [777 MOB 01]</span>
+                </div>
+                <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
+                    <span class="text-slate-400 font-mono">UID брелка клиента:</span>
+                    <span id="foreign-modal-fob" class="font-bold text-blue-300 font-mono">M1-FOB-12345</span>
+                </div>
+                <div class="space-y-1 pt-1">
+                    <span class="text-[11px] text-amber-400 font-bold block uppercase tracking-wider">🏢 Прикрепленное СТО (Владелец книжки):</span>
+                    <p id="foreign-modal-station-name" class="text-base font-black text-amber-300 leading-tight">Mobil 1 Сервис Аксукент</p>
+                    <div id="foreign-modal-station-contacts" class="text-xs text-slate-300 leading-relaxed pt-0.5"></div>
+                </div>
+            </div>
+
+            <div class="bg-rose-950/60 border border-rose-800/50 rounded-xl p-3.5 text-xs text-rose-200/90 leading-relaxed space-y-1">
+                <p class="font-bold text-rose-300">🔒 Обслуживание на вашей станции запрещено:</p>
+                <p class="text-[11px] text-rose-100/80">
+                    Владелец электронной сервисной книги закреплен за партнерским сервисом. Редактирование, добавление записей ТО и изменение чипа на вашей станции заблокированы правилом изоляции.
+                </p>
+                <p class="text-[11px] text-slate-300 pt-1">
+                    💡 Клиент может посмотреть историю залитого масла на своем смартфоне в клиентском портале.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2.5 pt-1">
+                <button type="button" onclick="closeForeignCarModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition-all border border-slate-700 cursor-pointer">
+                    Понятно (Закрыть)
+                </button>
+                <button type="button" onclick="openClientPortalReadOnly()" class="flex-1 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-orange-950/40 cursor-pointer flex items-center justify-center space-x-1.5">
+                    <span>📱 Просмотр клиентом</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- INTERACTIVE SCRIPT (Vanilla JS for multi-screen client-only flow with multi-post support) -->
     <script>
         // =========================================================================
@@ -1073,6 +1476,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     } else if ("fobId" in sample[0]) {
                         colName = "fobId";
                     }
+                    if ("station_id" in sample[0]) {
+                        window._supabaseHasStationIdCol = true;
+                    }
                     window._supabaseWorkingCol = colName;
                 }
 
@@ -1090,6 +1496,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 data: record,
                 updated_at: now
             };
+            if (window._supabaseHasStationIdCol) {
+                payload.station_id = activeStoProfile.stationId || 'aksukent';
+            }
 
             // 2. If row exists -> UPDATE
             if (existingRow) {
@@ -1146,6 +1555,34 @@ window.$RefreshSig$ = () => (type) => type;</script>
         // =========================================================================
         const DEFAULT_STO_CHIP_REGISTRY = [
             {
+                stationId: 'aksukent',
+                chipUid: 'STO-CHIP-30003',
+                stationName: 'Mobil 1 Сервис Аксукент',
+                stationWhatsapp: '+7 (701) 599-11-18',
+                stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022',
+                stationCity: 'Аксукент',
+                pin: '1234'
+            },
+            {
+                stationId: 'mobil1_shymkent',
+                chipUid: 'STO-CHIP-30004',
+                stationName: 'Mobil 1 Шымкент',
+                stationWhatsapp: '+7 (777) 888-99-00',
+                stationGisUrl: 'https://2gis.kz/shymkent',
+                stationCity: 'Шымкент',
+                pin: '1234'
+            },
+            {
+                stationId: 'expert_shymkent',
+                chipUid: 'STO-CHIP-20002',
+                stationName: 'Автосервис Эксперт-Авто',
+                stationWhatsapp: '+7 (777) 555-44-33',
+                stationGisUrl: 'https://2gis.kz/shymkent',
+                stationCity: 'Шымкент',
+                pin: '1234'
+            },
+            {
+                stationId: 'almaty_center',
                 chipUid: 'STO-CHIP-88219',
                 stationName: 'NFC SERViS Center - Алматы',
                 stationWhatsapp: '+7 (707) 123-45-67',
@@ -1154,35 +1591,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 pin: '1234'
             },
             {
+                stationId: 'astana_premium',
                 chipUid: 'STO-CHIP-10001',
                 stationName: 'Mobil 1 Premium Servis',
                 stationWhatsapp: '+7 (701) 999-88-77',
                 stationGisUrl: 'https://2gis.kz/astana',
                 stationCity: 'Астана',
-                pin: '1234'
-            },
-            {
-                chipUid: 'STO-CHIP-30003',
-                stationName: 'Mobil 1 Аксукент',
-                stationWhatsapp: '+7 (701) 599-11-18',
-                stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022',
-                stationCity: 'Аксукент',
-                pin: '1234'
-            },
-            {
-                chipUid: 'STO-CHIP-30004',
-                stationName: 'Mobil Шымкент',
-                stationWhatsapp: '+7 (777) 888-99-00',
-                stationGisUrl: 'https://2gis.kz/shymkent',
-                stationCity: 'Шымкент',
-                pin: '1234'
-            },
-            {
-                chipUid: 'STO-CHIP-20002',
-                stationName: 'Автосервис Эксперт-Авто',
-                stationWhatsapp: '+7 (777) 555-44-33',
-                stationGisUrl: 'https://2gis.kz/shymkent',
-                stationCity: 'Шымкент',
                 pin: '1234'
             }
         ];
@@ -1191,6 +1605,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             return String(str || '')
                 .toLowerCase()
                 .replace(/mobil\s*1/g, 'mobil1')
+                .replace(/сервис/g, '')
                 .replace(/[\s\-_]/g, '');
         }
 
@@ -1200,16 +1615,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (stored) {
                     const parsed = JSON.parse(stored);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        // Self-heal: ensure Aksukent has the exact verified firm link in cache
                         parsed.forEach(r => {
                             const key = normalizeStoKey(r.stationName);
-                            if (key.includes('аксукент') || r.chipUid === 'STO-CHIP-30003') {
+                            if (key.includes('аксукент') || r.chipUid === 'STO-CHIP-30003' || r.stationId === 'aksukent') {
                                 if (!r.stationGisUrl || r.stationGisUrl === 'https://2gis.kz/shymkent') {
                                     r.stationGisUrl = 'https://2gis.kz/shymkent/firm/70000001080559022';
                                 }
                                 if (!r.stationWhatsapp || r.stationWhatsapp === '+7 (777) 123-45-67') {
                                     r.stationWhatsapp = '+7 (701) 599-11-18';
                                 }
+                                if (!r.stationId) r.stationId = 'aksukent';
                             }
                         });
                         return parsed;
@@ -1225,87 +1640,767 @@ window.$RefreshSig$ = () => (type) => type;</script>
             } catch(e) {}
         }
 
+        // Active authenticated workstation profile
         let activeStoProfile = {
-            stoFobId: 'STO-CHIP-88219',
-            stationName: 'NFC SERViS Center - Алматы',
-            stationWhatsapp: '+7 (707) 123-45-67',
-            stationGisUrl: 'https://2gis.kz/almaty',
+            stationId: 'aksukent',
+            stoFobId: 'STO-CHIP-30003',
+            stationName: 'Mobil 1 Сервис Аксукент',
+            stationWhatsapp: '+7 (701) 599-11-18',
+            stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022',
+            stationCity: 'Аксукент',
             pinCode: '1234'
         };
+
+        // Asynchronously load stations from Supabase 'stations' table
+        async function loadStationsFromSupabase() {
+            const client = getSupabaseClient();
+            if (!client) return;
+            try {
+                const { data, error } = await client.from('stations').select('*');
+                if (!error && Array.isArray(data) && data.length > 0) {
+                    console.log('✓ Синхронизировано станций из Supabase:', data.length);
+                    const registry = getStoChipRegistry();
+                    data.forEach(row => {
+                        const sId = String(row.id || '').trim();
+                        const sName = String(row.name || '').trim();
+                        const sPhone = String(row.phone || row.whatsapp || '').trim();
+                        const sGis = String(row.gis_url || row.gisUrl || '').trim();
+                        const sAddress = String(row.address || '').trim();
+                        const sCity = String(row.city || '').trim();
+                        const sChip = String(row.fob_id || row.chip_uid || row.chipUid || row.fobId || '').trim();
+
+                        const existingIdx = registry.findIndex(r => 
+                            (r.stationId && r.stationId.toLowerCase() === sId.toLowerCase()) ||
+                            (r.chipUid && sChip && r.chipUid.toLowerCase() === sChip.toLowerCase()) ||
+                            (r.stationName && normalizeStoKey(r.stationName) === normalizeStoKey(sName))
+                        );
+
+                        const item = {
+                            stationId: sId,
+                            chipUid: sChip || (existingIdx >= 0 ? registry[existingIdx].chipUid : ('STO-CHIP-' + sId.toUpperCase())),
+                            stationName: sName,
+                            stationWhatsapp: sPhone || (existingIdx >= 0 ? registry[existingIdx].stationWhatsapp : '+7 (701) 599-11-18'),
+                            stationGisUrl: sGis || (existingIdx >= 0 ? registry[existingIdx].stationGisUrl : ''),
+                            stationAddress: sAddress,
+                            stationCity: sCity,
+                            pin: row.pin || (existingIdx >= 0 ? registry[existingIdx].pin : '1234')
+                        };
+
+                        if (existingIdx >= 0) {
+                            registry[existingIdx] = Object.assign(registry[existingIdx], item);
+                        } else {
+                            registry.push(item);
+                        }
+                    });
+                    saveStoChipRegistry(registry);
+                    renderStoChipSelectOptions();
+                    renderStoLockScreenOptions();
+                }
+            } catch(e) {
+                console.warn("Supabase stations table fetch exception:", e);
+            }
+        }
+
+        // =========================================================================
+        // STO CHIP SECURITY SUBSYSTEM (ANTI-THEFT & DATA TAMPERING PROTECTION)
+        // =========================================================================
+        // This subsystem protects STO authorization chips against theft and loss.
+        // If an STO chip is stolen or lost, attackers are strictly prevented from
+        // altering vehicle histories, modifying mileage, or falsifying service logs.
+        function getStoBlockedChipsRegistry() {
+            let list = [];
+            try {
+                const stored = localStorage.getItem('mobil1_blocked_sto_chips_registry');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) list = parsed;
+                }
+            } catch(e) {}
+            return list;
+        }
+
+        function saveStoBlockedChipsRegistry(list) {
+            try {
+                localStorage.setItem('mobil1_blocked_sto_chips_registry', JSON.stringify(list));
+            } catch(e) {}
+            updateStoBlockedChipsBadge();
+        }
+
+        function updateStoBlockedChipsBadge() {
+            const list = getStoBlockedChipsRegistry();
+            const badge = document.getElementById('header-blocked-count-badge');
+            if (badge) {
+                badge.innerText = list.length;
+                if (list.length > 0) {
+                    badge.classList.remove('bg-rose-500/30', 'text-rose-300');
+                    badge.classList.add('bg-rose-600', 'text-white', 'font-black');
+                } else {
+                    badge.classList.remove('bg-rose-600', 'text-white', 'font-black');
+                    badge.classList.add('bg-rose-500/30', 'text-rose-300');
+                }
+            }
+            const modalBadge = document.getElementById('modal-sto-blocked-count');
+            if (modalBadge) modalBadge.innerText = list.length;
+
+            // Also check if current station is running under a blocked chip
+            const isCurrentBlocked = isStoChipBlocked(activeStoProfile.stoFobId);
+            const headerBtn = document.getElementById('header-sto-btn');
+            if (headerBtn) {
+                if (isCurrentBlocked) {
+                    headerBtn.classList.remove('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+                    headerBtn.classList.add('bg-rose-600/30', 'border-rose-500', 'text-rose-300', 'animate-pulse');
+                } else {
+                    headerBtn.classList.remove('bg-rose-600/30', 'border-rose-500', 'text-rose-300', 'animate-pulse');
+                    headerBtn.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+                }
+            }
+        }
+
+        function isStoChipBlocked(chipUid) {
+            if (!chipUid) return null;
+            const targetClean = String(chipUid).trim().toUpperCase();
+            const list = getStoBlockedChipsRegistry();
+            const found = list.find(item => {
+                if (!item) return false;
+                const c = String(item.chipUid || item.fobId || '').trim().toUpperCase();
+                return c && c === targetClean && (item.status === 'BLOCKED' || !item.status);
+            });
+            return found || null;
+        }
+
+        function openBlockedStoChipsModal() {
+            const modal = document.getElementById('blocked-sto-chips-modal');
+            if (modal) modal.classList.remove('hidden');
+            populateSelectBlockStoTarget();
+            switchBlockedStoChipsTab('new');
+            refreshBlockedStoChipsListUI();
+            updateStoBlockedChipsBadge();
+        }
+
+        function closeBlockedStoChipsModal() {
+            const modal = document.getElementById('blocked-sto-chips-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function switchBlockedStoChipsTab(tab) {
+            const tabNew = document.getElementById('tab-content-sto-block-new');
+            const tabList = document.getElementById('tab-content-sto-block-list');
+            const btnNew = document.getElementById('tab-btn-sto-block-new');
+            const btnList = document.getElementById('tab-btn-sto-block-list');
+
+            if (tab === 'new') {
+                if (tabNew) tabNew.classList.remove('hidden');
+                if (tabList) tabList.classList.add('hidden');
+                if (btnNew) btnNew.className = "flex-1 py-2 px-3 rounded-lg font-bold transition-all bg-rose-600 text-white shadow cursor-pointer";
+                if (btnList) btnList.className = "flex-1 py-2 px-3 rounded-lg font-bold transition-all text-slate-400 hover:text-white cursor-pointer";
+            } else {
+                if (tabNew) tabNew.classList.add('hidden');
+                if (tabList) tabList.classList.remove('hidden');
+                if (btnNew) btnNew.className = "flex-1 py-2 px-3 rounded-lg font-bold transition-all text-slate-400 hover:text-white cursor-pointer";
+                if (btnList) btnList.className = "flex-1 py-2 px-3 rounded-lg font-bold transition-all bg-rose-600 text-white shadow cursor-pointer";
+                refreshBlockedStoChipsListUI();
+            }
+        }
+
+        function populateSelectBlockStoTarget() {
+            const selectEl = document.getElementById('select-block-sto-target');
+            if (!selectEl) return;
+            const registry = getStoChipRegistry();
+            const blockedList = getStoBlockedChipsRegistry();
+
+            let optionsHtml = `<option value="">-- Выберите станцию для блокировки чипа --</option>`;
+            registry.forEach(r => {
+                const isBlocked = isStoChipBlocked(r.chipUid);
+                const statusBadge = isBlocked ? '🔴 [УЖЕ ЗАБЛОКИРОВАН]' : '🟢 [АКТИВЕН]';
+                optionsHtml += `
+                    <option value="${r.chipUid}" data-station="${r.stationName}" data-city="${r.stationCity || ''}" data-id="${r.stationId}">
+                        ${statusBadge} [${r.chipUid}] - ${r.stationName} (${r.stationCity || 'СТО'})
+                    </option>
+                `;
+            });
+            optionsHtml += `<option value="CUSTOM">➕ Ввести другой произвольный UID чипа СТО</option>`;
+            selectEl.innerHTML = optionsHtml;
+        }
+
+        function onSelectBlockStoTargetChange(val) {
+            const uidInp = document.getElementById('input-block-sto-chip-uid');
+            const stNameInp = document.getElementById('input-block-sto-station-name');
+            if (!uidInp) return;
+
+            if (!val || val === 'CUSTOM') {
+                uidInp.value = '';
+                if (stNameInp) stNameInp.value = 'Вручную / Другая станция';
+                uidInp.focus();
+                return;
+            }
+
+            uidInp.value = val;
+            const registry = getStoChipRegistry();
+            const found = registry.find(r => r.chipUid.toUpperCase() === val.toUpperCase());
+            if (stNameInp) {
+                stNameInp.value = found ? found.stationName : 'Станция сети Mobil 1';
+            }
+        }
+
+        function useCurrentActiveStoChipToBlock() {
+            const uidInp = document.getElementById('input-block-sto-chip-uid');
+            const stNameInp = document.getElementById('input-block-sto-station-name');
+            const selectEl = document.getElementById('select-block-sto-target');
+
+            const curFob = activeStoProfile.stoFobId || 'STO-CHIP-30003';
+            if (uidInp) uidInp.value = curFob;
+            if (stNameInp) stNameInp.value = activeStoProfile.stationName;
+            if (selectEl) selectEl.value = curFob;
+        }
+
+        function handleBlockStoChipFormSubmit(event) {
+            if (event) event.preventDefault();
+            const chipUid = document.getElementById('input-block-sto-chip-uid')?.value.trim();
+            if (!chipUid) {
+                alert("Укажите UID служебного чипа СТО для блокировки!");
+                return;
+            }
+
+            const reasonEl = document.querySelector('input[name="sto-block-reason"]:checked');
+            const reason = reasonEl ? reasonEl.value : 'stolen';
+            const masterName = document.getElementById('input-block-sto-master-name')?.value.trim() || 'Администратор СТО';
+            const notes = document.getElementById('input-block-sto-notes')?.value.trim();
+
+            blockStoChip(chipUid, reason, notes, masterName);
+
+            // Reset form
+            document.getElementById('input-block-sto-chip-uid').value = '';
+            if (document.getElementById('input-block-sto-master-name')) document.getElementById('input-block-sto-master-name').value = '';
+            if (document.getElementById('input-block-sto-notes')) document.getElementById('input-block-sto-notes').value = '';
+
+            switchBlockedStoChipsTab('list');
+        }
+
+        function blockStoChip(chipUid, reason = 'stolen', notes = '', masterName = '') {
+            const cleanUid = String(chipUid).trim().toUpperCase();
+            if (!cleanUid) return;
+
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const formattedDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+
+            const registry = getStoChipRegistry();
+            const station = registry.find(r => r.chipUid.toUpperCase() === cleanUid);
+
+            const reasonText = reason === 'stolen' ? '🚨 Украден (Угроза изменения данных злоумышленниками)' : (reason === 'lost' ? '🟡 Утерян сотрудником' : '⚠️ Скомпрометирован');
+
+            const item = {
+                chipUid: cleanUid,
+                fobId: cleanUid,
+                status: 'BLOCKED',
+                reason: reason,
+                reasonText: reasonText,
+                blockedAt: formattedDate,
+                stationId: (station && station.stationId) || '',
+                stationName: (station && station.stationName) || 'Служебный чип СТО',
+                stationCity: (station && station.stationCity) || '',
+                masterName: masterName || 'Мастер СТО',
+                notes: notes || 'Чип заблокирован для предотвращения изменения данных злоумышленниками.'
+            };
+
+            const blockedList = getStoBlockedChipsRegistry();
+            const existingIdx = blockedList.findIndex(b => String(b.chipUid || b.fobId).toUpperCase() === cleanUid);
+            if (existingIdx >= 0) {
+                blockedList[existingIdx] = Object.assign(blockedList[existingIdx], item);
+            } else {
+                blockedList.unshift(item);
+            }
+
+            saveStoBlockedChipsRegistry(blockedList);
+            syncStoChipBlockToSupabase(item);
+
+            // Check if current workstation was running on this chip
+            if (String(activeStoProfile.stoFobId || '').toUpperCase() === cleanUid) {
+                alert(`🚨 ВНИМАНИЕ: СЛУЖЕБНЫЙ ЧИП ВАШЕГО ТЕРМИНАЛА [${cleanUid}] ЗАБЛОКИРОВАН!\n\nПричина: ${reasonText}\n\nВнесение и изменение данных авто заблокировано для предотвращения несанкционированного доступа!\nВыпустите новый чип СТО взамен украденного.`);
+                updateStoHeaderUI();
+            } else {
+                alert(`🛡️ Служебный чип СТО [${cleanUid}] УСПЕШНО ЗАБЛОКИРОВАН!\n\nСтанция: ${item.stationName}\nПричина: ${reasonText}\n\nЗлоумышленники не смогут авторизоваться или изменить сервисные данные.`);
+            }
+
+            populateSelectBlockStoTarget();
+            refreshBlockedStoChipsListUI();
+        }
+
+        async function syncStoChipBlockToSupabase(blockedItem) {
+            const client = getSupabaseClient();
+            if (!client || !blockedItem) return;
+            try {
+                const blockPayload = {
+                    fob_id: '#BLOCKED_STO#' + blockedItem.chipUid,
+                    data: {
+                        record_type: 'sto_chip_block',
+                        chipUid: blockedItem.chipUid,
+                        status: 'BLOCKED',
+                        reason: blockedItem.reason,
+                        reasonText: blockedItem.reasonText,
+                        blockedAt: blockedItem.blockedAt,
+                        stationName: blockedItem.stationName,
+                        stationId: blockedItem.stationId,
+                        masterName: blockedItem.masterName,
+                        notes: blockedItem.notes
+                    },
+                    updated_at: new Date().toISOString()
+                };
+                await client.from('diagnostics').upsert(blockPayload, { onConflict: 'fob_id' });
+                console.log('✓ STO Chip block synced to Supabase cloud:', blockedItem.chipUid);
+            } catch(e) {
+                console.warn("Supabase STO block sync warning:", e);
+            }
+        }
+
+        function refreshBlockedStoChipsListUI() {
+            const container = document.getElementById('blocked-sto-chips-list-container');
+            if (!container) return;
+
+            const registry = getStoChipRegistry();
+            const blockedList = getStoBlockedChipsRegistry();
+
+            let html = registry.map(station => {
+                const blocked = isStoChipBlocked(station.chipUid);
+                const isCurrent = String(activeStoProfile.stoFobId || '').toUpperCase() === station.chipUid.toUpperCase();
+
+                if (blocked) {
+                    return `
+                        <div class="bg-rose-950/70 border-2 border-rose-500/80 rounded-2xl p-4 space-y-3 relative shadow-lg">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-rose-900/60 pb-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-base">🚨</span>
+                                    <span class="font-mono text-xs font-black text-rose-200 bg-rose-950 px-2.5 py-1 rounded border border-rose-800">${station.chipUid}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded border font-mono bg-rose-600 text-white">ЗАБЛОКИРОВАН (УКРАДЕН / УТЕРЯН)</span>
+                                </div>
+                                <span class="text-[11px] text-rose-300 font-mono">📅 ${blocked.blockedAt || 'Дата не указана'}</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <span class="text-slate-400 text-[11px]">Станция СТО:</span>
+                                    <strong class="text-white block font-bold text-sm">${station.stationName}</strong>
+                                    <span class="text-slate-400 text-[11px]">Город: ${station.stationCity || '—'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 text-[11px]">Причина блокировки:</span>
+                                    <span class="text-rose-300 font-bold block">${blocked.reasonText || 'Украден злоумышленниками'}</span>
+                                    <span class="text-slate-400 text-[11px]">Ответственный: ${blocked.masterName || 'Мастер СТО'}</span>
+                                </div>
+                            </div>
+
+                            ${blocked.notes ? `
+                                <div class="text-[11px] bg-black/50 p-2.5 rounded-lg text-rose-200 border border-rose-900/60">
+                                    📝 <i>«${blocked.notes}»</i>
+                                </div>
+                            ` : ''}
+
+                            <div class="bg-black/40 border border-rose-800/60 p-2 rounded-lg text-[10px] text-rose-300 leading-tight">
+                                🔒 Злоумышленникам запрещено авторизоваться, вносить или изменять любые сервисные записи под данным чипом.
+                            </div>
+
+                            <div class="flex gap-2 pt-1 border-t border-rose-900/60">
+                                <button type="button" onclick="openRebindNewStoChipModal('${station.stationId}', '${station.chipUid}')" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center space-x-1.5 shadow-md">
+                                    <span>🔑</span>
+                                    <span>Выпустить новый чип СТО</span>
+                                </button>
+                                <button type="button" onclick="promptUnblockStoChip('${station.chipUid}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center space-x-1">
+                                    <span>🔓</span>
+                                    <span>Разблокировать (ПИН)</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5 hover:border-slate-700 transition-all">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono text-xs font-bold text-amber-300 bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-800/40">🔑 ${station.chipUid}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded border font-mono bg-emerald-950/80 text-emerald-300 border-emerald-800/60">🟢 АКТИВЕН И ЗАЩИЩЕН</span>
+                                    ${isCurrent ? '<span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">Текущий терминал</span>' : ''}
+                                </div>
+                                <span class="text-[11px] text-slate-400 font-mono">📱 ${station.stationWhatsapp}</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-xs">
+                                <div>
+                                    <strong class="text-white block font-bold">${station.stationName}</strong>
+                                    <span class="text-slate-400 text-[11px]">Город: ${station.stationCity || '—'}</span>
+                                </div>
+                                <button type="button" onclick="prepareBlockSpecificStoChip('${station.chipUid}', '${station.stationName}')" class="bg-rose-950/60 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center space-x-1">
+                                    <span>🚫</span>
+                                    <span>Заблокировать чип</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function prepareBlockSpecificStoChip(chipUid, stationName) {
+            switchBlockedStoChipsTab('new');
+            const uidInp = document.getElementById('input-block-sto-chip-uid');
+            const stNameInp = document.getElementById('input-block-sto-station-name');
+            const selectEl = document.getElementById('select-block-sto-target');
+
+            if (uidInp) uidInp.value = chipUid;
+            if (stNameInp) stNameInp.value = stationName;
+            if (selectEl) selectEl.value = chipUid;
+        }
+
+        async function promptUnblockStoChip(chipUid) {
+            const cleanUid = String(chipUid).trim().toUpperCase();
+            if (!cleanUid) return;
+
+            const registry = getStoChipRegistry();
+            const station = registry.find(r => r.chipUid.toUpperCase() === cleanUid);
+            const expectedPin = (station && station.pin) || '1234';
+
+            const userPin = prompt(`🔓 РАЗБЛОКИРОВКА ЧИПА СТО [${cleanUid}]\n\nВведите 4-значный мастер-ПИН станции для подтверждения:`);
+            if (userPin === null) return;
+
+            if (userPin.trim() !== expectedPin) {
+                alert("❌ Неверный ПИН-код доступа! Разблокировка отменена.");
+                return;
+            }
+
+            let blockedList = getStoBlockedChipsRegistry();
+            blockedList = blockedList.filter(b => String(b.chipUid || b.fobId).toUpperCase() !== cleanUid);
+            saveStoBlockedChipsRegistry(blockedList);
+
+            // Remove from Supabase
+            const client = getSupabaseClient();
+            if (client) {
+                try {
+                    await client.from('diagnostics').delete().eq('fob_id', '#BLOCKED_STO#' + cleanUid);
+                } catch(e) {}
+            }
+
+            refreshBlockedStoChipsListUI();
+            populateSelectBlockStoTarget();
+            closeBlockedStoChipAlertModal();
+            updateStoHeaderUI();
+
+            alert(`✅ Служебный чип СТО [${cleanUid}] успешно РАЗБЛОКИРОВАН!\nПрава на обслуживание и внесение данных восстановлены.`);
+        }
+
+        function promptUnblockStoChipFromAlert() {
+            if (window._currentBlockedStoAlertData && window._currentBlockedStoAlertData.chipUid) {
+                promptUnblockStoChip(window._currentBlockedStoAlertData.chipUid);
+            }
+        }
+
+        function showBlockedStoChipAlertModal(blockedData) {
+            const modal = document.getElementById('blocked-sto-chip-alert-modal');
+            if (!modal || !blockedData) return;
+
+            window._currentBlockedStoAlertData = blockedData;
+
+            const idEl = document.getElementById('alert-sto-blocked-chip-uid');
+            const stationEl = document.getElementById('alert-sto-blocked-station');
+            const reasonEl = document.getElementById('alert-sto-blocked-reason');
+            const dateEl = document.getElementById('alert-sto-blocked-date');
+            const notesEl = document.getElementById('alert-sto-blocked-notes');
+
+            if (idEl) idEl.innerText = blockedData.chipUid || blockedData.fobId || 'НЕИЗВЕСТНО';
+            if (stationEl) stationEl.innerText = blockedData.stationName || 'Mobil 1 Сервис';
+            if (reasonEl) reasonEl.innerText = blockedData.reasonText || (blockedData.reason === 'stolen' ? '🚨 Украден' : '🟡 Утерян');
+            if (dateEl) dateEl.innerText = blockedData.blockedAt || 'Ранее';
+            if (notesEl) notesEl.innerText = blockedData.notes || 'Чип заблокирован. Изменение сервисных данных запрещено для защиты от злоумышленников.';
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeBlockedStoChipAlertModal() {
+            const modal = document.getElementById('blocked-sto-chip-alert-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openRebindNewStoChipModal(stationId, oldChipUid) {
+            window._rebindTargetStationId = stationId;
+            window._rebindTargetOldChip = oldChipUid;
+
+            const registry = getStoChipRegistry();
+            const station = registry.find(r => 
+                (stationId && r.stationId && r.stationId.toLowerCase() === stationId.toLowerCase()) ||
+                (r.chipUid && oldChipUid && r.chipUid.toUpperCase() === oldChipUid.toUpperCase())
+            );
+
+            const modal = document.getElementById('rebind-new-sto-chip-modal');
+            const stationDisplay = document.getElementById('rebind-sto-station-display');
+            const oldChipDisplay = document.getElementById('rebind-sto-old-chip-display');
+            const inputNew = document.getElementById('input-new-sto-chip-uid');
+
+            if (stationDisplay) stationDisplay.innerText = station ? station.stationName : 'Mobil 1 Сервис';
+            if (oldChipDisplay) oldChipDisplay.innerText = oldChipUid || (station ? station.chipUid : 'STO-CHIP-30003');
+
+            generateRandomNewStoChipUid();
+
+            closeBlockedStoChipsModal();
+            closeBlockedStoChipAlertModal();
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function openRebindNewStoChipModalFromAlert() {
+            if (window._currentBlockedStoAlertData) {
+                openRebindNewStoChipModal(window._currentBlockedStoAlertData.stationId, window._currentBlockedStoAlertData.chipUid);
+            }
+        }
+
+        function closeRebindNewStoChipModal() {
+            const modal = document.getElementById('rebind-new-sto-chip-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function generateRandomNewStoChipUid() {
+            const inputNew = document.getElementById('input-new-sto-chip-uid');
+            const suffix = Math.floor(10000 + Math.random() * 90000);
+            const prefix = window._rebindTargetStationId ? ('STO-' + window._rebindTargetStationId.toUpperCase() + '-') : 'STO-CHIP-';
+            const generated = prefix + suffix;
+            if (inputNew) inputNew.value = generated;
+            return generated;
+        }
+
+        async function scanNfcToNewStoChipField() {
+            if ('NDEFReader' in window) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+                    alert("📱 Приложите НОВЫЙ служебный NFC-чип мастера к смартфону...");
+                    ndef.addEventListener("reading", ({ serialNumber }) => {
+                        let readUid = serialNumber ? ('STO-NFC-' + serialNumber.toUpperCase().replace(/:/g, '-')) : '';
+                        if (!readUid) readUid = generateRandomNewStoChipUid();
+                        const inp = document.getElementById('input-new-sto-chip-uid');
+                        if (inp) inp.value = readUid;
+                    }, { once: true });
+                } catch(e) {
+                    generateRandomNewStoChipUid();
+                }
+            } else {
+                generateRandomNewStoChipUid();
+            }
+        }
+
+        async function scanStoNfcToBlockField() {
+            if ('NDEFReader' in window) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+                    alert("📱 Приложите чип СТО к телефону для идентификации...");
+                    ndef.addEventListener("reading", ({ serialNumber }) => {
+                        let readUid = serialNumber ? ('STO-NFC-' + serialNumber.toUpperCase().replace(/:/g, '-')) : '';
+                        if (!readUid) readUid = 'STO-CHIP-' + Math.floor(10000 + Math.random() * 90000);
+                        const inp = document.getElementById('input-block-sto-chip-uid');
+                        if (inp) inp.value = readUid;
+                    }, { once: true });
+                } catch(e) {
+                    const manual = prompt("Введите UID чипа СТО вручную:");
+                    if (manual) {
+                        const inp = document.getElementById('input-block-sto-chip-uid');
+                        if (inp) inp.value = manual.trim();
+                    }
+                }
+            } else {
+                const manual = prompt("Введите UID чипа СТО вручную:");
+                if (manual) {
+                    const inp = document.getElementById('input-block-sto-chip-uid');
+                    if (inp) inp.value = manual.trim();
+                }
+            }
+        }
+
+        async function handleRebindStoChipSubmit(event) {
+            if (event) event.preventDefault();
+            const oldChip = window._rebindTargetOldChip;
+            const newChipInput = document.getElementById('input-new-sto-chip-uid')?.value.trim();
+            const pinInput = document.getElementById('input-rebind-sto-pin')?.value.trim();
+
+            if (!newChipInput) {
+                alert("Укажите UID нового чипа СТО!");
+                return;
+            }
+
+            const registry = getStoChipRegistry();
+            const station = registry.find(r => 
+                (window._rebindTargetStationId && r.stationId && r.stationId.toLowerCase() === window._rebindTargetStationId.toLowerCase()) ||
+                (r.chipUid && oldChip && r.chipUid.toUpperCase() === oldChip.toUpperCase())
+            );
+
+            const expectedPin = (station && station.pin) || '1234';
+            if (pinInput !== expectedPin) {
+                alert("❌ Неверный ПИН-код станции! Операция перепривязки отклонена.");
+                return;
+            }
+
+            const cleanNewChip = newChipInput.toUpperCase();
+
+            // 1. Permanently blacklist the old compromised chip
+            if (oldChip) {
+                blockStoChip(oldChip, 'stolen', `Старый чип аннулирован при перевыпуске на новый ключ [${cleanNewChip}]. Злоумышленникам доступ закрыт.`, 'Администратор СТО');
+            }
+
+            // 2. Update station registry to point to new chip
+            if (station) {
+                station.chipUid = cleanNewChip;
+                saveStoChipRegistry(registry);
+            }
+
+            // 3. If active station is this station, update active profile
+            if (activeStoProfile.stationId === (station ? station.stationId : window._rebindTargetStationId) || activeStoProfile.stoFobId === oldChip) {
+                activeStoProfile.stoFobId = cleanNewChip;
+                try {
+                    localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(activeStoProfile));
+                    localStorage.setItem('mobil1_active_sto_profile', JSON.stringify(activeStoProfile));
+                    sessionStorage.setItem('sto_active_profile', JSON.stringify(activeStoProfile));
+                } catch(e) {}
+            }
+
+            // 4. Sync station update to Supabase
+            const client = getSupabaseClient();
+            if (client && station) {
+                try {
+                    await client.from('stations').upsert({
+                        id: station.stationId,
+                        name: station.stationName,
+                        fob_id: cleanNewChip,
+                        whatsapp: station.stationWhatsapp,
+                        gis_url: station.stationGisUrl,
+                        city: station.stationCity,
+                        updated_at: new Date().toISOString()
+                    });
+                } catch(e) {
+                    console.warn("Supabase station rebind update warning:", e);
+                }
+            }
+
+            closeRebindNewStoChipModal();
+            updateStoHeaderUI();
+            refreshBlockedStoChipsListUI();
+            renderStoChipSelectOptions(cleanNewChip);
+
+            alert(`🎉 УСПЕШНО!\n\nСтанция "${station ? station.stationName : 'СТО'}" перепривязана к новому чипу [${cleanNewChip}]!\n\nСтарый чип [${oldChip}] навсегда заблокирован в черном списке — злоумышленники не смогут изменить данные.`);
+        }
+
+        // Backward-compatibility aliases
+        const openBlockedChipsModal = openBlockedStoChipsModal;
+        const closeBlockedChipsModal = closeBlockedStoChipsModal;
+        const isChipBlocked = isStoChipBlocked;
+        const getBlockedChipsRegistry = getStoBlockedChipsRegistry;
+        const saveBlockedChipsRegistry = saveStoBlockedChipsRegistry;
+
+        // =========================================================================
+        // STRICT CLIENT VEHICLE ISOLATION LOGIC (CAR BOUND TO EXCLUSIVE STO)
+        // =========================================================================
+        function isCarFromAnotherStation(carRecord) {
+            if (!carRecord) return null;
+            const rec = (carRecord.data && typeof carRecord.data === 'object') ? { ...carRecord, ...carRecord.data } : carRecord;
+
+            const carStationName = rec.stationName || rec.station_name || '';
+            const carStationId = rec.station_id || rec.stationId || '';
+            const carStoFob = rec.stoFobId || rec.sto_fob_id || '';
+
+            // If car has no station recorded yet, it's unbound (first-time service can adopt it)
+            if (!carStationName && !carStationId && !carStoFob) return null;
+
+            const curNameNorm = normalizeStoKey(activeStoProfile.stationName);
+            const curIdNorm = String(activeStoProfile.stationId || '').trim().toLowerCase();
+            const curFobNorm = String(activeStoProfile.stoFobId || '').trim().toLowerCase();
+
+            const carNameNorm = normalizeStoKey(carStationName);
+            const carIdNorm = String(carStationId).trim().toLowerCase();
+            const carFobNorm = String(carStoFob).trim().toLowerCase();
+
+            // Check if matches active station
+            if (curNameNorm && carNameNorm && (curNameNorm === carNameNorm || curNameNorm.includes(carNameNorm) || carNameNorm.includes(curNameNorm))) {
+                return null;
+            }
+            if (curIdNorm && carIdNorm && curIdNorm === carIdNorm) {
+                return null;
+            }
+            if (curFobNorm && carFobNorm && curFobNorm === carFobNorm) {
+                return null;
+            }
+
+            // It's from another station! Return foreign station details
+            return {
+                stationName: carStationName || 'Партнерская станция СТО',
+                stationPhone: rec.stationWhatsapp || rec.stationPhone || '',
+                stationGisUrl: rec.stationGisUrl || '',
+                stationCity: rec.stationCity || ''
+            };
+        }
+
+        function showForeignStationCarModal(data) {
+            const modal = document.getElementById('foreign-car-modal');
+            if (!modal) return;
+
+            document.getElementById('foreign-modal-car').innerText = (data.carBrand || data.carModel) ? `${data.carBrand} ${data.carModel} [${data.licensePlate || 'Без номера'}]` : (data.licensePlate || 'Автомобиль');
+            document.getElementById('foreign-modal-fob').innerText = data.fobId || '—';
+            document.getElementById('foreign-modal-station-name').innerText = data.foreignStation?.stationName || 'Партнерская СТО';
+
+            const contactsEl = document.getElementById('foreign-modal-station-contacts');
+            if (contactsEl) {
+                let html = '';
+                if (data.foreignStation?.stationPhone) html += `📱 WhatsApp / Телефон: <b>${data.foreignStation.stationPhone}</b><br>`;
+                if (data.foreignStation?.stationCity) html += `📍 Город: <b>${data.foreignStation.stationCity}</b><br>`;
+                if (data.foreignStation?.stationGisUrl) html += `🗺️ <a href="${data.foreignStation.stationGisUrl}" target="_blank" class="text-emerald-400 underline font-semibold">Карточка СТО в 2ГИС</a>`;
+                contactsEl.innerHTML = html || 'Контакты СТО уточняйте в клиентской службе';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeForeignCarModal() {
+            const modal = document.getElementById('foreign-car-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function showForeignCarModalAgain() {
+            if (state.foreignStation) {
+                showForeignStationCarModal({
+                    fobId: state.fobId,
+                    carBrand: state.carBrand,
+                    carModel: state.carModel,
+                    licensePlate: state.licensePlate,
+                    foreignStation: state.foreignStation
+                });
+            }
+        }
+
+        function openClientPortalReadOnly() {
+            const fob = state.fobId || '';
+            if (fob) {
+                window.open(`/client_portal.html?fob=${encodeURIComponent(fob)}`, '_blank');
+            } else {
+                window.open('/client_portal.html', '_blank');
+            }
+        }
 
         function parseUrlStoParameters() {
             try {
                 const params = new URLSearchParams(window.location.search);
                 const rawStoName = params.get('station_name') || params.get('sto') || params.get('sto_name') || params.get('station') || params.get('name');
-                const rawStoWa = params.get('station_phone') || params.get('wa') || params.get('whatsapp') || params.get('phone');
-                const rawGis = params.get('gis') || params.get('2gis') || params.get('gis_url') || params.get('map');
+                const rawPhone = params.get('station_phone') || params.get('phone') || params.get('whatsapp');
+                const rawGis = params.get('station_gis_url') || params.get('gis_url') || params.get('gis') || params.get('2gis');
                 const chipUid = params.get('chip') || params.get('chip_uid') || params.get('fob') || params.get('uid');
-                const pin = params.get('pin') || params.get('p') || '1234';
 
-                if (rawStoName || rawStoWa || chipUid || rawGis) {
-                    const name = rawStoName ? decodeURIComponent(rawStoName).replace(/_/g, ' ') : 'NFC SERViS СТО';
-                    let wa = rawStoWa ? decodeURIComponent(rawStoWa) : '+7 (707) 123-45-67';
-                    if (wa && !wa.startsWith('+')) {
-                        wa = '+' + wa.replace(/\D/g, '');
-                    }
-                    const gisUrl = rawGis ? decodeURIComponent(rawGis) : '';
-                    const uid = chipUid || ('STO-CHIP-' + Math.abs(name.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0) % 90000 + 10000));
+                if (rawStoName || rawPhone || rawGis) {
+                    if (rawStoName) activeStoProfile.stationName = rawStoName.replace(/_/g, ' ');
+                    if (rawPhone) activeStoProfile.stationWhatsapp = rawPhone;
+                    if (rawGis) activeStoProfile.stationGisUrl = rawGis;
+                }
 
-                    // Update active profile
-                    activeStoProfile = {
-                        stoFobId: uid,
-                        stationName: name,
-                        stationWhatsapp: wa,
-                        stationGisUrl: gisUrl,
-                        pinCode: pin
-                    };
-
-                    // Auto register into registry if not present
-                    const registry = getStoChipRegistry();
-                    const normTarget = normalizeStoKey(name);
-                    const existingIdx = registry.findIndex(r => 
-                        (uid && r.chipUid && r.chipUid.toLowerCase() === uid.toLowerCase()) || 
-                        (normTarget && r.stationName && (normalizeStoKey(r.stationName) === normTarget || normalizeStoKey(r.stationName).includes(normTarget) || normTarget.includes(normalizeStoKey(r.stationName))))
-                    );
-
-                    const record = {
-                        chipUid: uid,
-                        stationName: name,
-                        stationWhatsapp: wa,
-                        stationGisUrl: gisUrl,
-                        stationCity: 'Чип-Ссылка',
-                        pin: pin
-                    };
-                    if (existingIdx >= 0) {
-                        registry[existingIdx].stationName = name;
-                        if (wa) registry[existingIdx].stationWhatsapp = wa;
-                        if (gisUrl) registry[existingIdx].stationGisUrl = gisUrl;
-                        activeStoProfile.stoFobId = registry[existingIdx].chipUid;
-                    } else {
-                        registry.push(record);
-                    }
-                    saveStoChipRegistry(registry);
-
-                    // Save as active profile
-                    localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(activeStoProfile));
-                    localStorage.setItem('mobil1_active_sto_profile', JSON.stringify(activeStoProfile));
-
-                    // Prompt login modal with notice
-                    setTimeout(() => {
-                        openStoAuthModal(uid);
-                        const bannerEl = document.getElementById('sto-chip-status-banner');
-                        if (bannerEl) {
-                            bannerEl.innerHTML = `
-                                <div class="bg-amber-950/80 border border-amber-500/40 p-3 rounded-xl flex items-start space-x-3 text-xs">
-                                    <div class="text-amber-400 text-lg">⚡</div>
-                                    <div class="space-y-0.5">
-                                        <span class="font-bold text-amber-300 block">ЗАГРУЖЕНЫ ДАННЫЕ ИЗ ССЫЛКИ NFC ЧИПА</span>
-                                        <p class="text-amber-100/80 text-[11px]">Автоматически подставлена СТО: <b>${name}</b> (${wa}). Для входа введите ПИН-код (по умолч. 1234).</p>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }, 400);
+                // Parameters from URL suggest a station, but MUST still be unlocked via PIN/Hardware Fob
+                if (chipUid || rawStoName) {
+                    window._urlTargetChipUid = chipUid || '';
                 }
             } catch(e) {
                 console.warn("URL params parsing error:", e);
@@ -1313,30 +2408,76 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function loadStoProfile() {
-            try {
-                localStorage.setItem('sto_master_authorized', 'true');
-                localStorage.setItem('sto_is_master_device', 'true');
-                const saved = localStorage.getItem('nfc_servis_active_sto_profile') || localStorage.getItem('mobil1_active_sto_profile');
-                if (saved) {
-                    activeStoProfile = Object.assign(activeStoProfile, JSON.parse(saved));
-                }
-            } catch(e){}
-            
-            // Check if page opened with URL parameters from NFC tag
             parseUrlStoParameters();
+
+            // 1. Sync stations from Supabase table 'stations'
+            loadStationsFromSupabase();
+
+            // 2. Load active station profile from localStorage if present
+            try {
+                const saved = localStorage.getItem('nfc_servis_active_sto_profile') || localStorage.getItem('mobil1_active_sto_profile');
+                if (saved) activeStoProfile = Object.assign(activeStoProfile, JSON.parse(saved));
+            } catch(e){}
+
+            // 3. Update header UI and blocked chips counter badge
             updateStoHeaderUI();
+            updateBlockedChipsBadge();
+
+            // 4. Background sync of blocked chips from cloud
+            fetchCloudBlockedChips();
+        }
+
+        async function fetchCloudBlockedChips() {
+            const client = getSupabaseClient();
+            if (!client) return;
+            try {
+                const { data, error } = await client
+                    .from('diagnostics')
+                    .select('*')
+                    .like('fob_id', '#BLOCKED_STO#%')
+                    .limit(100);
+
+                if (!error && Array.isArray(data) && data.length > 0) {
+                    const localRegistry = getStoBlockedChipsRegistry();
+                    data.forEach(row => {
+                        const rec = (row.data && typeof row.data === 'object') ? row.data : {};
+                        const rawChip = rec.chipUid || (row.fob_id ? row.fob_id.replace('#BLOCKED_STO#', '') : '');
+                        const cleanChip = String(rawChip).trim().toUpperCase();
+                        if (!cleanChip) return;
+
+                        const exists = localRegistry.find(b => String(b.chipUid || b.fobId).toUpperCase() === cleanChip);
+                        if (!exists) {
+                            localRegistry.unshift({
+                                chipUid: cleanChip,
+                                fobId: cleanChip,
+                                status: 'BLOCKED',
+                                reason: rec.reason || 'stolen',
+                                reasonText: rec.reasonText || '🚨 Украден (Угроза изменения данных)',
+                                blockedAt: rec.blockedAt || '',
+                                stationId: rec.stationId || '',
+                                stationName: rec.stationName || 'Станция СТО',
+                                masterName: rec.masterName || 'Мастер СТО',
+                                notes: rec.notes || 'Чип заблокирован в облаке Supabase'
+                            });
+                        }
+                    });
+                    saveStoBlockedChipsRegistry(localRegistry);
+                    updateStoBlockedChipsBadge();
+                }
+            } catch(e) {
+                console.warn("fetchCloudBlockedChips error:", e);
+            }
         }
 
         function updateStoHeaderUI() {
             const el = document.getElementById('header-sto-name');
             if (el) {
-                el.innerText = 'СТО: ' + (activeStoProfile.stationName || 'NFC SERViS Center');
+                el.innerText = 'СТО: ' + (activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент');
             }
             const s1Name = document.getElementById('screen1-announcement-station-name');
             if (s1Name) {
-                s1Name.innerText = 'СТО: ' + (activeStoProfile.stationName || 'NFC SERViS Center');
+                s1Name.innerText = 'СТО: ' + (activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент');
             }
-            // Refresh announcement badge and status for active profile
             loadCurrentStationAnnouncement();
         }
 
@@ -1345,11 +2486,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const selectEl = document.getElementById('sto-chip-select');
             if (!selectEl) return;
 
-            let html = registry.map(item => `
-                <option value="${item.chipUid}" ${item.chipUid.toLowerCase() === (selectedUid || activeStoProfile.stoFobId || '').toLowerCase() ? 'selected' : ''}>
-                    🔑 [${item.chipUid}] - ${item.stationName} (${item.stationCity || 'СТО'})
-                </option>
-            `).join('');
+            let html = registry.map(item => {
+                const isBlocked = isStoChipBlocked(item.chipUid);
+                const blockMark = isBlocked ? ' ⛔ [ЗАБЛОКИРОВАН - УКРАДЕН]' : '';
+                return `
+                    <option value="${item.chipUid}" ${item.chipUid.toLowerCase() === (selectedUid || activeStoProfile.stoFobId || '').toLowerCase() ? 'selected' : ''}>
+                        🔑 [${item.chipUid}] - ${item.stationName} (${item.stationCity || 'СТО'})${blockMark}
+                    </option>
+                `;
+            }).join('');
 
             html += `<option value="UNREGISTERED_DEMO">⚠️ [Случайный неопознанный чип для проверки защиты]</option>`;
             selectEl.innerHTML = html;
@@ -1371,7 +2516,51 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const match = registry.find(r => r.chipUid.toLowerCase() === (chipUid || '').toLowerCase());
 
             if (match) {
-                // VERIFIED BOUND CHIP
+                // Check if this STO chip is blocked (stolen or lost)
+                const blockedSto = isStoChipBlocked(match.chipUid);
+                if (blockedSto) {
+                    if (nameIn) nameIn.value = match.stationName;
+                    if (waIn) waIn.value = match.stationWhatsapp;
+                    if (gisIn) gisIn.value = match.stationGisUrl || '—';
+
+                    if (bannerEl) {
+                        bannerEl.innerHTML = `
+                            <div class="bg-rose-950/95 border-2 border-rose-500 p-4 rounded-xl flex items-start space-x-3 text-xs shadow-lg">
+                                <div class="text-rose-400 text-2xl">🚨</div>
+                                <div class="space-y-1.5 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-black text-rose-300 text-sm">СЛУЖЕБНЫЙ ЧИП СТО ЗАБЛОКИРОВАН!</span>
+                                        <span class="bg-rose-600 text-white font-mono text-[10px] px-2 py-0.5 rounded font-bold">ОПАСНОСТЬ</span>
+                                    </div>
+                                    <p class="text-rose-100 text-[11px] leading-relaxed">
+                                        Чип СТО <b>[${match.chipUid}]</b> станции <b>${match.stationName}</b> находится в розыске / заблокирован.<br>
+                                        <span class="text-amber-300">Причина:</span> <b>${blockedSto.reasonText || 'Украден злоумышленниками'}</b>.<br>
+                                        <span class="text-slate-400 text-[10px]">Дата: ${blockedSto.blockedAt || 'Ранее'} • Ответственный: ${blockedSto.masterName || 'Мастер'}</span>
+                                    </p>
+                                    <div class="bg-black/50 border border-rose-800 p-2.5 rounded-lg text-rose-200 text-[11px] font-bold">
+                                        🔒 Авторизация и изменение сервисных данных СТРОГО ЗАПРЕЩЕНЫ для защиты от фальсификации данных злоумышленниками!
+                                    </div>
+                                    <div class="pt-1 flex gap-2">
+                                        <button type="button" onclick="openRebindNewStoChipModal('${match.stationId}', '${match.chipUid}')" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer">
+                                            <span>🔑 Выпустить новый чип СТО</span>
+                                        </button>
+                                        <button type="button" onclick="promptUnblockStoChip('${match.chipUid}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 transition-all cursor-pointer">
+                                            <span>🔓 Разблокировать (ПИН)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    if (loginBtn) {
+                        loginBtn.disabled = true;
+                        loginBtn.innerText = `⛔ Вход заблокирован (Чип СТО украден/утерян)`;
+                    }
+                    return;
+                }
+
+                // VERIFIED BOUND CHIP (ACTIVE & SECURE)
+                activeStoProfile.stationId = match.stationId || 'aksukent';
                 activeStoProfile.stoFobId = match.chipUid;
                 activeStoProfile.stationName = match.stationName;
                 activeStoProfile.stationWhatsapp = match.stationWhatsapp;
@@ -1436,7 +2625,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function openStoAuthModal(chipId) {
-            const currentUid = chipId || activeStoProfile.stoFobId || 'STO-CHIP-88219';
+            const currentUid = chipId || activeStoProfile.stoFobId || 'STO-CHIP-30003';
             renderStoChipSelectOptions(currentUid);
             verifyAndApplyChip(currentUid);
 
@@ -1445,8 +2634,252 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function closeStoAuthModal() {
+            if (!isStoSessionAuthorized()) {
+                showStoTerminalLockScreen();
+                return;
+            }
             const modal = document.getElementById('sto-auth-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        // =========================================================================
+        // TERMINAL SESSION AUTH & ANTI-LINK-COPYING LOCK SCREEN
+        // =========================================================================
+        function isStoSessionAuthorized() {
+            return sessionStorage.getItem('sto_session_authorized') === 'true';
+        }
+
+        function showStoTerminalLockScreen() {
+            const lockEl = document.getElementById('sto-terminal-lock-screen');
+            if (lockEl) {
+                lockEl.classList.remove('hidden');
+                renderStoLockScreenOptions();
+                const pinIn = document.getElementById('lock-screen-pin-input');
+                if (pinIn) {
+                    pinIn.value = '';
+                    setTimeout(() => pinIn.focus(), 150);
+                }
+            }
+        }
+
+        function hideStoTerminalLockScreen() {
+            const lockEl = document.getElementById('sto-terminal-lock-screen');
+            if (lockEl) {
+                lockEl.classList.add('hidden');
+            }
+        }
+
+        function checkStoTerminalSession() {
+            if (!isStoSessionAuthorized()) {
+                showStoTerminalLockScreen();
+            } else {
+                hideStoTerminalLockScreen();
+            }
+        }
+
+        function renderStoLockScreenOptions(selectedUid) {
+            const registry = getStoChipRegistry();
+            const selectEl = document.getElementById('lock-screen-chip-select');
+            if (!selectEl) return;
+
+            const targetUid = selectedUid || activeStoProfile.stoFobId || 'STO-CHIP-30003';
+            let html = registry.map(item => {
+                const isBlocked = isStoChipBlocked(item.chipUid);
+                const blockMark = isBlocked ? ' ⛔ [ЗАБЛОКИРОВАН]' : '';
+                return `
+                    <option value="${item.chipUid}" ${item.chipUid.toLowerCase() === targetUid.toLowerCase() ? 'selected' : ''}>
+                        ${item.stationName} (${item.chipUid})${blockMark}
+                    </option>
+                `;
+            }).join('');
+
+            selectEl.innerHTML = html;
+            updateLockScreenChipInfo(targetUid);
+        }
+
+        function updateLockScreenChipInfo(chipUid) {
+            const registry = getStoChipRegistry();
+            const match = registry.find(r => r.chipUid.toLowerCase() === (chipUid || '').toLowerCase());
+            const uidEl = document.getElementById('lock-screen-chip-uid');
+            const nameEl = document.getElementById('lock-screen-station-name');
+            const errEl = document.getElementById('lock-screen-error');
+            if (errEl) errEl.classList.add('hidden');
+
+            if (match) {
+                if (uidEl) uidEl.innerText = match.chipUid;
+                if (nameEl) nameEl.innerText = match.stationName;
+            } else {
+                if (uidEl) uidEl.innerText = chipUid || 'НЕИЗВЕСТНО';
+                if (nameEl) nameEl.innerText = 'Служебный чип СТО';
+            }
+        }
+
+        function onLockScreenChipChange(chipUid) {
+            updateLockScreenChipInfo(chipUid);
+        }
+
+        async function scanStoNfcForLockScreen() {
+            if ('NDEFReader' in window) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+                    showNotificationToast("📱 Приложите чип СТО к NFC считывателю...");
+                    ndef.addEventListener("reading", ({ message, serialNumber }) => {
+                        let readUid = serialNumber ? serialNumber.toUpperCase().replace(/:/g, '-') : '';
+                        if (message && message.records) {
+                            for (const record of message.records) {
+                                if (record.recordType === "text" || record.recordType === "url") {
+                                    const textDecoder = new TextDecoder(record.encoding || "utf-8");
+                                    const text = textDecoder.decode(record.data);
+                                    if (text.trim()) readUid = text.trim();
+                                }
+                            }
+                        }
+                        if (!readUid) readUid = 'STO-CHIP-30003';
+                        applyScannedChipToLockScreen(readUid);
+                    }, { once: true });
+                } catch(err) {
+                    const manual = prompt("Введите UID служебного чипа СТО:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
+                    if (manual) applyScannedChipToLockScreen(manual.trim());
+                }
+            } else {
+                const manual = prompt("Введите UID служебного чипа СТО:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
+                if (manual) applyScannedChipToLockScreen(manual.trim());
+            }
+        }
+
+        function applyScannedChipToLockScreen(chipUid) {
+            const selectEl = document.getElementById('lock-screen-chip-select');
+            if (selectEl) {
+                let exists = false;
+                for (let i = 0; i < selectEl.options.length; i++) {
+                    if (selectEl.options[i].value.toLowerCase() === chipUid.toLowerCase()) {
+                        selectEl.selectedIndex = i;
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = chipUid;
+                    opt.innerText = `Чип: ${chipUid}`;
+                    opt.selected = true;
+                    selectEl.appendChild(opt);
+                }
+            }
+            updateLockScreenChipInfo(chipUid);
+            const pinIn = document.getElementById('lock-screen-pin-input');
+            if (pinIn) pinIn.focus();
+        }
+
+        async function handleTerminalUnlockSubmit() {
+            const selectEl = document.getElementById('lock-screen-chip-select');
+            const chipUid = selectEl ? selectEl.value.trim() : (activeStoProfile.stoFobId || 'STO-CHIP-30003');
+            const pinInput = document.getElementById('lock-screen-pin-input');
+            const pinVal = pinInput ? pinInput.value.trim() : '';
+            const errEl = document.getElementById('lock-screen-error');
+
+            if (!pinVal) {
+                if (errEl) {
+                    errEl.classList.remove('hidden');
+                    errEl.innerText = "⚠️ Введите 4-значный мастер-PIN станции!";
+                }
+                return;
+            }
+
+            // Check if chip is blocked
+            const blocked = isStoChipBlocked(chipUid);
+            if (blocked) {
+                if (errEl) {
+                    errEl.classList.remove('hidden');
+                    errEl.innerText = `🚨 Чип [${chipUid}] ЗАБЛОКИРОВАН (${blocked.reasonText || 'украден'})! Доступ запрещен.`;
+                }
+                return;
+            }
+
+            const registry = getStoChipRegistry();
+            const station = registry.find(r => r.chipUid.toLowerCase() === chipUid.toLowerCase());
+            const expectedPin = (station && station.pin) ? station.pin : (activeStoProfile.pinCode || '1234');
+
+            const [inputHash, expHash] = await Promise.all([
+                computePinHash(pinVal),
+                computePinHash(expectedPin)
+            ]);
+
+            if (inputHash !== expHash) {
+                if (errEl) {
+                    errEl.classList.remove('hidden');
+                    errEl.innerText = "❌ Неверный мастер-PIN! Доступ к терминалу запрещен.";
+                }
+                if (pinInput) {
+                    pinInput.value = '';
+                    pinInput.focus();
+                }
+                return;
+            }
+
+            // Authentication successful!
+            if (errEl) errEl.classList.add('hidden');
+            if (station) {
+                activeStoProfile.stationId = station.stationId || 'aksukent';
+                activeStoProfile.stoFobId = station.chipUid;
+                activeStoProfile.stationName = station.stationName;
+                activeStoProfile.stationWhatsapp = station.stationWhatsapp;
+                activeStoProfile.stationGisUrl = station.stationGisUrl || '';
+                activeStoProfile.pinCode = station.pin || '1234';
+            }
+
+            sessionStorage.setItem('sto_session_authorized', 'true');
+            sessionStorage.setItem('sto_active_profile', JSON.stringify(activeStoProfile));
+            try {
+                localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(activeStoProfile));
+                localStorage.setItem('mobil1_active_sto_profile', JSON.stringify(activeStoProfile));
+            } catch(e) {}
+
+            hideStoTerminalLockScreen();
+            updateStoHeaderUI();
+            showNotificationToast(`✓ Терминал разблокирован: ${activeStoProfile.stationName}`);
+
+            // If a URL fob was waiting to be processed, process it now
+            if (window._pendingQueryFob) {
+                const fobToRun = window._pendingQueryFob;
+                window._pendingQueryFob = null;
+                setTimeout(() => {
+                    processScannedFobUid(fobToRun);
+                }, 200);
+            }
+        }
+
+        // =========================================================================
+        // SAFE HISTORY PARSING (Strict Type Validation, Prevents TypeError)
+        // =========================================================================
+        function safeParseHistory(rawHistory) {
+            if (!rawHistory) return [];
+            try {
+                if (Array.isArray(rawHistory)) {
+                    return rawHistory.filter(item => item && typeof item === 'object');
+                }
+                if (typeof rawHistory === 'string') {
+                    const trimmed = rawHistory.trim();
+                    if (!trimmed || trimmed === 'null' || trimmed === 'undefined' || trimmed === '[]') {
+                        return [];
+                    }
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) {
+                        return parsed.filter(item => item && typeof item === 'object');
+                    } else if (parsed && typeof parsed === 'object') {
+                        return [parsed];
+                    }
+                    return [];
+                }
+                if (typeof rawHistory === 'object') {
+                    return [rawHistory];
+                }
+            } catch(e) {
+                console.warn("[Safe History Parsing] Corrupted history JSON, safely returning empty array:", e);
+                return [];
+            }
+            return [];
         }
 
         // =========================================================================
@@ -1475,6 +2908,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function saveStoProfile() {
+            if (isStoChipBlocked(activeStoProfile.stoFobId)) {
+                alert(`⛔ ОТКАЗАНО В ДОСТУПЕ (ЗАЩИТА ОТ ЗЛОУМЫШЛЕННИКОВ)!\n\nСлужебный чип [${activeStoProfile.stoFobId}] станции "${activeStoProfile.stationName}" числится украденным или утерянным!\n\nВход в систему и изменение данных авто строго запрещены.\nВыпустите новый чип СТО взамен скомпрометированного.`);
+                return;
+            }
+
             const pinIn = document.getElementById('input-sto-pin')?.value.trim();
             const expectedPin = activeStoProfile.pinCode || '1234';
             const pinErr = document.getElementById('sto-pin-error');
@@ -1492,12 +2930,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     if (pinErr) pinErr.classList.add('hidden');
 
                     try {
+                        sessionStorage.setItem('sto_session_authorized', 'true');
+                        sessionStorage.setItem('sto_active_profile', JSON.stringify(activeStoProfile));
                         localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(activeStoProfile));
                         localStorage.setItem('mobil1_active_sto_profile', JSON.stringify(activeStoProfile));
                     } catch(e){}
                     
                     updateStoHeaderUI();
-                    closeStoAuthModal();
+                    hideStoTerminalLockScreen();
+                    const modal = document.getElementById('sto-auth-modal');
+                    if (modal) modal.classList.add('hidden');
 
                     alert(`✅ Авторизация успешна!\n\nДобро пожаловать в рабочий кабинет СТО "${activeStoProfile.stationName}".`);
                 });
@@ -2214,7 +3656,23 @@ window.$RefreshSig$ = () => (type) => type;</script>
             scanNfcFob();
         }
 
+        function editFobAndClient() {
+            if (state.isForeignStationLocked) {
+                alert(`⛔ Редактирование заблокировано!\n\nАвтомобиль закреплен за партнерским СТО "${state.foreignStation?.stationName || 'Другое СТО'}".\nИзменение данных ТС на вашей станции запрещено.`);
+                return;
+            }
+            goToScreen2();
+        }
+
         async function processScannedFobUid(readUid) {
+            // Security check: ensure terminal workstation session is authorized
+            if (!isStoSessionAuthorized()) {
+                window._pendingQueryFob = readUid;
+                showStoTerminalLockScreen();
+                showNotificationToast("🔒 Сначала разблокируйте терминал СТО чипом и PIN-кодом");
+                return;
+            }
+
             document.getElementById('scan-spinner')?.classList.add('hidden');
             document.getElementById('scan-success')?.classList.remove('hidden');
 
@@ -2234,42 +3692,149 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 return normalizedInput && itemFob && itemFob === normalizedInput;
             });
 
-            // 2. If not found in localStorage, check Supabase cloud
+            // 2. If not found in localStorage, check Supabase cloud via targeted point query (no limit(200) table scan)
             if (!matched) {
                 const client = getSupabaseClient();
                 if (client) {
                     try {
-                        const { data, error } = await client
+                        const targetFob = rawClean || normalizedInput;
+                        const col = window._supabaseWorkingCol || "fob_id";
+                        const altCol = col === "fobId" ? "fob_id" : "fobId";
+                        let foundRow = null;
+
+                        // Targeted point query on primary column
+                        const { data: d1, error: err1 } = await client
                             .from('diagnostics')
                             .select('*')
+                            .or(`${col}.eq.${targetFob},${col}.eq.${normalizedInput},${col}.eq.#${targetFob}`)
                             .order('updated_at', { ascending: false })
-                            .limit(200);
+                            .limit(1);
 
-                        if (!error && Array.isArray(data) && data.length > 0) {
-                            const foundRow = data.find(row => {
-                                const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
-                                const f1 = normalizeFob(rec.fobId);
-                                const f2 = normalizeFob(rec.fob_id);
-                                const f3 = normalizeFob(row.fob_id);
-                                const f4 = normalizeFob(row.fobId);
-                                return f1 === normalizedInput || f2 === normalizedInput || f3 === normalizedInput || f4 === normalizedInput;
-                            });
+                        if (!err1 && Array.isArray(d1) && d1.length > 0) {
+                            foundRow = d1[0];
+                        } else {
+                            // Targeted point query on alternate column
+                            const { data: d2, error: err2 } = await client
+                                .from('diagnostics')
+                                .select('*')
+                                .or(`${altCol}.eq.${targetFob},${altCol}.eq.${normalizedInput}`)
+                                .order('updated_at', { ascending: false })
+                                .limit(1);
 
-                            if (foundRow) {
-                                matched = (foundRow.data && typeof foundRow.data === 'object') ? { ...foundRow, ...foundRow.data } : foundRow;
-                                // Save to local list for offline caching
-                                list.push(matched);
-                                try { localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list)); } catch(e) {}
+                            if (!err2 && Array.isArray(d2) && d2.length > 0) {
+                                foundRow = d2[0];
+                            } else {
+                                // Targeted point filter on JSON data->>fobId
+                                const { data: d3, error: err3 } = await client
+                                    .from('diagnostics')
+                                    .select('*')
+                                    .filter('data->>fobId', 'eq', targetFob)
+                                    .order('updated_at', { ascending: false })
+                                    .limit(1);
+
+                                if (!err3 && Array.isArray(d3) && d3.length > 0) {
+                                    foundRow = d3[0];
+                                }
                             }
                         }
+
+                        if (foundRow) {
+                            matched = (foundRow.data && typeof foundRow.data === 'object') ? { ...foundRow, ...foundRow.data } : foundRow;
+                            // Save to local list for offline caching
+                            list.push(matched);
+                            try { localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list)); } catch(e) {}
+                        }
                     } catch(e) {
-                        console.warn("Supabase check on scan error:", e);
+                        console.warn("Supabase targeted check on scan error:", e);
                     }
                 }
             }
 
+            // Check if active STO station chip is blocked (compromised/stolen)
+            const activeStoBlocked = isStoChipBlocked(activeStoProfile.stoFobId);
+            if (activeStoBlocked) {
+                const scanSuccessEl = document.getElementById('scan-success');
+                if (scanSuccessEl) {
+                    scanSuccessEl.innerHTML = `
+                        <div class="bg-rose-950/95 border-2 border-rose-500 p-3.5 rounded-xl space-y-2 text-xs text-rose-100">
+                            <div class="flex items-center space-x-2 text-rose-400 font-black">
+                                <span class="text-xl">🚨</span>
+                                <span class="text-sm">ВНИМАНИЕ: СЛУЖЕБНЫЙ ЧИП СТО ЗАБЛОКИРОВАН!</span>
+                            </div>
+                            <p class="text-[11px] text-rose-200">
+                                Служебный чип вашей станции [${activeStoProfile.stoFobId}] числится украденным или утерянным. Внесение и изменение данных заблокированы для защиты от злоумышленников.
+                            </p>
+                            <button type="button" onclick="openBlockedStoChipsModal()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 rounded-lg text-xs cursor-pointer">
+                                🛡️ Управление безопасностью чипов СТО
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+
             if (matched) {
-                // Bound car found!
+                // Check station isolation: does this car belong to another station?
+                const foreign = isCarFromAnotherStation(matched);
+                if (foreign) {
+                    state.fobId = normalizeFob(matched.fobId || matched.fob_id) || rawClean || normalizedInput;
+                    state.carBrand = matched.carBrand || '';
+                    state.carModel = matched.carModel || '';
+                    state.carYear = matched.carYear || '';
+                    state.licensePlate = matched.licensePlate || '';
+                    state.ownerName = matched.ownerName || '';
+                    state.ownerPhone = matched.ownerPhone || '';
+                    state.isForeignStationLocked = true;
+                    state.foreignStation = foreign;
+
+                    document.getElementById('scanned-fob-id').innerText = state.fobId;
+                    document.getElementById('scanned-car').innerText = (state.carBrand || state.carModel) ? (state.carBrand + ' ' + state.carModel + (state.licensePlate ? ' [' + state.licensePlate + ']' : '')) : 'Автомобиль другого СТО';
+
+                    const scanSuccessEl = document.getElementById('scan-success');
+                    if (scanSuccessEl) {
+                        scanSuccessEl.innerHTML = `
+                            <div class="bg-rose-950/90 border-2 border-rose-500/70 p-3 rounded-xl space-y-2 text-xs">
+                                <div class="flex items-center space-x-2 text-rose-400 font-black">
+                                    <span class="text-base">⛔</span>
+                                    <span>АВТОМОБИЛЬ ЗАКРЕПЛЕН ЗА ДРУГИМ СТО!</span>
+                                </div>
+                                <div class="text-slate-200">
+                                    Автомобиль: <b>${state.carBrand} ${state.carModel} [${state.licensePlate || 'Без номера'}]</b><br>
+                                    Брелок клиента: <span class="font-mono text-blue-300 font-bold">${state.fobId}</span>
+                                </div>
+                                <div class="text-amber-300 bg-amber-950/70 border border-amber-600/50 p-2 rounded-lg text-[11px] space-y-0.5">
+                                    <div class="font-black">🏢 Прикрепленное СТО: ${foreign.stationName}</div>
+                                    ${foreign.stationPhone ? `<div class="text-slate-300 text-[10px]">Контакты СТО: <b>${foreign.stationPhone}</b></div>` : ''}
+                                </div>
+                                <p class="text-[10px] text-rose-300 leading-tight">
+                                    Эксклюзивная сервисная книжка. Обслуживание и внесение записей на вашей станции ("${activeStoProfile.stationName}") заблокированы.
+                                </p>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <button type="button" onclick="showForeignCarModalAgain()" class="bg-rose-700 hover:bg-rose-600 text-white font-bold py-2 px-2 rounded-lg text-xs transition-colors cursor-pointer">
+                                        Подробнее о блокировке
+                                    </button>
+                                    <button type="button" onclick="openClientPortalReadOnly()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 px-2 rounded-lg text-xs transition-colors border border-slate-700 cursor-pointer">
+                                        📱 Вид на телефоне
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    showForeignStationCarModal({
+                        fobId: state.fobId,
+                        carBrand: state.carBrand,
+                        carModel: state.carModel,
+                        licensePlate: state.licensePlate,
+                        foreignStation: foreign
+                    });
+                    return;
+                }
+
+                // If not foreign, clear lock!
+                state.isForeignStationLocked = false;
+                state.foreignStation = null;
+
+                // Bound car found and belongs to current station!
                 state.fobId = normalizeFob(matched.fobId || matched.fob_id) || rawClean || normalizedInput;
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
@@ -2311,6 +3876,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 renderPostTabs();
             } else {
                 // New unbound tag!
+                state.isForeignStationLocked = false;
+                state.foreignStation = null;
                 state.fobId = rawClean || normalizedInput;
                 state.carBrand = '';
                 state.carModel = '';
@@ -2320,9 +3887,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 state.ownerPhone = '';
 
                 document.getElementById('scanned-fob-id').innerText = state.fobId;
-                document.getElementById('scanned-car').innerText = 'Новый брелок (требуется привязка)';
+                document.getElementById('scanned-car').innerText = 'Новый брелок (привязка к СТО)';
                 
-                alert(`📱 Считан брелок [${state.fobId}]!\n\nАвтомобиль с этим брелком еще не зарегистрирован. Заполните данные авто для завершения привязки.`);
+                alert(`📱 Считан новый брелок [${state.fobId}]!\n\nАвтомобиль будет эксклюзивно закреплен за вашей станцией "${activeStoProfile.stationName}". Заполните данные авто для завершения привязки.`);
                 goToScreen2();
             }
         }
@@ -2345,24 +3912,26 @@ window.$RefreshSig$ = () => (type) => type;</script>
                                 }
                             }
                         }
-                        if (!readUid) readUid = 'STO-CHIP-88219';
+                        if (!readUid) readUid = 'STO-CHIP-30003';
                         openStoAuthModal(readUid);
                     }, { once: true });
                 } catch(err) {
-                    const manual = prompt("Введите UID чипа СТО вручную:", activeStoProfile.stoFobId || 'STO-CHIP-88219');
+                    const manual = prompt("Введите UID чипа СТО вручную:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
                     if (manual) openStoAuthModal(manual.trim());
                 }
             } else {
-                const manual = prompt("Введите UID чипа СТО вручную:", activeStoProfile.stoFobId || 'STO-CHIP-88219');
+                const manual = prompt("Введите UID чипа СТО вручную:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
                 if (manual) openStoAuthModal(manual.trim());
             }
         }
 
-        function editFobAndClient() {
-            goToScreen2();
-        }
-
         async function searchByLicensePlate() {
+            if (!isStoSessionAuthorized()) {
+                showStoTerminalLockScreen();
+                showNotificationToast("🔒 Сначала разблокируйте терминал СТО чипом и PIN-кодом");
+                return;
+            }
+
             const inputElem = document.getElementById('search-license-plate');
             const inputPlate = inputElem ? inputElem.value.trim() : '';
             const resultBox = document.getElementById('search-result-info');
@@ -2398,38 +3967,85 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 })[0];
             }
             
-            // 2. If not found in local storage, check Supabase Cloud (parity with client portal)
+            // 2. If not found in local storage, check Supabase Cloud via targeted point query (no limit(200) table scan)
             if (!matched) {
                 const client = getSupabaseClient();
                 if (client) {
                     try {
-                        const { data, error } = await client
+                        let foundRow = null;
+
+                        // Point query directly inside JSONB data column
+                        const { data: d1, error: err1 } = await client
                             .from('diagnostics')
                             .select('*')
+                            .or(`data->>licensePlate.ilike.%${targetPlate}%,data->>licensePlate.ilike.%${inputPlate}%,data->>carNumber.ilike.%${targetPlate}%`)
                             .order('updated_at', { ascending: false })
-                            .limit(200);
+                            .limit(1);
 
-                        if (!error && Array.isArray(data) && data.length > 0) {
-                            const foundRow = data.find(row => {
-                                const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
-                                const p = normalizePlate(rec.licensePlate || rec.carPlate || rec.carNumber || rec.car_number);
-                                return p && p === targetPlate;
-                            });
+                        if (!err1 && Array.isArray(d1) && d1.length > 0) {
+                            foundRow = d1[0];
+                        } else {
+                            // Fallback check on top-level license_plate column
+                            const { data: d2, error: err2 } = await client
+                                .from('diagnostics')
+                                .select('*')
+                                .or(`license_plate.ilike.%${targetPlate}%,license_plate.ilike.%${inputPlate}%`)
+                                .order('updated_at', { ascending: false })
+                                .limit(1);
 
-                            if (foundRow) {
-                                matched = (foundRow.data && typeof foundRow.data === 'object') ? { ...foundRow, ...foundRow.data } : foundRow;
-                                // Cache in local list
-                                list.push(matched);
-                                try { localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list)); } catch(e) {}
+                            if (!err2 && Array.isArray(d2) && d2.length > 0) {
+                                foundRow = d2[0];
                             }
                         }
+
+                        if (foundRow) {
+                            matched = (foundRow.data && typeof foundRow.data === 'object') ? { ...foundRow, ...foundRow.data } : foundRow;
+                            // Cache in local list
+                            list.push(matched);
+                            try { localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list)); } catch(e) {}
+                        }
                     } catch(e) {
-                        console.warn("Supabase check on plate search error:", e);
+                        console.warn("Supabase targeted check on plate search error:", e);
                     }
                 }
             }
             
             if (matched) {
+                // Check if car belongs to another station
+                const foreign = isCarFromAnotherStation(matched);
+                if (foreign) {
+                    state.fobId = normalizeFob(matched.fobId || matched.fob_id) || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
+                    state.carBrand = matched.carBrand || '';
+                    state.carModel = matched.carModel || '';
+                    state.carYear = matched.carYear || '';
+                    state.licensePlate = matched.licensePlate || inputPlate;
+                    state.isForeignStationLocked = true;
+                    state.foreignStation = foreign;
+
+                    if (resultBox) {
+                        resultBox.classList.remove('hidden');
+                        resultBox.innerHTML = `
+                            <div class="bg-rose-950/80 border border-rose-500/60 p-3 rounded-xl space-y-1.5 text-xs text-rose-200">
+                                <div class="font-black text-rose-400 flex items-center gap-1.5">
+                                    <span>⛔</span> <span>Автомобиль [${targetPlate}] закреплен за другим СТО!</span>
+                                </div>
+                                <div>Прикрепленная станция: <b class="text-amber-300">${foreign.stationName}</b></div>
+                                <div class="text-[11px] text-slate-300">Внесение записей на вашей станции заблокировано правилом изоляции.</div>
+                            </div>
+                        `;
+                    }
+                    showForeignStationCarModal({
+                        fobId: state.fobId,
+                        carBrand: state.carBrand,
+                        carModel: state.carModel,
+                        licensePlate: state.licensePlate,
+                        foreignStation: foreign
+                    });
+                    return;
+                }
+
+                state.isForeignStationLocked = false;
+                state.foreignStation = null;
                 state.fobId = normalizeFob(matched.fobId || matched.fob_id) || ('M1-FOB-' + Math.floor(10000 + Math.random() * 90000));
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
@@ -2525,11 +4141,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
             state.ownerPhone = ownerPhoneVal;
             state.licensePlate = licensePlateVal;
             
-            alert("Чип успешно привязан и сохранен в локальную память!");
-            
             // Save vehicle details in local storage database
             const vehicleRecord = {
                 fobId: state.fobId,
+                station_id: activeStoProfile.stationId || 'aksukent',
+                stationName: activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент',
+                stoFobId: activeStoProfile.stoFobId || '',
+                stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (701) 599-11-18',
+                stationGisUrl: activeStoProfile.stationGisUrl || '',
                 carBrand: state.carBrand,
                 carModel: state.carModel,
                 carYear: state.carYear,
@@ -2553,11 +4172,19 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const itemFob = normalizeFob(item.fobId || item.fob_id);
                 return targetFob && itemFob && itemFob === targetFob;
             });
+
             if (existingIndex >= 0) {
+                const foreign = isCarFromAnotherStation(list[existingIndex]);
+                if (foreign) {
+                    alert(`⛔ Ошибка сохранения!\n\nАвтомобиль закреплен за партнерским СТО "${foreign.stationName}".\nПерепривязка на вашей станции заблокирована правилом изоляции.`);
+                    return;
+                }
                 list[existingIndex] = { ...list[existingIndex], ...vehicleRecord };
             } else {
                 list.push(vehicleRecord);
             }
+
+            alert("Чип успешно привязан к СТО \"" + (activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент') + "\" и сохранен!");
             
             localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(list));
             
@@ -2577,6 +4204,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function loadFobToDiagnostics() {
+            const blockedSto = isStoChipBlocked(activeStoProfile.stoFobId);
+            if (blockedSto) {
+                alert(`⛔ ОТКАЗАНО В ДОСТУПЕ (ЗАЩИТА ОТ ЗЛОУМЫШЛЕННИКОВ)!\n\nСлужебный чип вашей станции [${activeStoProfile.stoFobId}] числится ЗАБЛОКИРОВАННЫМ (${blockedSto.reasonText || 'украден или утерян'})!\n\nВнесение и изменение сервисных данных заблокировано в целях безопасности.\nВыпустите новый чип СТО в меню «Блокировка чипов СТО».`);
+                openBlockedStoChipsModal();
+                return;
+            }
+            if (state.isForeignStationLocked) {
+                alert(`⛔ Обслуживание заблокировано!\n\nДанный автомобиль закреплен за другим партнерским СТО ("${state.foreignStation?.stationName || 'Партнерское СТО'}").\nОформление карты ТО на вашей станции запрещено.`);
+                return;
+            }
             // Directly start diagnostics with loaded client history
             let summaryText = 'Брелок: ' + state.fobId;
             if (state.carBrand || state.carModel) {
@@ -2612,14 +4249,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             });
             let history = [];
             if (rec) {
-                if (Array.isArray(rec.history)) {
-                    history = rec.history;
-                } else if (typeof rec.history === 'string' && rec.history.trim()) {
-                    try {
-                        const parsed = JSON.parse(rec.history);
-                        if (Array.isArray(parsed)) history = parsed;
-                    } catch(e) {}
-                }
+                history = safeParseHistory(rec.history);
             }
 
             // Deduplicate items with same day or identical mileage/timestamp
@@ -2778,7 +4408,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             container.innerHTML = html;
         }
 
-        function commitToDatabase() {
+        async function commitToDatabase() {
             // Anti-double-click lock: disable button to prevent accidental duplicate saves
             const commitBtn = document.getElementById('btn-commit-sto') || document.querySelector('#form-diagnostics button[type="submit"]');
             if (commitBtn) {
@@ -2802,6 +4432,19 @@ window.$RefreshSig$ = () => (type) => type;</script>
             // Check if there is an active fob ID to register
             if (!post.fobId) {
                 alert("Ошибка: нет активного брелка для сохранения записи!");
+                return;
+            }
+
+            // ANTI-TAMPERING & THEFT CHECK: STRICT STO STATION CHIP INTEGRITY
+            const blockedSto = isStoChipBlocked(activeStoProfile.stoFobId);
+            if (blockedSto) {
+                alert(`⛔ ОТКАЗАНО В ДОСТУПЕ (ЗАЩИТА ОТ ЗЛОУМЫШЛЕННИКОВ)!\n\nСлужебный чип вашей станции [${activeStoProfile.stoFobId}] числится ЗАБЛОКИРОВАННЫМ (${blockedSto.reasonText || 'украден или утерян'})!\n\nВнесение и изменение сервисных данных строго запрещены для предотвращения фальсификации данных.\nПерейдите в «Блокировка чипов СТО» для привязки нового чипа СТО.`);
+                openBlockedStoChipsModal();
+                return;
+            }
+
+            if (state.isForeignStationLocked) {
+                alert(`⛔ Сохранение заблокировано!\n\nАвтомобиль закреплен за другой партнерской станцией ("${state.foreignStation?.stationName || 'Партнерское СТО'}").`);
                 return;
             }
             
@@ -2836,16 +4479,19 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const itemFob = normalizeFob(item.fobId || item.fob_id);
                 return activeCleanFob && itemFob && itemFob === activeCleanFob;
             });
+
+            if (existingRecord) {
+                const foreign = isCarFromAnotherStation(existingRecord);
+                if (foreign) {
+                    alert(`⛔ Сохранение заблокировано!\n\nАвтомобиль (${existingRecord.carBrand || ''} ${existingRecord.carModel || ''} [${existingRecord.licensePlate || ''}]) эксклюзивно закреплен за СТО "${foreign.stationName}".\nВнесение изменений на вашей станции ("${activeStoProfile.stationName}") запрещено правилом изоляции.`);
+                    return;
+                }
+            }
+
             let prevHistory = [];
             if (existingRecord) {
-                if (Array.isArray(existingRecord.history) && existingRecord.history.length > 0) {
-                    prevHistory = [...existingRecord.history];
-                } else if (typeof existingRecord.history === 'string' && existingRecord.history.trim()) {
-                    try {
-                        const parsed = JSON.parse(existingRecord.history);
-                        if (Array.isArray(parsed)) prevHistory = parsed;
-                    } catch(e) {}
-                } else if (existingRecord.timestamp || existingRecord.mileageOilDvs || existingRecord.mileageOilKpp) {
+                prevHistory = safeParseHistory(existingRecord.history);
+                if (prevHistory.length === 0 && (existingRecord.timestamp || existingRecord.mileageOilDvs || existingRecord.mileageOilKpp)) {
                     prevHistory.push({
                         id: 'hist_' + Date.now() + '_prev',
                         timestamp: existingRecord.timestamp || 'Ранее зафиксировано',
@@ -2881,9 +4527,10 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 id: 'hist_' + Date.now(),
                 timestamp: formattedDate,
                 mileageUnit: currentUnit,
+                station_id: activeStoProfile.stationId || 'aksukent',
                 stoFobId: activeStoProfile.stoFobId || '',
-                stationName: activeStoProfile.stationName || 'NFC SERViS Center',
-                stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (707) 123-45-67',
+                stationName: activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент',
+                stationWhatsapp: activeStoProfile.stationWhatsapp || '+7 (701) 599-11-18',
                 stationGisUrl: activeStoProfile.stationGisUrl || '',
                 // Engine (DVS): store strictly what was entered in current service visit
                 mileageOilDvs: post.formData.mileageOilDvs || '',
@@ -2959,10 +4606,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const record = {
                 ...ex,
                 fobId: post.fobId,
+                station_id: activeStoProfile.stationId || ex.station_id || 'aksukent',
                 stoFobId: activeStoProfile.stoFobId || ex.stoFobId || '',
                 mileageUnit: currentUnit || ex.mileageUnit || 'км',
-                stationName: activeStoProfile.stationName || ex.stationName || 'NFC SERViS Center',
-                stationWhatsapp: activeStoProfile.stationWhatsapp || ex.stationWhatsapp || '+7 (707) 123-45-67',
+                stationName: activeStoProfile.stationName || ex.stationName || 'Mobil 1 Сервис Аксукент',
+                stationWhatsapp: activeStoProfile.stationWhatsapp || ex.stationWhatsapp || '+7 (701) 599-11-18',
                 stationGisUrl: activeStoProfile.stationGisUrl || ex.stationGisUrl || '',
                 carBrand: post.carBrand || ex.carBrand || '',
                 carModel: post.carModel || ex.carModel || '',
@@ -3046,22 +4694,30 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 console.warn("Storage sync failed", e);
             }
 
-            // Direct Supabase Browser SDK sync
+            // Direct Supabase Cloud sync with explicit Promise handling
             if (navigator.onLine) {
-                saveToSupabaseDirect(record).then(res => {
-                    if (res.success) {
-                        console.log("[Supabase Direct Sync] Successfully saved to Supabase cloud");
+                try {
+                    const res = await saveToSupabaseDirect(record);
+                    if (res && res.success === true) {
+                        record.syncedToSupabase = true;
                         markRecordAsSynced(record.fobId);
+                        console.log("[Supabase Direct Sync] Successfully saved and confirmed by Supabase cloud for fob:", record.fobId);
+                        showNotificationToast("✓ ТО зафиксировано и сохранено в Supabase!");
                     } else {
-                        console.warn("[Supabase Direct Sync] Will retry auto-sync when online:", res);
+                        record.syncedToSupabase = false;
+                        console.warn("[Supabase Direct Sync] Supabase cloud save unconfirmed, marked for retry:", res);
+                        showNotificationToast("⚠️ ТО зафиксировано на терминале (ожидает синхронизации с Supabase)");
                     }
-                });
+                } catch(err) {
+                    record.syncedToSupabase = false;
+                    console.error("[Supabase Direct Sync] Exception during cloud save:", err);
+                    showNotificationToast("⚠️ Сохранено локально (ошибка соединения с Supabase)");
+                }
             } else {
-                console.log("[Supabase Direct Sync] Currently offline. Saved locally, auto-sync will run when back online.");
+                record.syncedToSupabase = false;
+                console.log("[Supabase Direct Sync] Offline mode. Saved locally, auto-sync will run when online.");
+                showNotificationToast("✓ ТО зафиксировано локально (терминал офлайн)");
             }
-            
-            // Notify master of successful save
-            showNotificationToast("✓ ТО успешно зафиксировано в базу!");
             
             // Clear active post
             posts[activePostIndex] = createEmptyPostState();
@@ -3819,6 +5475,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
         // Initialize on load
         loadStoProfile();
+        checkStoTerminalSession();
         renderPostTabs();
         updateNetworkStatusUI();
         loadCurrentStationAnnouncement();
@@ -3827,11 +5484,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
         const urlParams = new URLSearchParams(window.location.search);
         const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('scanFob');
         if (queryFob) {
-            setTimeout(() => {
-                if (typeof processScannedFobUid === 'function') {
-                    processScannedFobUid(queryFob.trim());
-                }
-            }, 300);
+            if (isStoSessionAuthorized()) {
+                setTimeout(() => {
+                    if (typeof processScannedFobUid === 'function') {
+                        processScannedFobUid(queryFob.trim());
+                    }
+                }, 300);
+            } else {
+                window._pendingQueryFob = queryFob.trim();
+            }
         }
 
         setTimeout(() => {
