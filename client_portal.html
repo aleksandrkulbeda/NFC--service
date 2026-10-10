@@ -2324,29 +2324,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const normStation = normalizeStoKey(stationName);
             const normId = normalizeStoKey(stationId);
 
-            // 1. Check local cache first: if station explicitly disabled announcement in local storage, do not show!
-            const localKeysToCheck = [
-                'sto_announcement_' + encodeURIComponent(stationName),
-                'sto_announcement_' + encodeURIComponent(normStation),
-                stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
-                'sto_announcement_aksukent'
-            ].filter(Boolean);
-
-            let localExplicitlyDisabled = false;
-            for (const lk of localKeysToCheck) {
-                try {
-                    const raw = localStorage.getItem(lk);
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (parsed && (parsed.is_active === false || parsed.is_active === 'false' || parsed.is_active === 0)) {
-                            localExplicitlyDisabled = true;
-                            break;
-                        }
-                    }
-                } catch(e) {}
-            }
-
-            // 2. Try fetching from Supabase 'banners' table strictly for this client's station
+            // 1. Try fetching from Supabase 'banners' table strictly for this client's station
             const client = getSupabaseClient();
             let supabaseResponded = false;
 
@@ -2401,16 +2379,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                             const isLatestActive = (latest.is_active === true || latest.is_active === 'true' || latest.is_active === 1);
                             const announcementText = (latest.description || latest.text || '').trim();
 
-                            // 🛑 CRITICAL CHECK: If station disabled the announcement or text is empty or local state is disabled, STRICTLY HIDE!
-                            if (!isLatestActive || !announcementText || localExplicitlyDisabled) {
-                                card.classList.add('hidden');
-                                textEl.innerText = '';
-                                return;
-                            }
-
-                            // Also verify there is at least one active row
-                            const hasAnyActive = stationBanners.some(b => (b.is_active === true || b.is_active === 'true' || b.is_active === 1) && (b.description || '').trim());
-                            if (!hasAnyActive) {
+                            // 🛑 CRITICAL CHECK: If station disabled the announcement or text is empty, STRICTLY HIDE!
+                            if (!isLatestActive || !announcementText) {
                                 card.classList.add('hidden');
                                 textEl.innerText = '';
                                 return;
@@ -2435,8 +2405,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 3. Fallback to localStorage ONLY if Supabase was completely unreachable (network offline)
-            if (!supabaseResponded && !localExplicitlyDisabled) {
+            // 2. Fallback to localStorage ONLY if Supabase was completely unreachable (network offline)
+            if (!supabaseResponded) {
+                const localKeysToCheck = [
+                    'sto_announcement_' + encodeURIComponent(stationName),
+                    'sto_announcement_' + encodeURIComponent(normStation),
+                    stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
+                    'sto_announcement_aksukent'
+                ].filter(Boolean);
+
                 try {
                     for (const lk of localKeysToCheck) {
                         const raw = localStorage.getItem(lk);
