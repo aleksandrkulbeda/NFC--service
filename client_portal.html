@@ -84,6 +84,19 @@ window.$RefreshSig$ = () => (type) => type;</script>
     </script>
 <script src="/_aistudio-iframe.js?v=6634132a"></script></head>
 <body class="bg-[#030914] text-slate-100 font-sans min-h-screen selection:bg-orange-500 selection:text-white flex flex-col items-center justify-start sm:p-4">
+    <!-- STATION BINDING TOAST NOTIFICATION (Appears when post is configured via ?sto=...) -->
+    <div id="station-bound-toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 max-w-sm w-[90%] pointer-events-none">
+        <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border border-emerald-500/60 rounded-2xl p-3 shadow-2xl shadow-emerald-950/80 flex items-center space-x-3 text-white">
+            <div class="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 text-sm font-bold">
+                ✓
+            </div>
+            <div class="min-w-0 flex-1">
+                <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-400" data-i18n="stationBoundTitle">Пост СТО привязан</span>
+                <p class="text-xs font-bold text-white truncate" id="station-bound-toast-name"></p>
+            </div>
+        </div>
+    </div>
+
     <!-- RESPONSIVE CLIENT PORTAL CONTAINER -->
     <div class="w-full max-w-xl bg-[#0A1121] border-x border-b sm:border border-slate-800/80 sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden min-h-screen sm:min-h-0 sm:my-4">
         
@@ -111,6 +124,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         <span class="text-white ml-1">1</span>
                     </div>
                     <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono border-l border-slate-800 pl-2" data-i18n="portalSub">Портал</span>
+                    <span id="header-station-badge" class="hidden text-[10px] text-amber-300 font-bold bg-amber-950/60 border border-amber-700/40 px-2 py-0.5 rounded-full truncate max-w-[120px] sm:max-w-[180px]"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     <!-- LANGUAGE TOGGLE BUTTONS -->
@@ -191,6 +205,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     <div class="space-y-1.5">
                         <h2 class="text-lg font-black text-white tracking-tight" data-i18n="entryTitle">Электронная сервисная книжка</h2>
                         <p class="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto" data-i18n="entrySub">Введите госномер вашего автомобиля для просмотра истории ТО и регламентных замен</p>
+                    </div>
+
+                    <!-- BOUND STATION BADGE ON ENTRY SCREEN -->
+                    <div id="entry-station-container" class="hidden items-center justify-center">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/40 shadow-sm font-mono">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <span id="entry-station-name">СТО: NFC SERViS Center</span>
+                        </span>
                     </div>
 
                     <!-- CAR PLATE INPUT FORM -->
@@ -517,6 +539,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 </div>
             </div>
 
+
+
             <!-- COMPLETE MAINTENANCE HISTORY CARD (ПОЛНАЯ ИСТОРИЯ ЗАМЕН ДЛЯ ПРОДАЖИ/ВЛАДЕНИЯ) -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700/50 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
@@ -552,6 +576,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
         </div>
     </div>
+
+
 
     <!-- REACTIVE CLIENT PORTAL STORAGE ENGINE -->
     <script>
@@ -630,7 +656,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceBtn: "Рассчитать и оформить полис",
                 announcementBadge: "Объявление СТО",
                 reviewGisTitle: "Оставить отзыв в 2ГИС",
-                reviewGisSub: "Оцените качество обслуживания нашей СТО"
+                reviewGisSub: "Оцените качество обслуживания нашей СТО",
+                stationBoundTitle: "Пост СТО привязан"
             },
             kk: {
                 masterMode: "СТО Шебері режимі",
@@ -705,7 +732,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceBtn: "Полисті есептеу және рәсімдеу",
                 announcementBadge: "СТО Хабарландыруы",
                 reviewGisTitle: "2ГИС-те пікір қалдыру",
-                reviewGisSub: "Біздің СТО қызметінің сапасын бағалаңыз"
+                reviewGisSub: "Біздің СТО қызметінің сапасын бағалаңыз",
+                stationBoundTitle: "СТО бекеті бекітілді"
             }
         };
 
@@ -735,6 +763,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     el.innerText = dict[key];
                 }
             });
+
+            if (typeof applyStationToUI === 'function') {
+                const activeStation = getActiveStationSettings();
+                if (activeStation) applyStationToUI(activeStation);
+            }
 
             if (window._currentCarData) {
                 renderCarData(window._currentCarData);
@@ -769,6 +802,17 @@ window.$RefreshSig$ = () => (type) => type;</script>
             backlashOk: true,
             timestamp: '16.06.2026'
         };
+
+        // Hydrate DEFAULT_CAR with cached active station if available in localStorage
+        try {
+            const cachedSto = localStorage.getItem('nfc_servis_active_sto_profile') || localStorage.getItem('mobil1_active_sto_profile');
+            if (cachedSto) {
+                const parsedSto = JSON.parse(cachedSto);
+                if (parsedSto.stationName) DEFAULT_CAR.stationName = parsedSto.stationName;
+                if (parsedSto.stationWhatsapp) DEFAULT_CAR.stationWhatsapp = parsedSto.stationWhatsapp;
+                if (parsedSto.stationGisUrl) DEFAULT_CAR.stationGisUrl = parsedSto.stationGisUrl;
+            }
+        } catch(e) {}
 
         // Normalization helpers for strict data integrity
         function normalizeFob(id) {
@@ -848,7 +892,10 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const normTarget = normalizeStoKey(cleanName);
 
             return registry.find(item => {
-                if (cleanFob && item.chipUid && item.chipUid.toLowerCase() === cleanFob) return true;
+                if (cleanFob) {
+                    if (item.chipUid && item.chipUid.toLowerCase() === cleanFob) return true;
+                    if (item.id && String(item.id).toLowerCase() === cleanFob) return true;
+                }
                 if (normTarget && item.stationName) {
                     const normItem = normalizeStoKey(item.stationName);
                     if (normItem === normTarget) return true;
@@ -856,6 +903,317 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
                 return false;
             });
+        }
+
+        // =========================================================================
+        // 🏢 STO STATION DYNAMIC SETUP & FALLBACK MANAGEMENT (SUPABASE + LOCALSTORAGE)
+        // =========================================================================
+
+        // Get currently active STO settings with multi-tier fallback (localStorage -> registry -> default)
+        function getActiveStationSettings(preferredStoId) {
+            let active = null;
+            const cleanPref = String(preferredStoId || '').trim();
+
+            // 1. If preferred ID provided, check registry first
+            if (cleanPref) {
+                const regMatch = getStoFromRegistry('', cleanPref);
+                if (regMatch) {
+                    active = {
+                        id: regMatch.chipUid || regMatch.id || cleanPref,
+                        name: regMatch.stationName || '',
+                        phone: regMatch.stationWhatsapp || regMatch.phone || '',
+                        gisUrl: regMatch.stationGisUrl || regMatch.gis_url || ''
+                    };
+                }
+            }
+
+            // 2. Check active STO profile in localStorage
+            if (!active) {
+                try {
+                    const raw = localStorage.getItem('nfc_servis_active_sto_profile') || localStorage.getItem('mobil1_active_sto_profile');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && (parsed.stationName || parsed.name || parsed.stationWhatsapp || parsed.phone || parsed.stationGisUrl || parsed.gis_url)) {
+                            active = {
+                                id: parsed.stoFobId || parsed.stationId || parsed.id || '',
+                                name: parsed.stationName || parsed.name || '',
+                                phone: parsed.stationWhatsapp || parsed.phone || '',
+                                gisUrl: parsed.stationGisUrl || parsed.gis_url || ''
+                            };
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 3. Check individual localStorage keys
+            if (!active) {
+                const name = localStorage.getItem('station_name') || '';
+                const phone = localStorage.getItem('station_phone') || localStorage.getItem('station_whatsapp') || '';
+                const gisUrl = localStorage.getItem('station_gis_url') || '';
+                const id = localStorage.getItem('nfc_servis_active_sto_id') || localStorage.getItem('sto_id') || '';
+                if (name || phone || gisUrl) {
+                    active = { id, name, phone, gisUrl };
+                }
+            }
+
+            // 4. Fallback to DEFAULT_CAR settings
+            if (!active) {
+                active = {
+                    id: DEFAULT_CAR.stoFobId || 'STO-CHIP-88219',
+                    name: DEFAULT_CAR.stationName || 'NFC SERViS Center - Алматы',
+                    phone: DEFAULT_CAR.stationWhatsapp || '+7 (707) 123-45-67',
+                    gisUrl: DEFAULT_CAR.stationGisUrl || 'https://2gis.kz/almaty'
+                };
+            }
+            return active;
+        }
+
+        // Save station settings into localStorage under all system keys (Режим привязки поста СТО)
+        function saveStationSettingsToLocalStorage(stoId, stData) {
+            const cleanId = String(stoId || '').trim();
+            const name = String(stData.name || stData.station_name || '').trim();
+            const phone = String(stData.phone || stData.whatsapp || stData.station_phone || '').trim();
+            const gisUrl = String(stData.gis_url || stData.station_gis_url || stData.gis || '').trim();
+            const pin = String(stData.pin || '1234');
+            const city = String(stData.city || 'СТО');
+
+            const profile = {
+                stoFobId: cleanId,
+                stationId: cleanId,
+                stationName: name,
+                stationWhatsapp: phone,
+                stationGisUrl: gisUrl,
+                pinCode: pin,
+                stationCity: city
+            };
+
+            try {
+                localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(profile));
+                localStorage.setItem('mobil1_active_sto_profile', JSON.stringify(profile));
+                localStorage.setItem('nfc_servis_active_sto_id', cleanId);
+                localStorage.setItem('sto_id', cleanId);
+                if (name) localStorage.setItem('station_name', name);
+                if (phone) {
+                    localStorage.setItem('station_phone', phone);
+                    localStorage.setItem('station_whatsapp', phone);
+                }
+                if (gisUrl) localStorage.setItem('station_gis_url', gisUrl);
+                localStorage.setItem('sto_master_authorized', 'true');
+                localStorage.setItem('sto_is_master_device', 'true');
+
+                // Update registry list in localStorage
+                let registry = [];
+                try {
+                    const storedReg = localStorage.getItem('nfc_servis_sto_chip_registry');
+                    if (storedReg) {
+                        const parsed = JSON.parse(storedReg);
+                        if (Array.isArray(parsed)) registry = parsed;
+                    }
+                } catch(e) {}
+
+                const normTarget = normalizeStoKey(name);
+                const regIdx = registry.findIndex(r => 
+                    (cleanId && r.chipUid && r.chipUid.toLowerCase() === cleanId.toLowerCase()) || 
+                    (cleanId && r.id && String(r.id).toLowerCase() === cleanId.toLowerCase()) ||
+                    (normTarget && r.stationName && normalizeStoKey(r.stationName) === normTarget)
+                );
+
+                const regItem = {
+                    chipUid: cleanId,
+                    id: cleanId,
+                    stationName: name,
+                    stationWhatsapp: phone,
+                    stationGisUrl: gisUrl,
+                    stationCity: city,
+                    pin: pin
+                };
+
+                if (regIdx >= 0) {
+                    registry[regIdx] = { ...registry[regIdx], ...regItem };
+                } else {
+                    registry.unshift(regItem);
+                }
+                localStorage.setItem('nfc_servis_sto_chip_registry', JSON.stringify(registry));
+
+                // Sync DEFAULT_CAR in memory
+                if (name) DEFAULT_CAR.stationName = name;
+                if (phone) DEFAULT_CAR.stationWhatsapp = phone;
+                if (gisUrl) DEFAULT_CAR.stationGisUrl = gisUrl;
+            } catch(e) {
+                console.warn('[StationBinding] Error writing to localStorage:', e);
+            }
+        }
+
+        // Apply station details to interface elements (название станции, кнопка WhatsApp, виджет 2ГИС)
+        function applyStationToUI(st) {
+            if (!st) return;
+            const dict = translations[currentLang] || translations.ru;
+            const stoName = st.name || '';
+            const stoPhone = st.phone || '';
+            const stoGis = (st.gisUrl || st.gis_url || '').trim();
+
+            // 1. Название станции в сервисной книжке
+            const stoBadge = document.getElementById('car-sto-badge');
+            if (stoBadge && stoName) {
+                stoBadge.innerText = (dict.stoPrefix || '🏢 СТО: ') + stoName;
+            }
+
+            // 2. Название станции в шапке портала и на экране ввода
+            const headerBadge = document.getElementById('header-station-badge');
+            if (headerBadge) {
+                if (stoName) {
+                    headerBadge.innerText = stoName;
+                    headerBadge.classList.remove('hidden');
+                } else {
+                    headerBadge.classList.add('hidden');
+                }
+            }
+
+            const entryStationContainer = document.getElementById('entry-station-container');
+            const entryStationName = document.getElementById('entry-station-name');
+            if (entryStationContainer && entryStationName) {
+                if (stoName) {
+                    entryStationName.innerText = (dict.stoPrefix || '🏢 СТО: ') + stoName;
+                    entryStationContainer.classList.remove('hidden');
+                    entryStationContainer.classList.add('flex');
+                } else {
+                    entryStationContainer.classList.add('hidden');
+                    entryStationContainer.classList.remove('flex');
+                }
+            }
+
+            // 3. Кнопка WhatsApp
+            const waBtn = document.getElementById('warning-whatsapp-btn');
+            if (waBtn) {
+                const curCar = window._currentCarData || DEFAULT_CAR;
+                const carInfo = `${curCar.carBrand || ''} ${curCar.carModel || ''}`.trim();
+                const nextKmFormatted = (curCar && curCar.nextOilDvs)
+                    ? formatKm(curCar.nextOilDvs, '—', curCar.mileageUnit || 'км')
+                    : (document.getElementById('warning-next-km')?.innerText || '—');
+                const textMsg = encodeURIComponent(`${dict.waMessageHello || 'Здравствуйте'} (${stoName || 'СТО'})! ${dict.waMessageWant || 'Хочу записаться на замену масла. Автомобиль:'} ${carInfo}. ${dict.waMessageNextPlanned || 'Следующая замена запланирована на пробеге:'} ${nextKmFormatted}.`);
+                const cleanPhone = stoPhone.replace(/\D/g, '');
+                if (cleanPhone) {
+                    waBtn.href = `https://wa.me/${cleanPhone}?text=${textMsg}`;
+                } else {
+                    waBtn.href = `https://wa.me/?text=${textMsg}`;
+                }
+            }
+
+            // 4. Виджет 2ГИС (строгая изоляция и поддержка прямой ссылки)
+            const gisCard = document.getElementById('station-2gis-review-card');
+            if (gisCard) {
+                if (stoGis && (stoGis.startsWith('http://') || stoGis.startsWith('https://') || stoGis.includes('2gis'))) {
+                    gisCard.href = stoGis.startsWith('http') ? stoGis : ('https://' + stoGis);
+                    gisCard.classList.remove('hidden');
+                    gisCard.classList.add('flex');
+
+                    const subTextEl = document.getElementById('station-2gis-sub-text');
+                    if (subTextEl) {
+                        if (stoName) {
+                            subTextEl.innerText = `${dict.reviewGisSub || 'Оцените качество обслуживания нашей СТО'} • ${stoName}`;
+                        } else {
+                            subTextEl.innerText = dict.reviewGisSub || 'Оцените качество обслуживания нашей СТО';
+                        }
+                    }
+                } else {
+                    gisCard.classList.add('hidden');
+                    gisCard.classList.remove('flex');
+                    gisCard.href = '#';
+                }
+            }
+        }
+
+        // Show brief notification when master device binds post
+        function showStationBoundNotice(name) {
+            const toast = document.getElementById('station-bound-toast');
+            const nameEl = document.getElementById('station-bound-toast-name');
+            if (!toast) return;
+            if (nameEl) nameEl.innerText = name || 'Станция активна';
+            toast.classList.remove('hidden');
+            clearTimeout(window._stoToastTimer);
+            window._stoToastTimer = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        // Fallback: apply station from localStorage (used when no ?sto param, or offline)
+        function applyStationFromLocalStorage(preferredStoId) {
+            const active = getActiveStationSettings(preferredStoId);
+            if (active) {
+                applyStationToUI(active);
+            }
+            return active;
+        }
+
+        // Initialize station by query parameter ?sto=... from Supabase
+        async function initStationFromSupabase(stoId) {
+            if (!stoId) {
+                applyStationFromLocalStorage();
+                return;
+            }
+
+            const cleanId = String(stoId).trim();
+
+            // 1. Immediate offline fallback: apply cached settings immediately
+            applyStationFromLocalStorage(cleanId);
+
+            try {
+                // Ensure Supabase is configured
+                await ensureSupabaseConfig();
+                const _supabaseClient = getSupabaseClient() || window._supabaseClient;
+
+                if (!_supabaseClient) {
+                    console.warn('[StationBinding] Supabase client is not available, operating in offline cache mode');
+                    return;
+                }
+
+                // 2. Query stations table in Supabase
+                const { data, error } = await _supabaseClient
+                    .from('stations')
+                    .select('*')
+                    .eq('id', cleanId)
+                    .single();
+
+                if (error) {
+                    console.warn('[StationBinding] Supabase stations table error or station not found:', error);
+                    // Fallback to cache already applied
+                    return;
+                }
+
+                if (data) {
+                    const stData = {
+                        id: data.id || cleanId,
+                        name: data.name || data.station_name || '',
+                        phone: data.phone || data.whatsapp || data.station_phone || '',
+                        gis_url: data.gis_url || data.station_gis_url || data.gis || '',
+                        pin: data.pin || '1234',
+                        city: data.city || data.station_city || 'СТО'
+                    };
+
+                    // 3. Save to localStorage (Режим привязки поста СТО)
+                    saveStationSettingsToLocalStorage(cleanId, stData);
+
+                    // 4. Fill interface (название станции, кнопка WhatsApp, виджет 2ГИС)
+                    applyStationToUI({
+                        id: stData.id,
+                        name: stData.name,
+                        phone: stData.phone,
+                        gisUrl: stData.gis_url
+                    });
+
+                    // If a vehicle is currently rendered, re-render to reflect new station settings
+                    if (window._currentCarData) {
+                        renderCarData(window._currentCarData);
+                    }
+
+                    // Show station binding confirmation notification
+                    showStationBoundNotice(stData.name);
+                }
+            } catch(e) {
+                console.warn('[StationBinding] Exception during Supabase station lookup:', e);
+                // Fallback to cache
+                applyStationFromLocalStorage(cleanId);
+            }
         }
 
         // Load all saved diagnostics from localStorage (used for offline cache)
@@ -1339,9 +1697,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
             data.nextOilHydro = resolveField('nextOilHydro', data.nextOilHydro || '');
             data.coolantType = resolveField('coolantType', data.coolantType || '');
             data.freezeTemp = resolveField('freezeTemp', data.freezeTemp || '');
-            data.stationName = resolveField('stationName', data.stationName || '');
-            data.stationWhatsapp = resolveField('stationWhatsapp', data.stationWhatsapp || '');
-            data.stationGisUrl = resolveField('stationGisUrl', data.stationGisUrl || '');
+
+            const activeStation = getActiveStationSettings();
+            data.stationName = resolveField('stationName', data.stationName || (activeStation ? activeStation.name : ''));
+            data.stationWhatsapp = resolveField('stationWhatsapp', data.stationWhatsapp || (activeStation ? activeStation.phone : ''));
+            data.stationGisUrl = resolveField('stationGisUrl', data.stationGisUrl || (activeStation ? activeStation.gisUrl : ''));
 
             // ID/Fob header
             document.getElementById('portal-fob-id').innerText = 'ID: ' + (data.fobId || '#???');
@@ -1449,13 +1809,20 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const isGenericCity = !gisUrl || (!gisUrl.includes('/firm/') && !gisUrl.includes('go.2gis.com') && !gisUrl.includes('/branches/'));
 
                 // 2. If absent or only a generic city link, upgrade with verified firm link for this specific STO
-                if ((!gisUrl || isGenericCity) && (data.stationName || data.stoFobId)) {
-                    const stoInfo = getStoFromRegistry(data.stationName, data.stoFobId);
-                    if (stoInfo && stoInfo.stationGisUrl) {
-                        if (!gisUrl || (isGenericCity && (stoInfo.stationGisUrl.includes('/firm/') || stoInfo.stationGisUrl.includes('go.2gis.com')))) {
-                            gisUrl = stoInfo.stationGisUrl.trim();
+                if ((!gisUrl || isGenericCity) && (data.stationName || data.stoFobId || (activeStation && activeStation.gisUrl))) {
+                    if (activeStation && activeStation.gisUrl && (!data.stationName || normalizeStoKey(data.stationName) === normalizeStoKey(activeStation.name))) {
+                        gisUrl = activeStation.gisUrl.trim();
+                    } else {
+                        const stoInfo = getStoFromRegistry(data.stationName, data.stoFobId);
+                        if (stoInfo && stoInfo.stationGisUrl) {
+                            if (!gisUrl || (isGenericCity && (stoInfo.stationGisUrl.includes('/firm/') || stoInfo.stationGisUrl.includes('go.2gis.com')))) {
+                                gisUrl = stoInfo.stationGisUrl.trim();
+                            }
                         }
                     }
+                }
+                if (!gisUrl && activeStation && activeStation.gisUrl) {
+                    gisUrl = activeStation.gisUrl.trim();
                 }
 
                 // 3. Strict Isolation: Only display if valid 2GIS link belongs to this specific STO
@@ -1466,7 +1833,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
                     const subTextEl = document.getElementById('station-2gis-sub-text');
                     if (subTextEl) {
-                        const stoName = data.stationName || '';
+                        const stoName = data.stationName || (activeStation && activeStation.name) || '';
                         if (stoName) {
                             subTextEl.innerText = `${dict.reviewGisSub || 'Оцените качество обслуживания нашей СТО'} • ${stoName}`;
                         } else {
@@ -1781,8 +2148,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
         // 🔑 НАСТРОЙКИ SUPABASE (Вставьте ваши URL и Ключ доступа прямо сюда):
         // =========================================================================
         const SUPABASE_CONFIG = {
-            url: "https://nrqsfkpomswnjwlencgk.supabase.co", // Например: "https://your-project.supabase.co"
-            key: "sb_publishable_umhXgBNXFXzLNdh7tI4O_w_2fTDdNlW"  // Например: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            url: "", // Например: "https://your-project.supabase.co"
+            key: ""  // Например: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         };
 
         // Utility: allow setting Supabase credentials dynamically from browser console or URL
@@ -2004,14 +2371,40 @@ window.$RefreshSig$ = () => (type) => type;</script>
         });
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             setLanguage(currentLang);
             
-            // Check if URL contains ?fob=... or ?nfc=... or ?fobId=... or ?plate=...
+            // Check URL parameters (?sto=..., ?fob=..., ?plate=...)
             const urlParams = new URLSearchParams(window.location.search);
+            const querySto = urlParams.get('sto') || urlParams.get('station') || urlParams.get('sto_id');
             const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('fob_id') || urlParams.get('nfc') || urlParams.get('id') || urlParams.get('tag') || urlParams.get('chip');
             const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
             
+            // 1. Process STO station configuration (?sto=... or direct params ?station_name=...&station_phone=...&gis=...)
+            const queryStationName = urlParams.get('station_name') || urlParams.get('sto_name') || urlParams.get('name');
+            const queryStationPhone = urlParams.get('station_phone') || urlParams.get('phone') || urlParams.get('station_whatsapp') || urlParams.get('whatsapp');
+            const queryStationGis = urlParams.get('station_gis_url') || urlParams.get('gis_url') || urlParams.get('gis') || urlParams.get('2gis');
+
+            if (queryStationName || queryStationPhone || queryStationGis) {
+                const customSto = {
+                    id: querySto || 'CUSTOM-STO',
+                    name: (queryStationName || '').replace(/_/g, ' '),
+                    phone: queryStationPhone || '',
+                    gis_url: queryStationGis || ''
+                };
+                saveStationSettingsToLocalStorage(customSto.id, customSto);
+                applyStationToUI({
+                    id: customSto.id,
+                    name: customSto.name,
+                    phone: customSto.phone,
+                    gisUrl: customSto.gis_url
+                });
+            } else if (querySto) {
+                await initStationFromSupabase(querySto);
+            } else {
+                applyStationFromLocalStorage();
+            }
+
             // Check if already configured via embedded code, URL, or local storage
             const currentCfg = getSupabaseConfig();
             if (currentCfg.url && currentCfg.key) {
@@ -2037,6 +2430,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         }
                         updateFobPicker();
                         loadClientBannerFromSupabase();
+                        if (querySto) {
+                            initStationFromSupabase(querySto);
+                        }
                     })
                     .catch(() => {
                         updateFobPicker();
