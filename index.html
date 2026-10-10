@@ -74,6 +74,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono hidden sm:inline">🔑 Чип СТО</span>
                 </button>
 
+                <!-- Immediate Lock Station Button -->
+                <button onclick="lockStoTerminalNow()" id="header-lock-btn" title="Заблокировать терминал СТО (требуется повторный ввод PIN)" class="bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer">
+                    <span>🔒</span>
+                    <span class="hidden sm:inline">Заблокировать</span>
+                </button>
+
 
                 <!-- Blocked STO Chips Management Button (Anti-theft & Anti-tampering Protection for Stations) -->
                 <button onclick="openBlockedStoChipsModal()" id="header-blocked-chips-btn" title="Реестр и блокировка служебных чипов СТО (Защита от кражи и подделки данных злоумышленниками)" class="bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer">
@@ -728,97 +734,116 @@ window.$RefreshSig$ = () => (type) => type;</script>
         </div>
     </footer>
 
-    <!-- STO TERMINAL HARDWARE LOCK SCREEN (ANTI-LINK-COPYING & HARDWARE CHIP PROTECTION) -->
-    <div id="sto-terminal-lock-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-all hidden">
-        <div class="bg-slate-900/95 border-2 border-orange-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6 text-center">
+    <!-- STO TERMINAL MASTER AUTHENTICATION & PIN GATE (MOBILE-FIRST 2FA) -->
+    <div id="sto-terminal-lock-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-3 sm:p-4 transition-all">
+        <div class="bg-slate-900/95 border-2 border-orange-500/50 rounded-3xl p-5 sm:p-7 max-w-sm sm:max-w-md w-full shadow-2xl relative space-y-5 text-center">
             
             <!-- Lock Screen Header & Shield Icon -->
-            <div class="space-y-3">
-                <div class="w-16 h-16 mx-auto rounded-2xl bg-orange-500/15 border border-orange-500/40 flex items-center justify-center text-orange-400 text-3xl shadow-xl shadow-orange-500/20">
-                    🛡️
+            <div class="space-y-2">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-orange-500/15 border border-orange-500/40 flex items-center justify-center text-orange-400 text-2xl sm:text-3xl shadow-xl shadow-orange-500/20">
+                    🔐
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-                        <span>ТЕРМИНАЛ СТО ЗАБЛОКИРОВАН</span>
+                    <h2 class="text-lg sm:text-xl font-black text-white tracking-tight uppercase">
+                        АВТОРИЗАЦИЯ СТО
                     </h2>
-                    <p class="text-xs text-orange-300 font-mono mt-1">Требуется аппаратная авторизация станции</p>
+                    <p class="text-xs text-orange-300 font-mono mt-0.5">Вход по служебному NFC-брелку</p>
                 </div>
-                <div class="bg-slate-950/80 border border-slate-800 p-3 rounded-xl text-left text-xs text-slate-300 space-y-1">
-                    <p class="text-[11px] text-slate-300">
-                        🔒 <b>Защита от копирования ссылки:</b> Доступ к сервисным картам и базе клиентов открывается только после подтверждения служебного NFC-чипа СТО и ввода мастер-PIN на этом устройстве.
-                    </p>
+
+                <!-- Verified Station Card Banner -->
+                <div id="lock-screen-station-card" class="bg-slate-950/90 border border-slate-800 p-3 rounded-2xl text-center space-y-1">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="lock-screen-station-name" class="font-extrabold text-sm sm:text-base text-white">Mobil 1 Сервис Аксукент</span>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
+                        <span id="lock-screen-station-city">📍 Аксукент</span>
+                        <span>•</span>
+                        <span class="text-orange-400 font-bold">ID: <span id="lock-screen-station-id-display">aksukent</span></span>
+                    </div>
                 </div>
             </div>
 
             <!-- UNREGISTERED STATION BLOCK VIEW (STRICT SUPABASE SECURITY) -->
             <div id="lock-screen-unregistered-view" class="hidden space-y-4">
-                <div class="w-16 h-16 mx-auto rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-3xl shadow-xl shadow-rose-500/20 animate-pulse">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-3xl shadow-xl shadow-rose-500/20 animate-pulse">
                     ⛔
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-rose-400 tracking-tight">СТАНЦИЯ НЕ ЗАРЕГИСТРИРОВАНА</h2>
-                    <p class="text-xs text-rose-300 font-mono mt-1">Доступ к терминалу СТО заблокирован</p>
+                    <h2 class="text-lg sm:text-xl font-black text-rose-400 tracking-tight">СТАНЦИЯ НЕ ЗАРЕГИСТРИРОВАНА</h2>
+                    <p class="text-xs text-rose-300 font-mono mt-0.5">Доступ к терминалу заблокирован</p>
                 </div>
-                <div class="bg-rose-950/60 border border-rose-800/80 p-4 rounded-xl text-left text-xs text-slate-300 space-y-2">
+                <div class="bg-rose-950/60 border border-rose-800/80 p-3.5 rounded-xl text-left text-xs text-slate-300 space-y-2">
                     <p class="text-slate-100 font-medium">
-                        Станция <span id="unregistered-station-target" class="font-bold text-amber-300 font-mono bg-black/50 px-1.5 py-0.5 rounded border border-amber-500/40">[ID]</span> отсутствует в таблице активных станций Supabase (<span class="font-mono text-orange-400">stations</span>).
+                        Брелок / СТО <span id="unregistered-station-target" class="font-bold text-amber-300 font-mono bg-black/50 px-1.5 py-0.5 rounded border border-amber-500/40">[ID]</span> отсутствует в таблице станций Supabase (<span class="font-mono text-orange-400">stations</span>).
                     </p>
                     <p class="text-slate-400 text-[11px] leading-relaxed">
-                        🔒 Данный брелок не активирован или доступ СТО приостановлен. Никакие данные других станций не могут быть загружены. Для подключения новой станции внесите её в таблицу <span class="font-mono text-white">stations</span> или обратитесь к администратору сервиса.
+                        🔒 Данный брелок не активирован. Для подключения новой станции обратитесь к администратору сервиса.
                     </p>
                 </div>
-                <div class="pt-2">
+                <div class="pt-1">
                     <a href="https://wa.me/77015991118?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%B4%D0%BA%D0%BB%D1%8E%D1%87%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D1%8E%20%D0%A1%D0%A2%D0%9E%20%D0%BA%20NFC%20SERVIS" target="_blank" class="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-lg shadow-emerald-900/40">
                         <span>💬</span>
-                        <span>Связаться с администратором системы</span>
+                        <span>Связаться с администратором</span>
                     </a>
                 </div>
             </div>
 
-            <!-- Hardware NFC Reader / Chip Selection Form -->
-            <form id="lock-screen-unlock-form" onsubmit="event.preventDefault(); handleTerminalUnlockSubmit();" class="space-y-4 text-left">
-                <!-- Chip identification -->
-                <div class="space-y-1.5">
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Служебный чип СТО / Станция</label>
-                    <div class="flex gap-2">
-                        <select id="lock-screen-chip-select" onchange="onLockScreenChipChange(this.value)" class="flex-1 bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 outline-none cursor-pointer focus:border-orange-500">
-                            <!-- Populated dynamically with registered STO chips -->
-                        </select>
-                        <button type="button" onclick="scanStoNfcForLockScreen()" title="Приложить аппаратный чип к считывателю" class="bg-orange-600 hover:bg-orange-500 text-white px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer">
-                            <span>📱</span>
-                            <span class="hidden sm:inline">NFC</span>
-                        </button>
+            <!-- PIN AUTHORIZATION FORM WITH TOUCH NUMPAD -->
+            <div id="lock-screen-unlock-form" class="space-y-4">
+                
+                <!-- PIN Prompt & 4-Dots Display -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs px-1">
+                        <span class="font-bold text-slate-300 uppercase tracking-wider">Введите Мастер-PIN:</span>
+                        <span class="text-[10px] text-slate-400 font-mono">4 цифры (по умолч. 1234)</span>
                     </div>
-                    <div id="lock-screen-chip-info" class="text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                        <span class="font-mono text-orange-300 font-bold" id="lock-screen-chip-uid">STO-CHIP-30003</span>
-                        <span class="mx-1">•</span>
-                        <span id="lock-screen-station-name">Mobil 1 Сервис Аксукент</span>
-                    </div>
-                </div>
 
-                <!-- 4-digit Master PIN -->
-                <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-orange-400 uppercase tracking-wider">Мастер-PIN станции (4 цифры)</label>
-                        <span class="text-[10px] text-slate-400 font-mono">по умолч. 1234</span>
+                    <!-- 4 Visual PIN Dots -->
+                    <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl">
+                        <div id="pin-dot-0" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 transition-all"></div>
+                        <div id="pin-dot-1" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 transition-all"></div>
+                        <div id="pin-dot-2" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 transition-all"></div>
+                        <div id="pin-dot-3" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 transition-all"></div>
                     </div>
-                    <input type="password" maxlength="4" id="lock-screen-pin-input" placeholder="••••" autocomplete="off" class="w-full bg-slate-950 border-2 border-orange-500/60 text-orange-400 font-mono font-black text-2xl tracking-[0.5em] text-center rounded-xl py-3 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/20">
+
+                    <!-- Hidden/Transparent Input for Physical Keyboards -->
+                    <input type="password" maxlength="4" id="lock-screen-pin-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="sr-only">
                 </div>
 
                 <!-- Error Display -->
-                <div id="lock-screen-error" class="hidden text-xs text-rose-300 bg-rose-950/80 border border-rose-500/60 p-2.5 rounded-xl text-center font-semibold">
-                    ❌ Неверный мастер-PIN!
+                <div id="lock-screen-error" class="hidden text-xs text-rose-300 bg-rose-950/80 border border-rose-500/60 p-2.5 rounded-xl text-center font-semibold animate-pulse">
+                    ❌ Неверный мастер-PIN! Доступ запрещен.
+                </div>
+
+                <!-- Mobile Touch Numeric Keypad (1 to 9, C, 0, Backspace) -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-2.5 pt-1">
+                    <button type="button" onclick="handlePinPadPress('1')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">1</button>
+                    <button type="button" onclick="handlePinPadPress('2')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">2</button>
+                    <button type="button" onclick="handlePinPadPress('3')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">3</button>
+
+                    <button type="button" onclick="handlePinPadPress('4')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">4</button>
+                    <button type="button" onclick="handlePinPadPress('5')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">5</button>
+                    <button type="button" onclick="handlePinPadPress('6')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">6</button>
+
+                    <button type="button" onclick="handlePinPadPress('7')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">7</button>
+                    <button type="button" onclick="handlePinPadPress('8')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">8</button>
+                    <button type="button" onclick="handlePinPadPress('9')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">9</button>
+
+                    <button type="button" onclick="handlePinPadPress('CLEAR')" class="h-12 sm:h-14 bg-slate-950 hover:bg-rose-950/50 active:bg-rose-600/40 text-rose-400 font-mono font-bold text-sm sm:text-base rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center">Сброс</button>
+                    <button type="button" onclick="handlePinPadPress('0')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-white font-mono font-bold text-xl rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm">0</button>
+                    <button type="button" onclick="handlePinPadPress('BACK')" class="h-12 sm:h-14 bg-slate-950 hover:bg-slate-800 active:bg-orange-600/30 text-orange-400 font-mono font-bold text-lg rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center">⌫</button>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="lock-screen-unlock-btn" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-xl shadow-orange-900/40 cursor-pointer active:scale-[0.99] flex items-center justify-center space-x-2">
+                <button type="button" id="lock-screen-unlock-btn" onclick="handleTerminalUnlockSubmit()" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-xl shadow-orange-900/40 cursor-pointer active:scale-[0.99] flex items-center justify-center space-x-2">
                     <span>🔓</span>
-                    <span>Разблокировать терминал СТО</span>
+                    <span>Войти в систему СТО</span>
                 </button>
-            </form>
+            </div>
 
-            <div class="text-[10px] text-slate-400 font-mono">
-                Сессия привязана к текущей вкладке браузера и аппаратному чипу СТО
+            <div class="text-[10px] text-slate-500 font-mono">
+                Сессия защищена • Доступ к базе клиентов только по PIN-коду
             </div>
         </div>
     </div>
@@ -1056,14 +1081,20 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 <div id="announcement-status-msg" class="hidden text-xs p-3 rounded-xl text-center font-semibold"></div>
 
                 <!-- Action Buttons -->
-                <div class="pt-1 flex gap-2.5">
-                    <button type="button" onclick="closeStoAnnouncementModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
-                        Закрыть
+                <div class="pt-1 flex flex-col sm:flex-row gap-2.5">
+                    <button type="button" onclick="disableStoAnnouncementNow()" id="btn-disable-announcement" class="bg-rose-950/70 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-bold py-3 px-3.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1">
+                        <span>🚫</span>
+                        <span>Снять с публикации</span>
                     </button>
-                    <button type="submit" id="btn-save-announcement" class="flex-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-purple-950/40 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
-                        <span>Сохранить в banners</span>
-                    </button>
+                    <div class="flex-1 flex gap-2 order-1 sm:order-2">
+                        <button type="button" onclick="closeStoAnnouncementModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
+                            Закрыть
+                        </button>
+                        <button type="submit" id="btn-save-announcement" class="flex-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-purple-950/40 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                            <span>Сохранить в banners</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1586,42 +1617,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 stationWhatsapp: '+7 (701) 599-11-18',
                 stationGisUrl: 'https://2gis.kz/shymkent/firm/70000001080559022',
                 stationCity: 'Аксукент',
-                pin: '1234'
-            },
-            {
-                stationId: 'mobil1_shymkent',
-                chipUid: 'STO-CHIP-30004',
-                stationName: 'Mobil 1 Шымкент',
-                stationWhatsapp: '+7 (777) 888-99-00',
-                stationGisUrl: 'https://2gis.kz/shymkent',
-                stationCity: 'Шымкент',
-                pin: '1234'
-            },
-            {
-                stationId: 'expert_shymkent',
-                chipUid: 'STO-CHIP-20002',
-                stationName: 'Автосервис Эксперт-Авто',
-                stationWhatsapp: '+7 (777) 555-44-33',
-                stationGisUrl: 'https://2gis.kz/shymkent',
-                stationCity: 'Шымкент',
-                pin: '1234'
-            },
-            {
-                stationId: 'almaty_center',
-                chipUid: 'STO-CHIP-88219',
-                stationName: 'NFC SERViS Center - Алматы',
-                stationWhatsapp: '+7 (707) 123-45-67',
-                stationGisUrl: 'https://2gis.kz/almaty',
-                stationCity: 'Алматы',
-                pin: '1234'
-            },
-            {
-                stationId: 'astana_premium',
-                chipUid: 'STO-CHIP-10001',
-                stationName: 'Mobil 1 Premium Servis',
-                stationWhatsapp: '+7 (701) 999-88-77',
-                stationGisUrl: 'https://2gis.kz/astana',
-                stationCity: 'Астана',
+                stationAddress: 'ул. Жибек Жолы',
                 pin: '1234'
             }
         ];
@@ -2430,19 +2426,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
             // 1. Sync stations from Supabase table 'stations'
             await loadStationsFromSupabase();
 
-            // 2. If a specific station/chip target is present in the URL
+            // 2. If a specific station/chip target is present in the URL (NFC Fob Tap)
             if (rawTarget) {
                 const cleanTarget = String(rawTarget).trim();
                 const normTarget = normalizeStoKey(cleanTarget);
 
-                // Check if currently authorized session matches this exact target
-                const authStation = sessionStorage.getItem('sto_authorized_station_id');
-                if (!authStation || (authStation.toLowerCase() !== cleanTarget.toLowerCase() && normalizeStoKey(authStation) !== normTarget)) {
-                    // Different station in URL -> reset previous authorization!
-                    sessionStorage.removeItem('sto_session_authorized');
-                    sessionStorage.removeItem('sto_authorized_station_id');
-                    sessionStorage.removeItem('sto_active_profile');
-                }
+                // Fresh scan via NFC fob -> always enforce PIN entry on tap!
+                sessionStorage.removeItem('sto_session_authorized');
+                sessionStorage.removeItem('sto_authorized_station_id');
+                sessionStorage.removeItem('sto_active_profile');
 
                 const registry = getStoChipRegistry();
                 const found = registry.find(s => {
@@ -2481,7 +2473,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 } catch(e){}
 
                 updateStoHeaderUI();
-                renderStoLockScreenOptions(activeStoProfile.stoFobId);
+                updateLockScreenStationCard();
             } else {
                 hideUnregisteredStationBlockScreen();
                 try {
@@ -2489,6 +2481,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     if (saved) activeStoProfile = Object.assign(activeStoProfile, JSON.parse(saved));
                 } catch(e){}
                 updateStoHeaderUI();
+                updateLockScreenStationCard();
             }
 
             // 3. Update header UI and blocked chips counter badge
@@ -2718,15 +2711,81 @@ window.$RefreshSig$ = () => (type) => type;</script>
         // =========================================================================
         // TERMINAL SESSION AUTH & ANTI-LINK-COPYING LOCK SCREEN
         // =========================================================================
+        // =========================================================================
+        // TERMINAL SESSION AUTH & PIN-PAD CONTROLLER (MOBILE-FIRST 2FA)
+        // =========================================================================
+        let currentPinEntered = '';
+
         function isStoSessionAuthorized() {
             return sessionStorage.getItem('sto_session_authorized') === 'true';
+        }
+
+        function updatePinDotsUI() {
+            for (let i = 0; i < 4; i++) {
+                const dot = document.getElementById(`pin-dot-${i}`);
+                if (dot) {
+                    if (i < currentPinEntered.length) {
+                        dot.className = 'w-4 h-4 rounded-full border-2 border-orange-500 bg-orange-500 shadow-md shadow-orange-500/50 scale-110 transition-all';
+                    } else {
+                        dot.className = 'w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900 transition-all';
+                    }
+                }
+            }
+            const pinIn = document.getElementById('lock-screen-pin-input');
+            if (pinIn) pinIn.value = currentPinEntered;
+            const errEl = document.getElementById('lock-screen-error');
+            if (errEl) errEl.classList.add('hidden');
+        }
+
+        function handlePinPadPress(action) {
+            if (action === 'CLEAR') {
+                currentPinEntered = '';
+                updatePinDotsUI();
+                return;
+            }
+            if (action === 'BACK') {
+                currentPinEntered = currentPinEntered.slice(0, -1);
+                updatePinDotsUI();
+                return;
+            }
+            // Number press
+            if (currentPinEntered.length < 4 && /^[0-9]$/.test(action)) {
+                currentPinEntered += action;
+                updatePinDotsUI();
+                if (currentPinEntered.length === 4) {
+                    // Auto-submit instantly on 4th digit for slick UX!
+                    setTimeout(() => {
+                        handleTerminalUnlockSubmit();
+                    }, 120);
+                }
+            }
+        }
+
+        function shakePinDots() {
+            const container = document.getElementById('pin-dots-container');
+            if (container) {
+                container.classList.add('animate-bounce');
+                setTimeout(() => container.classList.remove('animate-bounce'), 500);
+            }
+        }
+
+        function updateLockScreenStationCard() {
+            const nameEl = document.getElementById('lock-screen-station-name');
+            const cityEl = document.getElementById('lock-screen-station-city');
+            const idEl = document.getElementById('lock-screen-station-id-display');
+            
+            if (nameEl) nameEl.innerText = activeStoProfile.stationName || 'Mobil 1 Сервис Аксукент';
+            if (cityEl) cityEl.innerText = activeStoProfile.stationCity ? `📍 ${activeStoProfile.stationCity}` : '📍 Казахстан';
+            if (idEl) idEl.innerText = activeStoProfile.stationId || activeStoProfile.stoFobId || 'aksukent';
         }
 
         function showStoTerminalLockScreen() {
             const lockEl = document.getElementById('sto-terminal-lock-screen');
             if (lockEl) {
                 lockEl.classList.remove('hidden');
-                renderStoLockScreenOptions();
+                currentPinEntered = '';
+                updatePinDotsUI();
+                updateLockScreenStationCard();
                 const pinIn = document.getElementById('lock-screen-pin-input');
                 if (pinIn) {
                     pinIn.value = '';
@@ -2742,6 +2801,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
+        function lockStoTerminalNow() {
+            sessionStorage.removeItem('sto_session_authorized');
+            sessionStorage.removeItem('sto_authorized_station_id');
+            currentPinEntered = '';
+            updatePinDotsUI();
+            showStoTerminalLockScreen();
+            showNotificationToast("🔒 Терминал СТО заблокирован. Требуется PIN-код.");
+        }
+
         function checkStoTerminalSession() {
             const isAuth = isStoSessionAuthorized();
             const authorizedId = (sessionStorage.getItem('sto_authorized_station_id') || '').trim().toLowerCase();
@@ -2754,129 +2822,32 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
-        function renderStoLockScreenOptions(selectedUid) {
-            const registry = getStoChipRegistry();
-            const selectEl = document.getElementById('lock-screen-chip-select');
-            if (!selectEl) return;
-
-            const targetUid = selectedUid || activeStoProfile.stoFobId || 'STO-CHIP-30003';
-            let html = registry.map(item => {
-                const isBlocked = isStoChipBlocked(item.chipUid);
-                const blockMark = isBlocked ? ' ⛔ [ЗАБЛОКИРОВАН]' : '';
-                return `
-                    <option value="${item.chipUid}" ${item.chipUid.toLowerCase() === targetUid.toLowerCase() ? 'selected' : ''}>
-                        ${item.stationName} (${item.chipUid})${blockMark}
-                    </option>
-                `;
-            }).join('');
-
-            selectEl.innerHTML = html;
-            updateLockScreenChipInfo(targetUid);
-        }
-
-        function updateLockScreenChipInfo(chipUid) {
-            const registry = getStoChipRegistry();
-            const match = registry.find(r => r.chipUid.toLowerCase() === (chipUid || '').toLowerCase());
-            const uidEl = document.getElementById('lock-screen-chip-uid');
-            const nameEl = document.getElementById('lock-screen-station-name');
-            const errEl = document.getElementById('lock-screen-error');
-            if (errEl) errEl.classList.add('hidden');
-
-            if (match) {
-                if (uidEl) uidEl.innerText = match.chipUid;
-                if (nameEl) nameEl.innerText = match.stationName;
-            } else {
-                if (uidEl) uidEl.innerText = chipUid || 'НЕИЗВЕСТНО';
-                if (nameEl) nameEl.innerText = 'Служебный чип СТО';
-            }
-        }
-
-        function onLockScreenChipChange(chipUid) {
-            updateLockScreenChipInfo(chipUid);
-        }
-
-        async function scanStoNfcForLockScreen() {
-            if ('NDEFReader' in window) {
-                try {
-                    const ndef = new NDEFReader();
-                    await ndef.scan();
-                    showNotificationToast("📱 Приложите чип СТО к NFC считывателю...");
-                    ndef.addEventListener("reading", ({ message, serialNumber }) => {
-                        let readUid = serialNumber ? serialNumber.toUpperCase().replace(/:/g, '-') : '';
-                        if (message && message.records) {
-                            for (const record of message.records) {
-                                if (record.recordType === "text" || record.recordType === "url") {
-                                    const textDecoder = new TextDecoder(record.encoding || "utf-8");
-                                    const text = textDecoder.decode(record.data);
-                                    if (text.trim()) readUid = text.trim();
-                                }
-                            }
-                        }
-                        if (!readUid) readUid = 'STO-CHIP-30003';
-                        applyScannedChipToLockScreen(readUid);
-                    }, { once: true });
-                } catch(err) {
-                    const manual = prompt("Введите UID служебного чипа СТО:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
-                    if (manual) applyScannedChipToLockScreen(manual.trim());
-                }
-            } else {
-                const manual = prompt("Введите UID служебного чипа СТО:", activeStoProfile.stoFobId || 'STO-CHIP-30003');
-                if (manual) applyScannedChipToLockScreen(manual.trim());
-            }
-        }
-
-        function applyScannedChipToLockScreen(chipUid) {
-            const selectEl = document.getElementById('lock-screen-chip-select');
-            if (selectEl) {
-                let exists = false;
-                for (let i = 0; i < selectEl.options.length; i++) {
-                    if (selectEl.options[i].value.toLowerCase() === chipUid.toLowerCase()) {
-                        selectEl.selectedIndex = i;
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists) {
-                    const opt = document.createElement('option');
-                    opt.value = chipUid;
-                    opt.innerText = `Чип: ${chipUid}`;
-                    opt.selected = true;
-                    selectEl.appendChild(opt);
-                }
-            }
-            updateLockScreenChipInfo(chipUid);
-            const pinIn = document.getElementById('lock-screen-pin-input');
-            if (pinIn) pinIn.focus();
-        }
-
         async function handleTerminalUnlockSubmit() {
-            const selectEl = document.getElementById('lock-screen-chip-select');
-            const chipUid = selectEl ? selectEl.value.trim() : (activeStoProfile.stoFobId || 'STO-CHIP-30003');
-            const pinInput = document.getElementById('lock-screen-pin-input');
-            const pinVal = pinInput ? pinInput.value.trim() : '';
+            const pinVal = currentPinEntered || document.getElementById('lock-screen-pin-input')?.value.trim() || '';
             const errEl = document.getElementById('lock-screen-error');
 
-            if (!pinVal) {
+            if (!pinVal || pinVal.length < 4) {
                 if (errEl) {
                     errEl.classList.remove('hidden');
                     errEl.innerText = "⚠️ Введите 4-значный мастер-PIN станции!";
                 }
+                shakePinDots();
                 return;
             }
 
             // Check if chip is blocked
+            const chipUid = activeStoProfile.stoFobId || activeStoProfile.stationId || 'STO-CHIP-30003';
             const blocked = isStoChipBlocked(chipUid);
             if (blocked) {
                 if (errEl) {
                     errEl.classList.remove('hidden');
                     errEl.innerText = `🚨 Чип [${chipUid}] ЗАБЛОКИРОВАН (${blocked.reasonText || 'украден'})! Доступ запрещен.`;
                 }
+                shakePinDots();
                 return;
             }
 
-            const registry = getStoChipRegistry();
-            const station = registry.find(r => r.chipUid.toLowerCase() === chipUid.toLowerCase());
-            const expectedPin = (station && station.pin) ? station.pin : (activeStoProfile.pinCode || '1234');
+            const expectedPin = String(activeStoProfile.pinCode || '1234').trim();
 
             const [inputHash, expHash] = await Promise.all([
                 computePinHash(pinVal),
@@ -2886,25 +2857,16 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (inputHash !== expHash) {
                 if (errEl) {
                     errEl.classList.remove('hidden');
-                    errEl.innerText = "❌ Неверный мастер-PIN! Доступ к терминалу запрещен.";
+                    errEl.innerText = "❌ Неверный мастер-PIN! Доступ запрещен.";
                 }
-                if (pinInput) {
-                    pinInput.value = '';
-                    pinInput.focus();
-                }
+                shakePinDots();
+                currentPinEntered = '';
+                updatePinDotsUI();
                 return;
             }
 
             // Authentication successful!
             if (errEl) errEl.classList.add('hidden');
-            if (station) {
-                activeStoProfile.stationId = station.stationId || 'aksukent';
-                activeStoProfile.stoFobId = station.chipUid;
-                activeStoProfile.stationName = station.stationName;
-                activeStoProfile.stationWhatsapp = station.stationWhatsapp;
-                activeStoProfile.stationGisUrl = station.stationGisUrl || '';
-                activeStoProfile.pinCode = station.pin || '1234';
-            }
 
             sessionStorage.setItem('sto_session_authorized', 'true');
             sessionStorage.setItem('sto_authorized_station_id', (activeStoProfile.stationId || activeStoProfile.stoFobId || '').toLowerCase());
@@ -2927,6 +2889,22 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }, 200);
             }
         }
+
+        // Global Physical Keyboard Listener for PIN-pad
+        window.addEventListener('keydown', (e) => {
+            const lockEl = document.getElementById('sto-terminal-lock-screen');
+            if (!lockEl || lockEl.classList.contains('hidden')) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                handlePinPadPress(e.key);
+            } else if (e.key === 'Backspace') {
+                handlePinPadPress('BACK');
+            } else if (e.key === 'Escape') {
+                handlePinPadPress('CLEAR');
+            } else if (e.key === 'Enter') {
+                handleTerminalUnlockSubmit();
+            }
+        });
 
         // =========================================================================
         // SAFE HISTORY PARSING (Strict Type Validation, Prevents TypeError)
@@ -5208,25 +5186,59 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
         async function loadCurrentStationAnnouncement() {
             let found = null;
-            const currentStation = (activeStoProfile && activeStoProfile.stationName) ? activeStoProfile.stationName.trim() : 'NFC SERViS Center';
+            const currentStation = (activeStoProfile && activeStoProfile.stationName) ? activeStoProfile.stationName.trim() : 'Mobil 1 Сервис Аксукент';
+            const stationId = (activeStoProfile && activeStoProfile.stationId) ? activeStoProfile.stationId.trim() : 'aksukent';
 
             // 1. Check Supabase 'banners' table isolated for active station
             const client = getSupabaseClient();
             if (client) {
                 try {
-                    const { data: list, error } = await client
+                    let { data: list, error } = await client
                         .from('banners')
-                        .select('id, target, title, description, is_active')
-                        .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
+                        .select('id, target, title, description, is_active, updated_at, created_at')
                         .order('id', { ascending: false })
-                        .limit(25);
+                        .limit(50);
+
+                    if ((error || !list) && client) {
+                        const fallbackRes = await client.from('banners').select('*').limit(50);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            list = fallbackRes.data;
+                            error = null;
+                        }
+                    }
 
                     if (!error && Array.isArray(list) && list.length > 0) {
-                        // Match strictly by station title format: "Объявление: Название СТО" or "Объявление СТО (Название СТО)"
+                        const normStation = normalizeStoKey(currentStation);
+                        const normId = normalizeStoKey(stationId);
                         const stationTag = `[${currentStation}]`;
-                        found = list.find(b => b.title && (b.title.includes(stationTag) || b.title === `Объявление: ${currentStation}`)) 
-                             || list.find(b => b.title && b.title.includes(currentStation))
-                             || null;
+
+                        const stationBanners = list.filter(b => {
+                            if (!b.title && !b.description) return false;
+                            const t = String(b.title || '');
+                            const normTitle = normalizeStoKey(t);
+                            return (
+                                t.includes(stationTag) ||
+                                (normStation && normTitle.includes(normStation)) ||
+                                (normStation && normStation.includes(normTitle)) ||
+                                (normId && normTitle.includes(normId)) ||
+                                (normId && normId.includes(normTitle)) ||
+                                t.includes(currentStation) ||
+                                (normStation.includes('aksukent') && normTitle.includes('aksukent'))
+                            );
+                        });
+
+                        if (stationBanners.length > 0) {
+                            stationBanners.sort((a, b) => {
+                                const timeA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
+                                const timeB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
+                                if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+                                const numA = Number(a.id);
+                                const numB = Number(b.id);
+                                if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numB - numA;
+                                return String(b.id || '').localeCompare(String(a.id || ''));
+                            });
+                            found = stationBanners[0];
+                        }
                     }
                 } catch (e) {
                     console.warn('[STO Announcement] Load from Supabase failed:', e);
@@ -5236,10 +5248,17 @@ window.$RefreshSig$ = () => (type) => type;</script>
             // 2. Fallback to localStorage isolated by station
             if (!found) {
                 try {
-                    const storageKey = 'sto_announcement_' + encodeURIComponent(currentStation);
-                    const raw = localStorage.getItem(storageKey);
-                    if (raw) {
-                        found = JSON.parse(raw);
+                    const keys = [
+                        'sto_announcement_' + encodeURIComponent(currentStation),
+                        'sto_announcement_' + encodeURIComponent(stationId),
+                        'sto_announcement_aksukent'
+                    ];
+                    for (const k of keys) {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            found = JSON.parse(raw);
+                            break;
+                        }
                     }
                 } catch (e) {}
             }
@@ -5297,7 +5316,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
             if (statusMsg) statusMsg.classList.add('hidden');
 
-            const stationName = (activeStoProfile && activeStoProfile.stationName) || 'NFC SERViS Center';
+            const stationName = (activeStoProfile && activeStoProfile.stationName) || 'Mobil 1 Сервис Аксукент';
+            const stationId = (activeStoProfile && activeStoProfile.stationId) || 'aksukent';
             if (previewStationEl) previewStationEl.innerText = stationName;
             const stationBadge = document.getElementById('announcement-modal-station-badge');
             if (stationBadge) stationBadge.innerText = stationName;
@@ -5322,30 +5342,60 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const client = getSupabaseClient();
             if (client) {
                 try {
-                    const { data: list, error } = await client
+                    let { data: list, error } = await client
                         .from('banners')
-                        .select('id, target, title, description, is_active')
-                        .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
+                        .select('id, target, title, description, is_active, updated_at, created_at')
                         .order('id', { ascending: false })
-                        .limit(25);
+                        .limit(50);
+
+                    if ((error || !list) && client) {
+                        const fallbackRes = await client.from('banners').select('*').limit(50);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            list = fallbackRes.data;
+                            error = null;
+                        }
+                    }
 
                     if (!error && Array.isArray(list) && list.length > 0) {
+                        const normStation = normalizeStoKey(stationName);
+                        const normId = normalizeStoKey(stationId);
                         const stationTag = `[${stationName}]`;
-                        const b = list.find(row => row.title && (row.title.includes(stationTag) || row.title === `Объявление: ${stationName}`))
-                               || list.find(row => row.title && row.title.includes(stationName))
-                               || null;
-                        
-                        currentStationAnnouncement = b;
-                        if (b) {
-                            if (toggle) toggle.checked = !!(b.is_active === true || b.is_active === 'true' || b.is_active === 1);
-                            if (textarea) textarea.value = b.description || '';
-                        } else {
-                            if (toggle) toggle.checked = false;
-                            if (textarea) textarea.value = '';
+
+                        const stationBanners = list.filter(b => {
+                            if (!b.title && !b.description) return false;
+                            const t = String(b.title || '');
+                            const normTitle = normalizeStoKey(t);
+                            return (
+                                t.includes(stationTag) ||
+                                (normStation && normTitle.includes(normStation)) ||
+                                (normStation && normStation.includes(normTitle)) ||
+                                (normId && normTitle.includes(normId)) ||
+                                (normId && normId.includes(normTitle)) ||
+                                t.includes(stationName) ||
+                                (normStation.includes('aksukent') && normTitle.includes('aksukent'))
+                            );
+                        });
+
+                        if (stationBanners.length > 0) {
+                            stationBanners.sort((a, b) => {
+                                const timeA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
+                                const timeB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
+                                if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+                                const numA = Number(a.id);
+                                const numB = Number(b.id);
+                                if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numB - numA;
+                                return String(b.id || '').localeCompare(String(a.id || ''));
+                            });
+                            const b = stationBanners[0];
+                            currentStationAnnouncement = b;
+                            if (b) {
+                                if (toggle) toggle.checked = !!(b.is_active === true || b.is_active === 'true' || b.is_active === 1);
+                                if (textarea) textarea.value = b.description || '';
+                            }
+                            updateAnnouncementCharCount();
+                            updateAnnouncementToggleUI();
+                            renderAnnouncementStatusUI();
                         }
-                        updateAnnouncementCharCount();
-                        updateAnnouncementToggleUI();
-                        renderAnnouncementStatusUI();
                     }
                 } catch (e) {}
             }
@@ -5354,6 +5404,154 @@ window.$RefreshSig$ = () => (type) => type;</script>
         function closeStoAnnouncementModal() {
             const modal = document.getElementById('sto-announcement-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        // Helper: broadcast announcement state change to other tabs and client portal iframe
+        function broadcastStoAnnouncementState(isActive, text, stationName) {
+            try {
+                const evtData = {
+                    action: isActive ? 'updated' : 'disabled',
+                    isActive: !!isActive,
+                    text: text || '',
+                    station: stationName,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('sto_announcement_event', JSON.stringify(evtData));
+                window.postMessage({ type: isActive ? 'STO_ANNOUNCEMENT_UPDATED' : 'STO_ANNOUNCEMENT_DISABLED', ...evtData }, '*');
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: isActive ? 'STO_ANNOUNCEMENT_UPDATED' : 'STO_ANNOUNCEMENT_DISABLED', ...evtData }, '*');
+                }
+            } catch(e) {}
+        }
+
+        // 🚫 1-CLICK INSTANT DEACTIVATION: Completely remove / unpublish announcement from client view
+        async function disableStoAnnouncementNow() {
+            const toggle = document.getElementById('announcement-toggle-active');
+            const textarea = document.getElementById('announcement-text-input');
+            const statusMsg = document.getElementById('announcement-status-msg');
+            const disableBtn = document.getElementById('btn-disable-announcement');
+            const saveBtn = document.getElementById('btn-save-announcement');
+
+            if (toggle) toggle.checked = false;
+            updateAnnouncementToggleUI();
+
+            if (disableBtn) {
+                disableBtn.disabled = true;
+                disableBtn.innerHTML = `
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                    <span>Снятие с публикации...</span>
+                `;
+            }
+            if (saveBtn) saveBtn.disabled = true;
+
+            const currentStation = (activeStoProfile && activeStoProfile.stationName) ? activeStoProfile.stationName.trim() : 'Mobil 1 Сервис Аксукент';
+            const stationId = (activeStoProfile && activeStoProfile.stationId) ? activeStoProfile.stationId.trim() : 'aksukent';
+
+            let supabaseError = null;
+            const client = getSupabaseClient();
+
+            if (client) {
+                try {
+                    let { data: existingRows, error: searchErr } = await client
+                        .from('banners')
+                        .select('id, title, description, target, is_active')
+                        .limit(100);
+
+                    if (searchErr || !existingRows) {
+                        const fallbackRes = await client.from('banners').select('*').limit(100);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            existingRows = fallbackRes.data;
+                        }
+                    }
+
+                    const normCurrent = normalizeStoKey(currentStation);
+                    const normId = normalizeStoKey(stationId);
+                    const stationTag = `[${currentStation}]`;
+
+                    const matchingRows = (existingRows || []).filter(r => {
+                        if (!r.title && !r.description) return false;
+                        const t = String(r.title || '');
+                        const normR = normalizeStoKey(t);
+                        return (
+                            t.includes(stationTag) ||
+                            (normCurrent && normR.includes(normCurrent)) ||
+                            (normCurrent && normCurrent.includes(normR)) ||
+                            (normId && normR.includes(normId)) ||
+                            (normId && normId.includes(normR)) ||
+                            t.includes(currentStation) ||
+                            (normCurrent.includes('aksukent') && normR.includes('aksukent'))
+                        );
+                    });
+
+                    // Deactivate EVERY matching row in Supabase
+                    for (const mRow of matchingRows) {
+                        let res = await client
+                            .from('banners')
+                            .update({ is_active: false, updated_at: new Date().toISOString() })
+                            .eq('id', mRow.id);
+                        if (res.error) {
+                            res = await client.from('banners').update({ is_active: false }).eq('id', mRow.id);
+                        }
+                        if (res.error) {
+                            // Also try deleting row if update is denied
+                            await client.from('banners').delete().eq('id', mRow.id);
+                        }
+                    }
+
+                    // Direct broad update by title filter in Supabase
+                    try {
+                        await client.from('banners').update({ is_active: false }).ilike('title', `%${stationId}%`);
+                        await client.from('banners').update({ is_active: false }).ilike('title', `%${currentStation}%`);
+                    } catch(e) {}
+                } catch (err) {
+                    console.error('[disableStoAnnouncementNow error]', err);
+                    supabaseError = err;
+                }
+            }
+
+            // Always update localStorage cache to strictly inactive
+            const disabledRecord = {
+                title: `Объявление СТО [${currentStation}]`,
+                description: textarea ? textarea.value.trim() : '',
+                target: 'client',
+                is_active: false,
+                stationName: currentStation,
+                stationId: stationId,
+                updated_at: new Date().toISOString()
+            };
+
+            currentStationAnnouncement = disabledRecord;
+            const keysToClear = [
+                'sto_announcement_' + encodeURIComponent(currentStation),
+                'sto_announcement_' + encodeURIComponent(stationId),
+                'sto_announcement_aksukent',
+                'sto_announcement_' + encodeURIComponent(normalizeStoKey(currentStation))
+            ];
+            keysToClear.forEach(k => {
+                try { localStorage.setItem(k, JSON.stringify(disabledRecord)); } catch(e) {}
+            });
+
+            renderAnnouncementStatusUI();
+            broadcastStoAnnouncementState(false, '', currentStation);
+
+            if (disableBtn) {
+                disableBtn.disabled = false;
+                disableBtn.innerHTML = `<span>🚫</span><span>Снять с публикации</span>`;
+            }
+            if (saveBtn) saveBtn.disabled = false;
+
+            if (statusMsg) {
+                statusMsg.className = 'text-xs p-3 rounded-xl text-center font-bold bg-emerald-950/90 border border-emerald-500/60 text-emerald-300 block space-y-1';
+                statusMsg.innerHTML = `
+                    <div class="text-sm">✅ Объявление снято с публикации!</div>
+                    <div class="text-[11px] text-emerald-200 font-normal">Показ в клиентском портале полностью отключен для СТО "${currentStation}".</div>
+                `;
+                statusMsg.classList.remove('hidden');
+            }
+
+            setTimeout(() => {
+                closeStoAnnouncementModal();
+            }, 1200);
         }
 
         async function handleAnnouncementFormSubmit(e) {
@@ -5367,7 +5565,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const isActive = !!(toggle && toggle.checked);
             const text = (textarea ? textarea.value : '').trim();
 
-            if (isActive && !text) {
+            // If toggle is OFF, call instant deactivation routine
+            if (!isActive) {
+                return disableStoAnnouncementNow();
+            }
+
+            if (!text) {
                 if (statusMsg) {
                     statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-red-950/80 border border-red-500/50 text-red-300 block';
                     statusMsg.innerText = '⚠️ Введите текст объявления перед публикацией!';
@@ -5384,119 +5587,106 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 `;
             }
 
-            const client = getSupabaseClient();
-            if (!client) {
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<span>Сохранить в banners</span>';
-                }
-                if (statusMsg) {
-                    statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-red-950/90 border border-red-500/60 text-red-300 block space-y-1';
-                    statusMsg.innerHTML = `
-                        <div class="font-bold text-red-200">⚠️ Supabase не подключен!</div>
-                        <div class="text-[11px] text-slate-300">Проверьте настройки подключения к вашей базе данных Supabase.</div>
-                    `;
-                    statusMsg.classList.remove('hidden');
-                }
-                return;
-            }
+            const currentStation = (activeStoProfile && activeStoProfile.stationName) ? activeStoProfile.stationName.trim() : 'Mobil 1 Сервис Аксукент';
+            const stationId = (activeStoProfile && activeStoProfile.stationId) ? activeStoProfile.stationId.trim() : 'aksukent';
+            const stationSpecificTitle = `Объявление СТО [${currentStation}]`;
 
             let supabaseSuccess = false;
             let supabaseError = null;
-            const currentStation = (activeStoProfile && activeStoProfile.stationName) ? activeStoProfile.stationName.trim() : 'NFC SERViS Center';
-            const stationSpecificTitle = `Объявление СТО [${currentStation}]`;
+            const client = getSupabaseClient();
 
-            try {
-                // 1. Search for existing announcement strictly belonging to this station
-                const { data: existingRows, error: searchErr } = await client
-                    .from('banners')
-                    .select('*')
-                    .in('target', ['client', 'announcement', 'client_announcement', 'sto_announcement', 'sto_relocation'])
-                    .order('id', { ascending: false })
-                    .limit(25);
-
-                let existingAnnouncementRow = null;
-                if (!searchErr && Array.isArray(existingRows) && existingRows.length > 0) {
-                    const stationTag = `[${currentStation}]`;
-                    existingAnnouncementRow = existingRows.find(r => 
-                        r.title && (r.title.includes(stationTag) || r.title === `Объявление: ${currentStation}`)
-                    ) || existingRows.find(r => r.title && r.title.includes(currentStation));
-                }
-
-                if (existingAnnouncementRow) {
-                    const row = existingAnnouncementRow;
-                    const rowId = row.id;
-                    const safeActionUrl = (row.action_url && String(row.action_url).trim()) || '#';
-                    const safeBtnText = (row.button_text && String(row.button_text).trim()) || '';
-
-                    const updateData = {
-                        title: stationSpecificTitle,
-                        description: text,
-                        is_active: isActive,
-                        action_url: safeActionUrl,
-                        button_text: safeBtnText
-                    };
-
-                    // Try updating with updated_at timestamp first
-                    let updateRes = await client
+            if (client) {
+                try {
+                    let { data: existingRows } = await client
                         .from('banners')
-                        .update({ ...updateData, updated_at: new Date().toISOString() })
-                        .eq('id', rowId);
+                        .select('id, title, description, target, is_active')
+                        .limit(100);
 
-                    // If column updated_at does not exist, retry without it
-                    if (updateRes.error) {
-                        updateRes = await client
-                            .from('banners')
-                            .update(updateData)
-                            .eq('id', rowId);
-                    }
-
-                    if (updateRes.error) {
-                        supabaseError = updateRes.error;
-                    } else {
-                        supabaseSuccess = true;
-                    }
-                } else {
-                    // 2. Insert new announcement row isolated for this station
-                    const candidateTargets = ['client', 'announcement', 'sto'];
-                    let lastInsertErr = null;
-
-                    for (const candTarget of candidateTargets) {
-                        const newBannerPayload = {
-                            title: stationSpecificTitle,
-                            description: text,
-                            target: candTarget,
-                            is_active: isActive,
-                            action_url: '#',
-                            button_text: '',
-                            sort_order: 1
-                        };
-
-                        let insertRes = await client
-                            .from('banners')
-                            .insert([newBannerPayload]);
-
-                        if (!insertRes.error) {
-                            supabaseSuccess = true;
-                            supabaseError = null;
-                            break;
-                        } else {
-                            lastInsertErr = insertRes.error;
-                            if (insertRes.error.message && insertRes.error.message.includes('banners_target_check')) {
-                                continue;
-                            } else {
-                                break;
-                            }
+                    if (!existingRows) {
+                        const fallbackRes = await client.from('banners').select('*').limit(100);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            existingRows = fallbackRes.data;
                         }
                     }
 
-                    if (!supabaseSuccess) {
-                        supabaseError = lastInsertErr;
+                    const normCurrent = normalizeStoKey(currentStation);
+                    const normId = normalizeStoKey(stationId);
+                    const stationTag = `[${currentStation}]`;
+
+                    const matchingRows = (existingRows || []).filter(r => {
+                        if (!r.title && !r.description) return false;
+                        const t = String(r.title || '');
+                        const normR = normalizeStoKey(t);
+                        return (
+                            t.includes(stationTag) ||
+                            (normCurrent && normR.includes(normCurrent)) ||
+                            (normCurrent && normCurrent.includes(normR)) ||
+                            (normId && normR.includes(normId)) ||
+                            (normId && normId.includes(normR)) ||
+                            t.includes(currentStation) ||
+                            (normCurrent.includes('aksukent') && normR.includes('aksukent'))
+                        );
+                    });
+
+                    if (matchingRows.length > 0) {
+                        const primaryRow = matchingRows[0];
+                        const updateData = {
+                            title: stationSpecificTitle,
+                            description: text,
+                            is_active: true,
+                            action_url: (primaryRow.action_url && String(primaryRow.action_url).trim()) || '#',
+                            button_text: (primaryRow.button_text && String(primaryRow.button_text).trim()) || ''
+                        };
+
+                        let updateRes = await client
+                            .from('banners')
+                            .update({ ...updateData, updated_at: new Date().toISOString() })
+                            .eq('id', primaryRow.id);
+
+                        if (updateRes.error) {
+                            updateRes = await client.from('banners').update(updateData).eq('id', primaryRow.id);
+                        }
+
+                        if (!updateRes.error) {
+                            supabaseSuccess = true;
+                            // Deactivate older duplicate rows to prevent conflicts
+                            for (let i = 1; i < matchingRows.length; i++) {
+                                await client.from('banners').update({ is_active: false }).eq('id', matchingRows[i].id);
+                            }
+                        } else {
+                            supabaseError = updateRes.error;
+                        }
+                    } else {
+                        // Insert new banner row
+                        const candidateTargets = ['client', 'announcement', 'sto'];
+                        for (const candTarget of candidateTargets) {
+                            const newBannerPayload = {
+                                title: stationSpecificTitle,
+                                description: text,
+                                target: candTarget,
+                                is_active: true,
+                                action_url: '#',
+                                button_text: '',
+                                sort_order: 1
+                            };
+
+                            let insertRes = await client.from('banners').insert([newBannerPayload]);
+                            if (!insertRes.error) {
+                                supabaseSuccess = true;
+                                supabaseError = null;
+                                break;
+                            } else {
+                                supabaseError = insertRes.error;
+                            }
+                        }
                     }
+                } catch (err) {
+                    console.error('[handleAnnouncementFormSubmit error]', err);
+                    supabaseError = err;
                 }
-            } catch (err) {
-                console.error('[banners exception]', err);
-                supabaseError = err;
+            } else {
+                // Supabase not connected -> work in local mode
+                supabaseSuccess = true;
             }
 
             if (saveBtn) {
@@ -5507,31 +5697,37 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 `;
             }
 
+            // Always update local storage cache with active state
+            const record = {
+                title: stationSpecificTitle,
+                description: text,
+                target: 'client',
+                is_active: true,
+                stationName: currentStation,
+                stationId: stationId,
+                updated_at: new Date().toISOString()
+            };
+            currentStationAnnouncement = record;
+
+            const keysToSet = [
+                'sto_announcement_' + encodeURIComponent(currentStation),
+                'sto_announcement_' + encodeURIComponent(stationId),
+                'sto_announcement_aksukent',
+                'sto_announcement_' + encodeURIComponent(normalizeStoKey(currentStation))
+            ];
+            keysToSet.forEach(k => {
+                try { localStorage.setItem(k, JSON.stringify(record)); } catch(e) {}
+            });
+
+            renderAnnouncementStatusUI();
+            broadcastStoAnnouncementState(true, text, currentStation);
+
             if (supabaseSuccess) {
-                const record = {
-                    title: stationSpecificTitle,
-                    description: text,
-                    target: 'client',
-                    is_active: isActive,
-                    stationName: currentStation,
-                    updated_at: new Date().toISOString()
-                };
-                currentStationAnnouncement = record;
-                try {
-                    const storageKey = 'sto_announcement_' + encodeURIComponent(currentStation);
-                    localStorage.setItem(storageKey, JSON.stringify(record));
-                } catch(e) {}
-
-                renderAnnouncementStatusUI();
-
                 if (statusMsg) {
                     statusMsg.className = 'text-xs p-3 rounded-xl text-center font-bold bg-emerald-950/90 border border-emerald-500/60 text-emerald-300 block';
-                    statusMsg.innerHTML = isActive 
-                        ? `✅ Объявление успешно сохранено для СТО "${currentStation}" и опубликовано!` 
-                        : `✅ Объявление для СТО "${currentStation}" снято с публикации.`;
+                    statusMsg.innerHTML = `✅ Объявление успешно сохранено для СТО "${currentStation}" и опубликовано!`;
                     statusMsg.classList.remove('hidden');
                 }
-
                 setTimeout(() => {
                     closeStoAnnouncementModal();
                 }, 1400);
@@ -5541,10 +5737,10 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     : 'Неизвестная ошибка связи с Supabase';
 
                 if (statusMsg) {
-                    statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-red-950/90 border border-red-500/60 text-red-300 block space-y-1.5 text-left';
+                    statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-amber-950/90 border border-amber-500/60 text-amber-200 block space-y-1.5 text-left';
                     statusMsg.innerHTML = `
-                        <div class="font-bold text-red-200 text-center">❌ Ошибка записи в Supabase (таблица banners)</div>
-                        <div class="font-mono text-[11px] text-red-300 bg-red-950/60 p-2 rounded border border-red-900/60 break-words">${errMsg}</div>
+                        <div class="font-bold text-amber-200 text-center">⚠️ Сохранено локально, но в Supabase ошибка</div>
+                        <div class="font-mono text-[11px] text-amber-300 bg-amber-950/60 p-2 rounded border border-amber-900/60 break-words">${errMsg}</div>
                     `;
                     statusMsg.classList.remove('hidden');
                 }
