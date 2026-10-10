@@ -1145,6 +1145,36 @@ window.$RefreshSig$ = () => (type) => type;</script>
             return active;
         }
 
+        function clearStationFromUI(unregisteredId) {
+            const stoBadge = document.getElementById('car-sto-badge');
+            if (stoBadge) stoBadge.innerText = unregisteredId ? `⚠️ СТО не зарегистрирована (${unregisteredId})` : '';
+
+            const headerBadge = document.getElementById('header-station-badge');
+            if (headerBadge) {
+                headerBadge.innerText = '⚠️ СТО не зарегистрирована';
+                headerBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono';
+                headerBadge.classList.remove('hidden');
+            }
+
+            const entryStationContainer = document.getElementById('entry-station-container');
+            const entryStationName = document.getElementById('entry-station-name');
+            if (entryStationContainer && entryStationName) {
+                entryStationName.innerText = `⚠️ СТО «${unregisteredId || ''}» не зарегистрирована`;
+                entryStationContainer.classList.remove('hidden');
+                entryStationContainer.classList.add('flex');
+            }
+
+            // Hide WhatsApp and 2GIS cards of other stations
+            const waBtn = document.getElementById('warning-whatsapp-btn');
+            if (waBtn) waBtn.href = '#';
+
+            const gisCard = document.getElementById('station-2gis-review-card');
+            if (gisCard) {
+                gisCard.classList.add('hidden');
+                gisCard.classList.remove('flex');
+            }
+        }
+
         // Initialize station by query parameter ?sto=... from Supabase
         async function initStationFromSupabase(stoId) {
             if (!stoId) {
@@ -1153,9 +1183,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
 
             const cleanId = String(stoId).trim();
-
-            // 1. Immediate offline fallback: apply cached settings immediately
-            applyStationFromLocalStorage(cleanId);
+            const normTarget = normalizeStoKey(cleanId);
 
             try {
                 // Ensure Supabase is configured
@@ -1163,37 +1191,48 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 const _supabaseClient = getSupabaseClient() || window._supabaseClient;
 
                 if (!_supabaseClient) {
-                    console.warn('[StationBinding] Supabase client is not available, operating in offline cache mode');
+                    console.warn('[StationBinding] Supabase client is not available');
+                    applyStationFromLocalStorage(cleanId);
                     return;
                 }
 
-                // 2. Query stations table in Supabase
+                // Query stations table in Supabase
                 const { data, error } = await _supabaseClient
                     .from('stations')
-                    .select('*')
-                    .eq('id', cleanId)
-                    .single();
+                    .select('*');
 
-                if (error) {
-                    console.warn('[StationBinding] Supabase stations table error or station not found:', error);
-                    // Fallback to cache already applied
+                if (error || !Array.isArray(data)) {
+                    console.warn('[StationBinding] Supabase stations table error:', error);
+                    clearStationFromUI(cleanId);
                     return;
                 }
 
-                if (data) {
+                const match = data.find(s => {
+                    const sId = String(s.id || '').trim().toLowerCase();
+                    const sFob = String(s.fob_id || '').trim().toLowerCase();
+                    const sName = String(s.name || s.station_name || '').trim();
+                    return (
+                        sId === cleanId.toLowerCase() ||
+                        sFob === cleanId.toLowerCase() ||
+                        normalizeStoKey(sName) === normTarget ||
+                        sName.toLowerCase() === cleanId.toLowerCase()
+                    );
+                });
+
+                if (match) {
                     const stData = {
-                        id: data.id || cleanId,
-                        name: data.name || data.station_name || '',
-                        phone: data.phone || data.whatsapp || data.station_phone || '',
-                        gis_url: data.gis_url || data.station_gis_url || data.gis || '',
-                        pin: data.pin || '1234',
-                        city: data.city || data.station_city || 'СТО'
+                        id: match.id || cleanId,
+                        name: match.name || match.station_name || ('СТО ' + match.id),
+                        phone: match.phone || match.whatsapp || match.station_phone || '',
+                        gis_url: match.gis_url || match.station_gis_url || match.gis || '',
+                        pin: match.pin || '1234',
+                        city: match.city || match.station_city || 'СТО'
                     };
 
-                    // 3. Save to localStorage (Режим привязки поста СТО)
+                    // 3. Save to localStorage
                     saveStationSettingsToLocalStorage(cleanId, stData);
 
-                    // 4. Fill interface (название станции, кнопка WhatsApp, виджет 2ГИС)
+                    // 4. Fill interface
                     applyStationToUI({
                         id: stData.id,
                         name: stData.name,
@@ -1201,18 +1240,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         gisUrl: stData.gis_url
                     });
 
-                    // If a vehicle is currently rendered, re-render to reflect new station settings
                     if (window._currentCarData) {
                         renderCarData(window._currentCarData);
                     }
 
-                    // Show station binding confirmation notification
                     showStationBoundNotice(stData.name);
+                    return true;
+                } else {
+                    console.warn('[StationBinding] Station not found in Supabase:', cleanId);
+                    clearStationFromUI(cleanId);
+                    return false;
                 }
             } catch(e) {
                 console.warn('[StationBinding] Exception during Supabase station lookup:', e);
-                // Fallback to cache
-                applyStationFromLocalStorage(cleanId);
+                clearStationFromUI(cleanId);
+                return false;
             }
         }
 
@@ -2376,18 +2418,30 @@ window.$RefreshSig$ = () => (type) => type;</script>
             
             // Check URL parameters (?sto=..., ?fob=..., ?plate=...)
             const urlParams = new URLSearchParams(window.location.search);
-            const querySto = urlParams.get('sto') || urlParams.get('station') || urlParams.get('sto_id');
-            const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('fob_id') || urlParams.get('nfc') || urlParams.get('id') || urlParams.get('tag') || urlParams.get('chip');
+            let querySto = urlParams.get('sto') || urlParams.get('station') || urlParams.get('sto_id') || urlParams.get('station_id');
+            const rawId = urlParams.get('id');
+            let queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('fob_id') || urlParams.get('nfc') || urlParams.get('tag') || urlParams.get('chip');
             const queryPlate = urlParams.get('plate') || urlParams.get('car') || urlParams.get('num');
             
-            // 1. Process STO station configuration (?sto=... or direct params ?station_name=...&station_phone=...&gis=...)
+            // If ?id=... was passed without explicit sto or fob:
+            if (rawId && !querySto && !queryFob) {
+                querySto = rawId;
+            }
+
+            // 1. Process STO station configuration
             const queryStationName = urlParams.get('station_name') || urlParams.get('sto_name') || urlParams.get('name');
             const queryStationPhone = urlParams.get('station_phone') || urlParams.get('phone') || urlParams.get('station_whatsapp') || urlParams.get('whatsapp');
             const queryStationGis = urlParams.get('station_gis_url') || urlParams.get('gis_url') || urlParams.get('gis') || urlParams.get('2gis');
 
-            if (queryStationName || queryStationPhone || queryStationGis) {
+            if (querySto) {
+                const found = await initStationFromSupabase(querySto);
+                // If id was passed but not found as a station in Supabase, try treating it as vehicle fob
+                if (!found && rawId && !queryFob) {
+                    queryFob = rawId;
+                }
+            } else if (queryStationName || queryStationPhone || queryStationGis) {
                 const customSto = {
-                    id: querySto || 'CUSTOM-STO',
+                    id: 'CUSTOM-STO',
                     name: (queryStationName || '').replace(/_/g, ' '),
                     phone: queryStationPhone || '',
                     gis_url: queryStationGis || ''
@@ -2399,8 +2453,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     phone: customSto.phone,
                     gisUrl: customSto.gis_url
                 });
-            } else if (querySto) {
-                await initStationFromSupabase(querySto);
             } else {
                 applyStationFromLocalStorage();
             }
