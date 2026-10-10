@@ -5148,11 +5148,17 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const textarea = document.getElementById('announcement-text-input');
             const counter = document.getElementById('announcement-char-counter');
             const preview = document.getElementById('announcement-live-preview-box');
+            const toggle = document.getElementById('announcement-toggle-active');
             if (textarea && counter) {
                 counter.innerText = `${textarea.value.length} / 500`;
             }
             if (textarea && preview) {
                 preview.innerText = textarea.value.trim() || '(Текст объявления появится здесь)';
+            }
+            // Auto-enable toggle if user is typing text
+            if (textarea && textarea.value.trim().length > 0 && toggle && !toggle.checked) {
+                toggle.checked = true;
+                updateAnnouncementToggleUI();
             }
         }
 
@@ -5562,28 +5568,28 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const statusMsg = document.getElementById('announcement-status-msg');
             const saveBtn = document.getElementById('btn-save-announcement');
 
-            const isActive = !!(toggle && toggle.checked);
             const text = (textarea ? textarea.value : '').trim();
-
-            // If toggle is OFF, call instant deactivation routine
-            if (!isActive) {
-                return disableStoAnnouncementNow();
-            }
 
             if (!text) {
                 if (statusMsg) {
                     statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-red-950/80 border border-red-500/50 text-red-300 block';
-                    statusMsg.innerText = '⚠️ Введите текст объявления перед публикацией!';
+                    statusMsg.innerText = '⚠️ Введите текст объявления перед сохранением!';
                     statusMsg.classList.remove('hidden');
                 }
                 return;
+            }
+
+            // If user clicked Save with text, always set toggle to active
+            if (toggle) {
+                toggle.checked = true;
+                updateAnnouncementToggleUI();
             }
 
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = `
                     <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                    <span>Сохранение в Supabase...</span>
+                    <span>Сохранение в banners...</span>
                 `;
             }
 
@@ -5630,26 +5636,44 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
                     if (matchingRows.length > 0) {
                         const primaryRow = matchingRows[0];
-                        const updateData = {
-                            title: stationSpecificTitle,
-                            description: text,
-                            is_active: true,
-                            action_url: (primaryRow.action_url && String(primaryRow.action_url).trim()) || '#',
-                            button_text: (primaryRow.button_text && String(primaryRow.button_text).trim()) || ''
-                        };
 
+                        // Attempt 1: Safe update with title, description, is_active, updated_at
                         let updateRes = await client
                             .from('banners')
-                            .update({ ...updateData, updated_at: new Date().toISOString() })
+                            .update({
+                                title: stationSpecificTitle,
+                                description: text,
+                                is_active: true,
+                                updated_at: new Date().toISOString()
+                            })
                             .eq('id', primaryRow.id);
 
+                        // Attempt 2: If updated_at fails, update only title, description, is_active
                         if (updateRes.error) {
-                            updateRes = await client.from('banners').update(updateData).eq('id', primaryRow.id);
+                            updateRes = await client
+                                .from('banners')
+                                .update({
+                                    title: stationSpecificTitle,
+                                    description: text,
+                                    is_active: true
+                                })
+                                .eq('id', primaryRow.id);
+                        }
+
+                        // Attempt 3: If title fails, update description and is_active only
+                        if (updateRes.error) {
+                            updateRes = await client
+                                .from('banners')
+                                .update({
+                                    description: text,
+                                    is_active: true
+                                })
+                                .eq('id', primaryRow.id);
                         }
 
                         if (!updateRes.error) {
                             supabaseSuccess = true;
-                            // Deactivate older duplicate rows to prevent conflicts
+                            // Deactivate older duplicate rows
                             for (let i = 1; i < matchingRows.length; i++) {
                                 await client.from('banners').update({ is_active: false }).eq('id', matchingRows[i].id);
                             }
@@ -5657,27 +5681,31 @@ window.$RefreshSig$ = () => (type) => type;</script>
                             supabaseError = updateRes.error;
                         }
                     } else {
-                        // Insert new banner row
-                        const candidateTargets = ['client', 'announcement', 'sto'];
-                        for (const candTarget of candidateTargets) {
-                            const newBannerPayload = {
+                        // Insert new banner row (first with target, then fallback without target)
+                        let insertRes = await client
+                            .from('banners')
+                            .insert([{
                                 title: stationSpecificTitle,
                                 description: text,
-                                target: candTarget,
-                                is_active: true,
-                                action_url: '#',
-                                button_text: '',
-                                sort_order: 1
-                            };
+                                target: 'client',
+                                is_active: true
+                            }]);
 
-                            let insertRes = await client.from('banners').insert([newBannerPayload]);
-                            if (!insertRes.error) {
-                                supabaseSuccess = true;
-                                supabaseError = null;
-                                break;
-                            } else {
-                                supabaseError = insertRes.error;
-                            }
+                        if (insertRes.error) {
+                            insertRes = await client
+                                .from('banners')
+                                .insert([{
+                                    title: stationSpecificTitle,
+                                    description: text,
+                                    is_active: true
+                                }]);
+                        }
+
+                        if (!insertRes.error) {
+                            supabaseSuccess = true;
+                            supabaseError = null;
+                        } else {
+                            supabaseError = insertRes.error;
                         }
                     }
                 } catch (err) {
@@ -5685,7 +5713,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     supabaseError = err;
                 }
             } else {
-                // Supabase not connected -> work in local mode
+                // Supabase not configured in this browser -> save locally
                 supabaseSuccess = true;
             }
 
@@ -5730,7 +5758,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
                 setTimeout(() => {
                     closeStoAnnouncementModal();
-                }, 1400);
+                }, 1200);
             } else {
                 const errMsg = supabaseError 
                     ? (supabaseError.message || supabaseError.details || supabaseError.code || JSON.stringify(supabaseError))
@@ -5739,7 +5767,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (statusMsg) {
                     statusMsg.className = 'text-xs p-3 rounded-xl text-center font-semibold bg-amber-950/90 border border-amber-500/60 text-amber-200 block space-y-1.5 text-left';
                     statusMsg.innerHTML = `
-                        <div class="font-bold text-amber-200 text-center">⚠️ Сохранено локально, но в Supabase ошибка</div>
+                        <div class="font-bold text-amber-200 text-center">⚠️ Сохранено в памяти приложения, но в Supabase ошибка</div>
                         <div class="font-mono text-[11px] text-amber-300 bg-amber-950/60 p-2 rounded border border-amber-900/60 break-words">${errMsg}</div>
                     `;
                     statusMsg.classList.remove('hidden');
