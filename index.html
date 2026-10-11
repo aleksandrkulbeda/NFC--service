@@ -33,7 +33,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
 <body class="bg-[#040D1D] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-500 selection:text-white">
 
     <!-- HEADER -->
-    <header class="border-b border-slate-800 bg-mobilSlate/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+    <header id="sto-header" class="border-b border-slate-800 bg-mobilSlate/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <!-- NFC SERViS Custom Logo Branding -->
@@ -106,7 +106,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
     </header>
 
     <!-- MAIN COMPONENT FRAME -->
-    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+    <main id="sto-main-container" class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
 
         <!-- WORKSTATION / POST SELECTOR BAR -->
         <div class="w-full max-w-xl sm:max-w-7xl bg-slate-900/60 border border-slate-800/80 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
@@ -700,7 +700,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
     </main>
 
     <!-- FOOTER -->
-    <footer class="border-t border-slate-950 bg-slate-950/80 p-6 text-center text-xs text-slate-500">
+    <footer id="sto-footer" class="border-t border-slate-950 bg-slate-950/80 p-6 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>© 2026 СТО "Mobil 1" - Все права защищены. Сервисная станция премиального уровня.</p>
             <div class="flex space-x-6 text-slate-400 font-mono">
@@ -710,7 +710,49 @@ window.$RefreshSig$ = () => (type) => type;</script>
         </div>
     </footer>
 
+    <!-- UNREGISTERED STO / CHIP BLOCK MODAL (STRICT STATION ISOLATION GATE) -->
+    <div id="sto-unregistered-modal" class="fixed inset-0 bg-slate-950/98 backdrop-blur-2xl z-[100] flex items-center justify-center p-4 hidden" onclick="event.stopPropagation();">
+        <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-rose-600/70 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-[0_0_60px_rgba(225,29,72,0.3)] relative text-center space-y-5">
+            <!-- Warning Shield Icon -->
+            <div class="w-20 h-20 rounded-3xl bg-rose-500/15 border-2 border-rose-500/40 flex items-center justify-center text-rose-400 text-4xl mx-auto shadow-xl shadow-rose-950/60">
+                🛑
+            </div>
 
+            <!-- Title & Subtitle as requested by user -->
+            <div class="space-y-1.5">
+                <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
+                    СТО не зарегистрировано в базе
+                </h3>
+                <p class="text-rose-400 font-extrabold text-sm sm:text-base tracking-wide uppercase">
+                    Обратитесь к администратору
+                </p>
+            </div>
+
+            <!-- Scanned Key Fob Identifier -->
+            <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-2 text-center">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                    Идентификатор чипа / станции:
+                </div>
+                <div id="unregistered-chip-uid-display" class="text-amber-400 font-mono font-black text-base sm:text-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl break-all select-all">
+                    НЕИЗВЕСТНО
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed pt-1">
+                    Данный брелок СТО отсутствует в таблице станций. Для строгой изоляции данных доступ к другим станциям полностью заблокирован.
+                </p>
+            </div>
+
+            <!-- Dynamic status message on retry -->
+            <div id="unregistered-retry-notice" class="hidden text-left bg-rose-950/70 border border-rose-500/40 p-3 rounded-xl"></div>
+
+            <!-- Action Buttons: Retry / Sync with DB -->
+            <div class="space-y-2.5 pt-2">
+                <button type="button" onclick="retryUnregisteredStationCheck()" id="btn-retry-unregistered" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black py-3.5 px-4 rounded-xl text-sm transition-all shadow-lg shadow-orange-950/40 active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path></svg>
+                    <span>Проверить регистрацию снова</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- STO AUTHENTICATION & PIN GATE (CLEAN LOGIN MODAL WITHOUT UNNECESSARY DATA) -->
     <div id="sto-auth-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-50 flex items-center justify-center p-3 sm:p-4 hidden" onclick="if(!isStoSessionAuthorized()) event.stopPropagation();">
@@ -1399,16 +1441,173 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
+        let currentUnregisteredTarget = null;
+
         function showUnregisteredStationBlockScreen(target) {
-            console.warn('[Security] Unauthorized station target:', target);
-            alert(`⚠️ Станция или брелок [${target || 'Неизвестно'}] не найдены в базе СТО.`);
+            currentUnregisteredTarget = target || 'Неизвестный чип';
+            console.warn('[Security] Unauthorized station target:', currentUnregisteredTarget);
+
+            // 1. Strict Isolation: Wipe session authorization and profile to prevent data leakage
+            sessionStorage.removeItem('sto_session_authorized');
+            sessionStorage.removeItem('sto_authorized_station_id');
+            sessionStorage.removeItem('sto_active_profile');
+
+            activeStoProfile = {
+                stationId: '',
+                stoFobId: currentUnregisteredTarget,
+                stationName: 'СТО НЕ ЗАРЕГИСТРИРОВАНО',
+                stationWhatsapp: '',
+                stationGisUrl: '',
+                stationAddress: '',
+                stationCity: '',
+                pinCode: ''
+            };
+
+            // 2. Hide all other modals to avoid exposing other stations
+            const authModal = document.getElementById('sto-auth-modal');
+            if (authModal) {
+                authModal.classList.add('hidden');
+                authModal.style.display = 'none';
+            }
+            const scanModal = document.getElementById('nfc-scan-modal');
+            if (scanModal) {
+                scanModal.classList.add('hidden');
+                scanModal.style.display = 'none';
+            }
+            const foreignModal = document.getElementById('foreign-car-modal');
+            if (foreignModal) {
+                foreignModal.classList.add('hidden');
+            }
+
+            // 3. Hide entire main content, header, and footer to completely isolate other stations
+            const mainContent = document.getElementById('sto-main-container');
+            if (mainContent) {
+                mainContent.classList.add('hidden');
+            }
+            const header = document.getElementById('sto-header');
+            if (header) {
+                header.classList.add('opacity-0', 'pointer-events-none');
+            }
+            const footer = document.getElementById('sto-footer');
+            if (footer) {
+                footer.classList.add('hidden');
+            }
+
+            // 4. Show the dedicated Unregistered STO Modal
+            const unregModal = document.getElementById('sto-unregistered-modal');
+            const uidDisplay = document.getElementById('unregistered-chip-uid-display');
+            if (uidDisplay) {
+                uidDisplay.innerText = currentUnregisteredTarget;
+            }
+            const notice = document.getElementById('unregistered-retry-notice');
+            if (notice) {
+                notice.classList.add('hidden');
+                notice.innerHTML = '';
+            }
+            if (unregModal) {
+                unregModal.classList.remove('hidden');
+                unregModal.style.display = 'flex';
+            }
         }
 
-        function hideUnregisteredStationBlockScreen() {}
+        function hideUnregisteredStationBlockScreen() {
+            currentUnregisteredTarget = null;
+            const unregModal = document.getElementById('sto-unregistered-modal');
+            if (unregModal) {
+                unregModal.classList.add('hidden');
+                unregModal.style.display = 'none';
+            }
+            const mainContent = document.getElementById('sto-main-container');
+            if (mainContent) {
+                mainContent.classList.remove('hidden');
+            }
+            const header = document.getElementById('sto-header');
+            if (header) {
+                header.classList.remove('opacity-0', 'pointer-events-none');
+            }
+            const footer = document.getElementById('sto-footer');
+            if (footer) {
+                footer.classList.remove('hidden');
+            }
+        }
+
+        async function retryUnregisteredStationCheck() {
+            const btn = document.getElementById('btn-retry-unregistered');
+            const notice = document.getElementById('unregistered-retry-notice');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="w-4 h-4 animate-spin inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                    <span>Синхронизация с таблицей 'stations'...</span>
+                `;
+            }
+
+            // Re-fetch stations from Supabase table 'stations'
+            await loadStationsFromSupabase();
+
+            const registry = getStoChipRegistry();
+            const target = currentUnregisteredTarget;
+            const cleanTarget = String(target || '').trim();
+            const normTarget = normalizeStoKey(cleanTarget);
+
+            const found = registry.find(s => {
+                const sId = String(s.stationId || '').trim().toLowerCase();
+                const sFob = String(s.chipUid || '').trim().toLowerCase();
+                const sName = String(s.stationName || '').trim();
+                return (
+                    sId === cleanTarget.toLowerCase() ||
+                    sFob === cleanTarget.toLowerCase() ||
+                    normalizeStoKey(sName) === normTarget ||
+                    sName.toLowerCase() === cleanTarget.toLowerCase()
+                );
+            });
+
+            if (found) {
+                // Now registered!
+                hideUnregisteredStationBlockScreen();
+                activeStoProfile = {
+                    stationId: found.stationId,
+                    stoFobId: found.chipUid,
+                    stationName: found.stationName,
+                    stationWhatsapp: found.stationWhatsapp || '+7 (701) 599-11-18',
+                    stationGisUrl: found.stationGisUrl || '',
+                    stationAddress: found.stationAddress || '',
+                    stationCity: found.stationCity || '',
+                    pinCode: String(found.pin || '1234').trim()
+                };
+                try {
+                    localStorage.setItem('nfc_servis_active_sto_profile', JSON.stringify(activeStoProfile));
+                } catch(e){}
+                updateStoHeaderUI();
+                openStoAuthModal(found.chipUid);
+                showNotificationToast(`✅ СТО "${found.stationName}" найдена в базе! Введите ПИН-код.`);
+            } else {
+                if (notice) {
+                    notice.classList.remove('hidden');
+                    notice.innerHTML = `
+                        <div class="text-rose-400 font-bold text-xs flex items-center gap-1.5">
+                            <span>❌</span>
+                            <span>Брелок [${cleanTarget}] пока не найден в базе данных Supabase</span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                            Администратор сервиса должен добавить запись для данного СТО в таблицу <code>stations</code> с fob_id = "${cleanTarget}". Как только запись будет создана, нажмите эту кнопку снова.
+                        </p>
+                    `;
+                }
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path></svg>
+                    <span>Проверить регистрацию снова</span>
+                `;
+            }
+        }
 
         async function loadStoProfile() {
             const params = new URLSearchParams(window.location.search);
-            const rawTarget = (
+            let rawTarget = (
                 params.get('sto') ||
                 params.get('station_id') ||
                 params.get('id') ||
@@ -1418,6 +1617,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 params.get('chip') ||
                 params.get('chip_uid')
             );
+            if (!rawTarget) {
+                const fobParam = params.get('fob') || params.get('fobId') || params.get('scanFob') || params.get('tag');
+                if (fobParam) {
+                    const cleanFob = String(fobParam).trim();
+                    const upperFob = cleanFob.toUpperCase();
+                    const registry = getStoChipRegistry();
+                    const isKnownSto = registry.some(s => 
+                        String(s.chipUid || '').toUpperCase() === upperFob ||
+                        String(s.stationId || '').toUpperCase() === upperFob
+                    );
+                    if (isKnownSto || upperFob.startsWith('STO') || upperFob.startsWith('CHIP') || upperFob.includes('STATION') || upperFob.includes('MASTER')) {
+                        rawTarget = cleanFob;
+                    }
+                }
+            }
 
             // 1. Sync stations from Supabase table 'stations'
             await loadStationsFromSupabase();
@@ -1446,7 +1660,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 });
 
                 if (!found) {
-                    // 🛑 Station NOT in Supabase! Access strictly forbidden!
+                    // 🛑 Station NOT in Supabase! Access strictly forbidden! Complete isolation!
                     console.warn('[Security] Unauthorized station access attempt:', cleanTarget);
                     showUnregisteredStationBlockScreen(cleanTarget);
                     return false;
@@ -1561,26 +1775,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     loginBtn.innerText = `Войти под СТО "${match.stationName}"`;
                 }
             } else {
-                // UNREGISTERED REJECTED CHIP
-                if (nameIn) nameIn.value = '';
-                if (waIn) waIn.value = '';
-                if (gisIn) gisIn.value = '';
-
-                if (bannerEl) {
-                    bannerEl.innerHTML = `
-                        <div class="bg-rose-950/80 border border-rose-500/40 p-3 rounded-xl flex items-start space-x-3 text-xs">
-                            <div class="text-rose-400 text-lg">❌</div>
-                            <div class="space-y-0.5">
-                                <span class="font-bold text-rose-300 block">ОШИБКА: ЧИП НЕ ЗАРЕГИСТРИРОВАН</span>
-                                <p class="text-rose-100/80 text-[11px]">Данный NFC брелок [${chipUid}] не прошит администратором AutoBook. Доступ к рабочему кабинету СТО запрещен.</p>
-                            </div>
-                        </div>
-                    `;
-                }
-                if (loginBtn) {
-                    loginBtn.disabled = true;
-                    loginBtn.innerText = `Доступ запрещен (Чип не прошит)`;
-                }
+                // UNREGISTERED CHIP -> Trigger strict block screen and isolation!
+                showUnregisteredStationBlockScreen(chipUid);
+                return;
             }
         }
 
@@ -1594,9 +1791,41 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function openStoAuthModal(chipId) {
-            const currentUid = chipId || activeStoProfile.stoFobId || 'STO-CHIP-30003';
-            renderStoChipSelectOptions(currentUid);
-            verifyAndApplyChip(currentUid);
+            const targetUid = chipId || activeStoProfile.stoFobId || 'STO-CHIP-30003';
+            const registry = getStoChipRegistry();
+            const match = registry.find(s => 
+                String(s.chipUid || '').toUpperCase() === String(targetUid).trim().toUpperCase() ||
+                normalizeFob(s.chipUid) === normalizeFob(targetUid) ||
+                String(s.stationId || '').toUpperCase() === String(targetUid).trim().toUpperCase() ||
+                normalizeStoKey(s.stationName) === normalizeStoKey(targetUid)
+            );
+
+            if (!match) {
+                // Not in database -> Show persistent uncloseable modal
+                showUnregisteredStationBlockScreen(targetUid);
+                return;
+            }
+
+            // Set active profile for this verified station
+            activeStoProfile = {
+                stationId: match.stationId,
+                stoFobId: match.chipUid,
+                stationName: match.stationName,
+                stationWhatsapp: match.stationWhatsapp || '+7 (701) 599-11-18',
+                stationGisUrl: match.stationGisUrl || '',
+                stationAddress: match.stationAddress || '',
+                stationCity: match.stationCity || '',
+                pinCode: String(match.pin || '1234').trim()
+            };
+
+            const nameDisplay = document.getElementById('login-modal-station-name');
+            if (nameDisplay) {
+                nameDisplay.innerText = match.stationName;
+            }
+            const uidDisplay = document.getElementById('sto-chip-uid-display');
+            if (uidDisplay) {
+                uidDisplay.innerText = match.chipUid;
+            }
 
             const modal = document.getElementById('sto-auth-modal');
             if (modal) {
@@ -2526,6 +2755,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 return;
             }
 
+            // 1b. Check if scanned tag is an unregistered STO chip
+            if (rawClean.startsWith('STO') || rawClean.startsWith('CHIP') || rawClean.includes('STATION') || rawClean.includes('MASTER')) {
+                showUnregisteredStationBlockScreen(readUid);
+                return;
+            }
+
             // 2. Security check: ensure terminal workstation session is authorized
             if (!isStoSessionAuthorized()) {
                 window._pendingQueryFob = readUid;
@@ -2722,7 +2957,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 try {
                     const ndef = new NDEFReader();
                     await ndef.scan();
-                    alert("📱 Приложите брелок СТО (Мастера) к NFC считывателю...");
+                    showNotificationToast("📱 Приложите брелок СТО к NFC считывателю...");
 
                     ndef.addEventListener("reading", ({ message, serialNumber }) => {
                         let readUid = serialNumber ? serialNumber.toUpperCase().replace(/:/g, '-') : '';
@@ -2731,7 +2966,18 @@ window.$RefreshSig$ = () => (type) => type;</script>
                                 if (record.recordType === "text" || record.recordType === "url") {
                                     const textDecoder = new TextDecoder(record.encoding || "utf-8");
                                     const text = textDecoder.decode(record.data);
-                                    if (text.trim()) readUid = text.trim();
+                                    if (text.includes('sto=') || text.includes('chip=') || text.includes('fob=')) {
+                                        try {
+                                            const u = new URL(text.startsWith('http') ? text : 'https://' + text);
+                                            const paramVal = u.searchParams.get('sto') || u.searchParams.get('chip') || u.searchParams.get('fob');
+                                            if (paramVal) readUid = paramVal;
+                                        } catch(e) {
+                                            const m = text.match(/(sto|chip|fob)=([A-Za-z0-9_-]+)/);
+                                            if (m) readUid = m[2];
+                                        }
+                                    } else if (text.trim()) {
+                                        readUid = text.trim();
+                                    }
                                 }
                             }
                         }
@@ -4562,9 +4808,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
         // Initialize on load
         (async () => {
             const ok = await loadStoProfile();
-            if (ok) {
-                checkStoTerminalSession();
+            if (!ok) {
+                // Total isolation! Unregistered station blocked!
+                return;
             }
+            checkStoTerminalSession();
             renderPostTabs();
             updateNetworkStatusUI();
             loadCurrentStationAnnouncement();
@@ -4573,13 +4821,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
         // Auto-process scanned fob from URL parameter if redirected from client portal or tag tap
         const urlParams = new URLSearchParams(window.location.search);
         const queryFob = urlParams.get('fob') || urlParams.get('fobId') || urlParams.get('scanFob');
-        if (queryFob) {
+        if (queryFob && !currentUnregisteredTarget) {
             const cleanQueryFob = queryFob.trim();
+            const upperQueryFob = cleanQueryFob.toUpperCase();
             const registry = getStoChipRegistry();
             const stoMatch = registry.find(s => 
-                String(s.chipUid || '').toUpperCase() === cleanQueryFob.toUpperCase() ||
+                String(s.chipUid || '').toUpperCase() === upperQueryFob ||
                 normalizeFob(s.chipUid) === normalizeFob(cleanQueryFob) ||
-                String(s.stationId || '').toUpperCase() === cleanQueryFob.toUpperCase()
+                String(s.stationId || '').toUpperCase() === upperQueryFob
             );
 
             if (stoMatch) {
@@ -4597,6 +4846,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 };
                 updateStoHeaderUI();
                 openStoAuthModal(stoMatch.chipUid);
+            } else if (upperQueryFob.startsWith('STO') || upperQueryFob.startsWith('CHIP') || upperQueryFob.includes('STATION') || upperQueryFob.includes('MASTER')) {
+                // Unregistered STO key fob passed via URL!
+                showUnregisteredStationBlockScreen(cleanQueryFob);
             } else if (isStoSessionAuthorized()) {
                 setTimeout(() => {
                     if (typeof processScannedFobUid === 'function') {
