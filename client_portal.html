@@ -1318,7 +1318,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 client.from('diagnostics')
                     .select('*')
                     .order('updated_at', { ascending: false })
-                    .limit(150)
+                    .limit(30)
                     .then(({ data, error }) => {
                         if (!error && Array.isArray(data)) {
                             handleCloudData(data);
@@ -1455,14 +1455,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (isFobDirect) {
                 const cleanFob = normalizeFob(target);
 
-                // 1. Direct query in Supabase diagnostics table
+                // 1. Direct point query in Supabase diagnostics table using .in() to cover standard and '#' forms in one request
                 if (client && !window._supabaseTableMissing) {
                     try {
-                        // Check column fob_id
+                        const targetFobs = [cleanFob, '#' + cleanFob];
                         const { data: d1, error: e1 } = await client
                             .from('diagnostics')
                             .select('*')
-                            .eq('fob_id', cleanFob)
+                            .in('fob_id', targetFobs)
                             .order('updated_at', { ascending: false })
                             .limit(1);
 
@@ -1471,57 +1471,18 @@ window.$RefreshSig$ = () => (type) => type;</script>
                             isCloudSource = true;
                         }
 
-                        // Check column fob_id with '#' prefix
+                        // Fallback: check nested JSON field data->>fobId if fob_id column did not match
                         if (!matched) {
-                            const { data: d1Hash, error: e1Hash } = await client
+                            const { data: dJson, error: eJson } = await client
                                 .from('diagnostics')
                                 .select('*')
-                                .eq('fob_id', '#' + cleanFob)
-                                .order('updated_at', { ascending: false })
-                                .limit(1);
-                            if (!e1Hash && Array.isArray(d1Hash) && d1Hash.length > 0) {
-                                matched = (d1Hash[0].data && typeof d1Hash[0].data === 'object') ? { ...d1Hash[0], ...d1Hash[0].data } : d1Hash[0];
-                                isCloudSource = true;
-                            }
-                        }
-
-                        // Check column fobId (camelCase)
-                        if (!matched) {
-                            const { data: d2, error: e2 } = await client
-                                .from('diagnostics')
-                                .select('*')
-                                .eq('fobId', cleanFob)
+                                .filter('data->>fobId', 'in', `("${cleanFob}","#${cleanFob}")`)
                                 .order('updated_at', { ascending: false })
                                 .limit(1);
 
-                            if (!e2 && Array.isArray(d2) && d2.length > 0) {
-                                matched = (d2[0].data && typeof d2[0].data === 'object') ? { ...d2[0], ...d2[0].data } : d2[0];
+                            if (!eJson && Array.isArray(dJson) && dJson.length > 0) {
+                                matched = (dJson[0].data && typeof dJson[0].data === 'object') ? { ...dJson[0], ...dJson[0].data } : dJson[0];
                                 isCloudSource = true;
-                            }
-                        }
-
-                        // Fallback inspection in latest Supabase records for exact fobId match inside JSON data
-                        if (!matched) {
-                            const { data: allData, error: allErr } = await client
-                                .from('diagnostics')
-                                .select('*')
-                                .order('updated_at', { ascending: false })
-                                .limit(200);
-
-                            if (!allErr && Array.isArray(allData)) {
-                                const found = allData.find(row => {
-                                    const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
-                                    const f1 = normalizeFob(rec.fobId);
-                                    const f2 = normalizeFob(rec.fob_id);
-                                    const f3 = normalizeFob(row.fob_id);
-                                    const f4 = normalizeFob(row.fobId);
-                                    // STRICT EQUALITY ONLY: never substring, never plate/phone
-                                    return f1 === cleanFob || f2 === cleanFob || f3 === cleanFob || f4 === cleanFob;
-                                });
-                                if (found) {
-                                    matched = (found.data && typeof found.data === 'object') ? { ...found, ...found.data } : found;
-                                    isCloudSource = true;
-                                }
                             }
                         }
                     } catch(e) {
@@ -1580,16 +1541,30 @@ window.$RefreshSig$ = () => (type) => type;</script>
             // =========================================================================
             const cleanPlate = normalizePlate(target);
 
-            // 1. Primary: Search in Supabase Cloud
+            // 1. Primary: Search in Supabase Cloud via targeted JSON filter
             if (client && !window._supabaseTableMissing) {
                 try {
-                    const { data, error } = await client
+                    // Try targeted JSON filter first
+                    let { data, error } = await client
                         .from('diagnostics')
                         .select('*')
+                        .or(`data->>licensePlate.eq.${cleanPlate},data->>carNumber.eq.${cleanPlate},data->>carPlate.eq.${cleanPlate}`)
                         .order('updated_at', { ascending: false })
-                        .limit(200);
+                        .limit(5);
 
-                    if (!error && Array.isArray(data) && data.length > 0) {
+                    if (error || !data || data.length === 0) {
+                        // Fallback: limited scan of latest 60 records
+                        const fallbackRes = await client
+                            .from('diagnostics')
+                            .select('*')
+                            .order('updated_at', { ascending: false })
+                            .limit(60);
+                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+                            data = fallbackRes.data;
+                        }
+                    }
+
+                    if (Array.isArray(data) && data.length > 0) {
                         const found = data.find(row => {
                             const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
                             const p = normalizePlate(rec.licensePlate || rec.carNumber || rec.carPlate || rec.car_number);
@@ -2405,32 +2380,30 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Fallback to localStorage ONLY if Supabase was completely unreachable (network offline)
-            if (!supabaseResponded) {
-                const localKeysToCheck = [
-                    'sto_announcement_' + encodeURIComponent(stationName),
-                    'sto_announcement_' + encodeURIComponent(normStation),
-                    stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
-                    'sto_announcement_aksukent'
-                ].filter(Boolean);
+            // 2. Fallback to localStorage: check if local cache has a newer announcement or if Supabase had no rows
+            const localKeysToCheck = [
+                'sto_announcement_' + encodeURIComponent(stationName),
+                'sto_announcement_' + encodeURIComponent(normStation),
+                stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
+                'sto_announcement_aksukent'
+            ].filter(Boolean);
 
-                try {
-                    for (const lk of localKeysToCheck) {
-                        const raw = localStorage.getItem(lk);
-                        if (raw) {
-                            const cached = JSON.parse(raw);
-                            const isCachedActive = (cached.is_active === true || cached.is_active === 'true' || cached.is_active === 1);
-                            const cachedText = (cached.description || cached.text || '').trim();
-                            if (isCachedActive && cachedText) {
-                                if (stationEl) stationEl.innerText = stationName || 'СТО';
-                                textEl.innerText = cachedText;
-                                card.classList.remove('hidden');
-                                return;
-                            }
+            try {
+                for (const lk of localKeysToCheck) {
+                    const raw = localStorage.getItem(lk);
+                    if (raw) {
+                        const cached = JSON.parse(raw);
+                        const isCachedActive = (cached.is_active === true || cached.is_active === 'true' || cached.is_active === 1);
+                        const cachedText = (cached.description || cached.text || '').trim();
+                        if (isCachedActive && cachedText) {
+                            if (stationEl) stationEl.innerText = stationName || 'СТО';
+                            textEl.innerText = cachedText;
+                            card.classList.remove('hidden');
+                            return;
                         }
                     }
-                } catch (e) {}
-            }
+                }
+            } catch (e) {}
 
             // In all other cases (inactive, disabled or no announcement for this station) -> hide completely!
             card.classList.add('hidden');
