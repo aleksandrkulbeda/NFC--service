@@ -1209,7 +1209,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
                 const match = data.find(s => {
                     const sId = String(s.id || '').trim().toLowerCase();
-                    const sFob = String(s.fob_id || '').trim().toLowerCase();
+                    const sFob = String(s.fob_id || s.chip_uid || s.chipUid || s.fobId || '').trim().toLowerCase();
                     const sName = String(s.name || s.station_name || '').trim();
                     return (
                         sId === cleanId.toLowerCase() ||
@@ -2285,16 +2285,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 carData = window._currentClientCarData;
             }
 
-            // Determine client's station from car maintenance card
-            const stationName = (carData && (carData.stationName || carData.station_name)) ? String(carData.stationName || carData.station_name).trim() : '';
-            const stationId = (carData && (carData.station_id || carData.stationId)) ? String(carData.station_id || carData.stationId).trim() : '';
-
-            // If carData is not loaded yet or station is unknown, do not show random station announcement
-            if (!stationName && !stationId) {
-                card.classList.add('hidden');
-                textEl.innerText = '';
-                return;
-            }
+            // Determine client's station from car maintenance card or active station settings
+            const activeStation = (typeof getActiveStationSettings === 'function') ? getActiveStationSettings() : null;
+            const stationName = (carData && (carData.stationName || carData.station_name)) 
+                ? String(carData.stationName || carData.station_name).trim() 
+                : (activeStation ? String(activeStation.name).trim() : 'Mobil 1 Сервис Аксукент');
+            const stationId = (carData && (carData.station_id || carData.stationId)) 
+                ? String(carData.station_id || carData.stationId).trim() 
+                : (activeStation ? String(activeStation.id).trim() : 'aksukent');
 
             const normStation = normalizeStoKey(stationName);
             const normId = normalizeStoKey(stationId);
