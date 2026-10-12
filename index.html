@@ -1163,13 +1163,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 console.warn("Supabase lookup warning:", e);
             }
 
+            const currentStationId = activeStoProfile.stationId || 'aksukent';
             const payload = {
                 [colName]: cleanFob,
+                station_id: currentStationId,
                 data: record,
                 updated_at: now
             };
             if (window._supabaseHasStationIdCol) {
-                payload.station_id = activeStoProfile.stationId || 'aksukent';
+                payload.station_id = currentStationId;
             }
 
             // 2. If row exists -> UPDATE
@@ -1350,7 +1352,42 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
-        // Dummy backward-compatibility helper
+        // Server-side isolation loader via RPC get_station_cars
+        async function loadStationCarsFromServer() {
+            const client = getSupabaseClient();
+            if (!client) return [];
+            
+            const stationId = activeStoProfile.stationId || 'aksukent';
+            const pin = activeStoProfile.pinCode || '1234';
+            
+            try {
+                // Call server RPC function: strict isolation enforced by database
+                const { data, error } = await client.rpc('get_station_cars', {
+                    p_station_id: stationId,
+                    p_pin: pin
+                });
+
+                if (!error && Array.isArray(data)) {
+                    console.log(`[RLS Server Guard] Успешно загружено ${data.length} автомобилей станции "${stationId}" с сервера.`);
+                    const parsedList = data.map(row => {
+                        const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
+                        if (!rec.station_id) rec.station_id = stationId;
+                        return rec;
+                    });
+                    
+                    // Update local station storage
+                    try {
+                        localStorage.setItem('mobil1_sto_all_diagnostics', JSON.stringify(parsedList));
+                    } catch(e) {}
+                    return parsedList;
+                } else if (error) {
+                    console.warn('[RLS Server Guard] get_station_cars RPC note:', error.message || error);
+                }
+            } catch(e) {
+                console.warn('[RLS Server Guard] RPC call exception:', e);
+            }
+            return [];
+        }
         
 
         // =========================================================================
@@ -1691,6 +1728,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     if (saved) activeStoProfile = Object.assign(activeStoProfile, JSON.parse(saved));
                 } catch(e){}
                 updateStoHeaderUI();
+                if (sessionStorage.getItem('sto_session_authorized') === 'true') {
+                    try { loadStationCarsFromServer(); } catch(e) {}
+                }
             }
 
             return true;
@@ -1986,6 +2026,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     }
 
                     showNotificationToast(`✅ Авторизация успешна! Кабинет СТО "${activeStoProfile.stationName}" открыт.`);
+
+                    // Fetch server-isolated cars belonging strictly to this station
+                    try {
+                        loadStationCarsFromServer();
+                    } catch(e) {}
 
                     if (window._pendingQueryFob) {
                         const pending = window._pendingQueryFob;
