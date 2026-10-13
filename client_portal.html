@@ -1422,6 +1422,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function showEntryScreen() {
+            document.documentElement.classList.remove('direct-nfc-scan');
             hideLoadingScreen();
             const entryScreen = document.getElementById('qr-entry-screen');
             const logbookScreen = document.getElementById('car-logbook-screen');
@@ -1434,6 +1435,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
         }
 
         function showLogbookScreen() {
+            document.documentElement.classList.remove('direct-nfc-scan');
             hideLoadingScreen();
             const entryScreen = document.getElementById('qr-entry-screen');
             const logbookScreen = document.getElementById('car-logbook-screen');
@@ -1653,38 +1655,65 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 return;
             }
 
-            // 1. Primary: Search in Supabase Cloud via targeted JSON filter
+            // 1. Primary: Search in Supabase Cloud
             if (client && !window._supabaseTableMissing) {
                 try {
-                    // Try targeted JSON filter first
-                    let { data, error } = await client
-                        .from('diagnostics')
-                        .select('*')
-                        .or(`data->>licensePlate.eq.${cleanPlate},data->>carNumber.eq.${cleanPlate},data->>carPlate.eq.${cleanPlate}`)
-                        .order('updated_at', { ascending: false })
-                        .limit(5);
+                    // Method A: Server-Side Secure RPC Function (Zero client-side PIN leak)
+                    try {
+                        const { data: rpcData, error: rpcErr } = await client
+                            .rpc('get_vehicle_by_plate_pin', { p_plate: cleanPlate, p_pin: enteredPin });
+                        if (!rpcErr && rpcData) {
+                            matched = (rpcData.data && typeof rpcData.data === 'object') ? { ...rpcData, ...rpcData.data } : rpcData;
+                            isCloudSource = true;
+                        }
+                    } catch(eRpc) {
+                        // RPC function not yet installed in Supabase SQL editor; proceed to direct query
+                    }
 
-                    if (error || !data || data.length === 0) {
-                        // Fallback: limited scan of latest 60 records
-                        const fallbackRes = await client
+                    // Method B: Direct indexed column search if table has license_plate column
+                    if (!matched) {
+                        const { data: colData, error: colErr } = await client
                             .from('diagnostics')
                             .select('*')
+                            .eq('license_plate', cleanPlate)
                             .order('updated_at', { ascending: false })
-                            .limit(60);
-                        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
-                            data = fallbackRes.data;
+                            .limit(1);
+
+                        if (!colErr && Array.isArray(colData) && colData.length > 0) {
+                            const row = colData[0];
+                            matched = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
+                            isCloudSource = true;
                         }
                     }
 
-                    if (Array.isArray(data) && data.length > 0) {
-                        const found = data.find(row => {
-                            const rec = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
-                            const p = normalizePlate(rec.licensePlate || rec.carNumber || rec.carPlate || rec.car_number);
-                            return p && p === cleanPlate;
-                        });
+                    // Method C: Targeted JSON filter data->>licensePlate (no fragile .or commas)
+                    if (!matched) {
+                        const { data: jData1, error: jErr1 } = await client
+                            .from('diagnostics')
+                            .select('*')
+                            .filter('data->>licensePlate', 'ilike', cleanPlate)
+                            .order('updated_at', { ascending: false })
+                            .limit(1);
 
-                        if (found) {
-                            matched = (found.data && typeof found.data === 'object') ? { ...found, ...found.data } : found;
+                        if (!jErr1 && Array.isArray(jData1) && jData1.length > 0) {
+                            const row = jData1[0];
+                            matched = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
+                            isCloudSource = true;
+                        }
+                    }
+
+                    // Method D: Targeted JSON filter data->>carNumber fallback
+                    if (!matched) {
+                        const { data: jData2, error: jErr2 } = await client
+                            .from('diagnostics')
+                            .select('*')
+                            .filter('data->>carNumber', 'ilike', cleanPlate)
+                            .order('updated_at', { ascending: false })
+                            .limit(1);
+
+                        if (!jErr2 && Array.isArray(jData2) && jData2.length > 0) {
+                            const row = jData2[0];
+                            matched = (row.data && typeof row.data === 'object') ? { ...row, ...row.data } : row;
                             isCloudSource = true;
                         }
                     }
@@ -1693,7 +1722,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Offline fallback for plate search
+            // 2. Offline fallback for plate search (only exact match from local cache)
             if (!matched) {
                 const cars = getSavedCars();
                 matched = cars.find(c => {
@@ -1762,7 +1791,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
                 statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-300 text-center font-medium leading-relaxed";
                 statusEl.classList.remove('hidden');
-            }
             }
         }
 
