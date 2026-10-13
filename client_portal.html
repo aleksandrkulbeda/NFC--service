@@ -215,22 +215,47 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         </span>
                     </div>
 
-                    <!-- CAR PLATE INPUT FORM -->
-                    <div class="space-y-2.5 pt-2">
-                        <div class="relative flex items-center bg-[#020712] border-2 border-slate-700 focus-within:border-orange-500 rounded-2xl px-3.5 py-2.5 transition-all shadow-inner">
-                            <div class="flex items-center space-x-1.5 border-r border-slate-800 pr-3 mr-3 text-[11px] font-black text-blue-400 font-mono tracking-widest shrink-0">
-                                <span>🇰🇿</span>
-                                <span>KZ</span>
+                    <!-- CAR PLATE & PIN VERIFICATION FORM -->
+                    <div class="space-y-3 pt-1 text-left">
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider pl-1">
+                                🚘 Госномер автомобиля:
+                            </label>
+                            <div class="relative flex items-center bg-[#020712] border-2 border-slate-700 focus-within:border-orange-500 rounded-2xl px-3.5 py-2.5 transition-all shadow-inner">
+                                <div class="flex items-center space-x-1.5 border-r border-slate-800 pr-3 mr-3 text-[11px] font-black text-blue-400 font-mono tracking-widest shrink-0">
+                                    <span>🇰🇿</span>
+                                    <span>KZ</span>
+                                </div>
+                                <input id="entry-plate-input" type="text" placeholder="777 MOB 01" class="w-full bg-transparent text-white font-mono font-black text-base uppercase tracking-wider outline-none placeholder:text-slate-600 placeholder:font-normal placeholder:tracking-normal" onkeypress="if(event.key==='Enter') searchByPlate()">
                             </div>
-                            <input id="entry-plate-input" type="text" placeholder="777 MOB 01" class="w-full bg-transparent text-white font-mono font-black text-base uppercase tracking-wider outline-none placeholder:text-slate-600 placeholder:font-normal placeholder:tracking-normal" onkeypress="if(event.key==='Enter') searchByPlate()">
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between pl-1">
+                                <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider" data-i18n="pinLabel">
+                                    🔑 ПИН-код доступа (4 цифры):
+                                </label>
+                                <span class="text-[10px] text-orange-400 font-mono font-semibold" data-i18n="pinSecurityBadge">
+                                    🔒 Защита данных
+                                </span>
+                            </div>
+                            <div class="relative flex items-center bg-[#020712] border-2 border-slate-700 focus-within:border-orange-500 rounded-2xl px-3.5 py-2.5 transition-all shadow-inner">
+                                <div class="flex items-center space-x-1.5 border-r border-slate-800 pr-3 mr-3 text-[11px] font-black text-amber-400 font-mono tracking-wider shrink-0">
+                                    <span>PIN</span>
+                                </div>
+                                <input id="entry-pin-code" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" class="w-full bg-transparent text-amber-300 font-mono font-black text-lg tracking-[0.3em] outline-none placeholder:text-slate-600 placeholder:font-normal placeholder:tracking-normal" onkeypress="if(event.key==='Enter') searchByPlate()">
+                            </div>
+                            <p class="text-[10px] text-slate-400 pl-1 leading-tight" data-i18n="pinCodeHint">
+                                4 цифры кода доступа, указанные при оформлении на СТО
+                            </p>
                         </div>
                         
-                        <button type="button" onclick="searchByPlate()" id="entry-submit-btn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs tracking-wider uppercase transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center space-x-2">
+                        <button type="button" onclick="searchByPlate()" id="entry-submit-btn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs tracking-wider uppercase transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center space-x-2 cursor-pointer mt-1">
                             <span data-i18n="entryBtn">ОТКРЫТЬ СЕРВИСНУЮ КНИЖКУ</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
                         </button>
 
-                        <div id="entry-status-msg" class="hidden text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium"></div>
+                        <div id="entry-status-msg" class="hidden text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium leading-relaxed"></div>
                     </div>
 
                     <!-- NFC HINT -->
@@ -656,8 +681,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceBtn: "Рассчитать и оформить полис",
                 announcementBadge: "Объявление СТО",
                 reviewGisTitle: "Оставить отзыв в 2ГИС",
-                reviewGisSub: "Оцените качество обслуживания нашей СТО",
-                stationBoundTitle: "Пост СТО привязан"
+                stationBoundTitle: "Пост СТО привязан",
+                pinLabel: "🔑 ПИН-код доступа (4 цифры):",
+                pinSecurityBadge: "🔒 Защита данных",
+                pinCodeHint: "4 цифры кода доступа, указанные при оформлении на СТО",
+                pinCodeRequired: "Пожалуйста, введите 4 цифры ПИН-кода доступа (указанного при регистрации на СТО).",
+                accessDeniedBadAuth: "Автомобиль не найден или неверно указан ПИН-код доступа. Проверьте правильность ввода или приложите телефон к NFC-брелоку."
             },
             kk: {
                 masterMode: "СТО Шебері режимі",
@@ -732,8 +761,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 insuranceBtn: "Полисті есептеу және рәсімдеу",
                 announcementBadge: "СТО Хабарландыруы",
                 reviewGisTitle: "2ГИС-те пікір қалдыру",
-                reviewGisSub: "Біздің СТО қызметінің сапасын бағалаңыз",
-                stationBoundTitle: "СТО бекеті бекітілді"
+                stationBoundTitle: "СТО бекеті бекітілді",
+                pinLabel: "🔑 Қолжетімділік ПИН-коды (4 сан):",
+                pinSecurityBadge: "🔒 Деректерді қорғау",
+                pinCodeHint: "СТО-да рәсімдеу кезінде көрсетілген 4 таңбалы код",
+                pinCodeRequired: "Қауіпсіздік үшін 4 таңбалы ПИН-кодты енгізіңіз (СТО-да көрсетілген).",
+                accessDeniedBadAuth: "Автокөлік табылмады немесе ПИН-код қате. Деректерді тексеріңіз немесе телефонды NFC салпыншағына тигізіңіз."
             }
         };
 
@@ -1408,6 +1441,52 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (logbookScreen) logbookScreen.classList.remove('hidden');
         }
 
+        // =========================================================================
+        // CLIENT PIN BRUTE-FORCE LOCKOUT PROTECTION (5 ATTEMPTS -> 1 HOUR LOCKOUT)
+        // =========================================================================
+        const CLIENT_PIN_LOCKOUT_MS = 60 * 60 * 1000; // 1 hour lockout
+        const CLIENT_PIN_MAX_ATTEMPTS = 5;
+
+        function getClientPinLockoutState() {
+            try {
+                const lockoutUntil = parseInt(localStorage.getItem('client_pin_lockout_until') || '0', 10);
+                const attempts = parseInt(localStorage.getItem('client_pin_failed_attempts') || '0', 10);
+                const now = Date.now();
+                if (lockoutUntil && now < lockoutUntil) {
+                    return { isLocked: true, remainingMs: lockoutUntil - now, attempts };
+                }
+                if (lockoutUntil && now >= lockoutUntil) {
+                    localStorage.removeItem('client_pin_lockout_until');
+                    localStorage.removeItem('client_pin_failed_attempts');
+                    return { isLocked: false, remainingMs: 0, attempts: 0 };
+                }
+                return { isLocked: false, remainingMs: 0, attempts };
+            } catch(e) {
+                return { isLocked: false, remainingMs: 0, attempts: 0 };
+            }
+        }
+
+        function recordClientPinFailure() {
+            try {
+                let attempts = parseInt(localStorage.getItem('client_pin_failed_attempts') || '0', 10) + 1;
+                localStorage.setItem('client_pin_failed_attempts', attempts);
+                if (attempts >= CLIENT_PIN_MAX_ATTEMPTS) {
+                    const lockoutUntil = Date.now() + CLIENT_PIN_LOCKOUT_MS;
+                    localStorage.setItem('client_pin_lockout_until', lockoutUntil);
+                }
+                return attempts;
+            } catch(e) {
+                return 1;
+            }
+        }
+
+        function resetClientPinLockout() {
+            try {
+                localStorage.removeItem('client_pin_lockout_until');
+                localStorage.removeItem('client_pin_failed_attempts');
+            } catch(e) {}
+        }
+
         // Strict Cloud-First Vehicle Search & Loader
         async function fetchAndDisplayVehicle(rawQuery, isFobDirect = false) {
             const input = document.getElementById('entry-plate-input') || document.getElementById('search-plate-input');
@@ -1537,9 +1616,42 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
 
             // =========================================================================
-            // PATH 2: LICENSE PLATE SEARCH (STRICT LICENSE PLATE MATCHING ONLY)
+            // PATH 2: LICENSE PLATE SEARCH WITH 4-DIGIT PIN SECURITY & LOCKOUT
             // =========================================================================
+            // 0. Check Brute-Force Lockout State (5 failed attempts -> 1 hour lockout)
+            const lockout = getClientPinLockoutState();
+            if (lockout.isLocked) {
+                showEntryScreen();
+                const totalSec = Math.ceil(lockout.remainingMs / 1000);
+                const mins = Math.floor(totalSec / 60);
+                const secs = totalSec % 60;
+                const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                if (statusEl) {
+                    statusEl.innerHTML = (currentLang === 'kk')
+                        ? `⛔ 5 қате әрекеттен кейін ПИН-кодты енгізу 1 сағатқа бұғатталды (қалды: <b>${timeStr}</b>). Тікелей кіру үшін телефонды NFC-салпыншаққа тигізіңіз.`
+                        : `⛔ Ввод ПИН-кода заблокирован на 1 час после 5 неверных попыток (осталось <b>${timeStr}</b>). Для прямого входа приложите телефон к NFC-брелоку.`;
+                    statusEl.className = "text-xs py-2.5 px-3 rounded-xl bg-red-950/70 border border-red-700/60 text-red-200 text-center font-medium leading-relaxed";
+                    statusEl.classList.remove('hidden');
+                }
+                return;
+            }
+
             const cleanPlate = normalizePlate(target);
+            const pinCodeInput = document.getElementById('entry-pin-code') || document.getElementById('entry-phone-digits');
+            const enteredPin = String(pinCodeInput ? pinCodeInput.value : '').replace(/\D/g, '').trim();
+
+            if (enteredPin.length < 4) {
+                showEntryScreen();
+                if (statusEl) {
+                    statusEl.innerText = (currentLang === 'kk')
+                        ? (dict.pinCodeRequired || "Қауіпсіздік үшін 4 таңбалы ПИН-кодты енгізіңіз.")
+                        : (dict.pinCodeRequired || "Пожалуйста, введите 4 цифры ПИН-кода доступа (указанного при регистрации на СТО).");
+                    statusEl.className = "text-xs py-2 px-3 rounded-xl bg-amber-950/60 border border-amber-800/40 text-amber-300 text-center font-medium";
+                    statusEl.classList.remove('hidden');
+                }
+                if (pinCodeInput) pinCodeInput.focus();
+                return;
+            }
 
             // 1. Primary: Search in Supabase Cloud via targeted JSON filter
             if (client && !window._supabaseTableMissing) {
@@ -1574,7 +1686,6 @@ window.$RefreshSig$ = () => (type) => type;</script>
                         if (found) {
                             matched = (found.data && typeof found.data === 'object') ? { ...found, ...found.data } : found;
                             isCloudSource = true;
-                            saveCarToLocalStorage(matched);
                         }
                     }
                 } catch(e) {
@@ -1592,8 +1703,33 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 });
             }
 
-            // If found -> Display digital logbook!
+            // 3. Security Verification: verify 4-digit PIN code against the registered vehicle
             if (matched) {
+                const rawCarPin = String(
+                    matched.accessPin || matched.access_pin || matched.pinCode || matched.clientPin || 
+                    matched.ownerPhone || matched.formData?.accessPin || ''
+                ).trim();
+                const carPinDigits = rawCarPin.replace(/\D/g, '');
+
+                let pinMatches = false;
+                if (carPinDigits.length >= 4) {
+                    pinMatches = carPinDigits.slice(-4) === enteredPin.slice(-4);
+                } else {
+                    // Backward-compatibility: if legacy vehicle was registered without a PIN on STO, permit access
+                    pinMatches = true;
+                }
+
+                if (!pinMatches) {
+                    matched = null; // Deny access and do not reveal car existence!
+                }
+            }
+
+            // If found and verified -> Display digital logbook and reset any failed attempts!
+            if (matched) {
+                resetClientPinLockout();
+                if (isCloudSource) {
+                    saveCarToLocalStorage(matched);
+                }
                 if (statusEl) statusEl.classList.add('hidden');
                 showLogbookScreen();
                 renderCarData(matched);
@@ -1606,17 +1742,27 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     }
                 }
                 if (input) input.value = '';
+                if (pinCodeInput) pinCodeInput.value = '';
                 return;
             }
 
-            // If not found anywhere -> Show error on entry screen
+            // If not found or PIN code mismatch -> Record failure and enforce lockout protection
+            const failAttempts = recordClientPinFailure();
+            const remainingAttempts = CLIENT_PIN_MAX_ATTEMPTS - failAttempts;
             showEntryScreen();
             if (statusEl) {
-                statusEl.innerText = (currentLang === 'kk')
-                    ? `"${target}" мемлекеттік нөмірлі көлік әлі СТО базасында тіркелмеген.`
-                    : `Автомобиль с госномером "${target}" пока не зарегистрирован на СТО. Проверьте правильность ввода.`;
-                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/50 border border-red-800/40 text-red-300 text-center font-medium";
+                if (remainingAttempts <= 0) {
+                    statusEl.innerHTML = (currentLang === 'kk')
+                        ? `⛔ 5 қате әрекеттен кейін ПИН-кодты енгізу 1 сағатқа бұғатталды. Тікелей кіру үшін телефонды NFC салпыншағына тигізіңіз.`
+                        : `⛔ 5 неверных попыток! Ввод ПИН-кода заблокирован на 1 час. Для прямого входа приложите телефон к NFC-брелоку.`;
+                } else {
+                    statusEl.innerHTML = (currentLang === 'kk')
+                        ? `❌ Автокөлік табылмады немесе ПИН-код қате. Қалған әрекеттер: <b class="text-white">${remainingAttempts}</b>.`
+                        : `❌ Автомобиль не найден или неверно указан ПИН-код доступа. Осталось попыток: <b class="text-white">${remainingAttempts}</b>.`;
+                }
+                statusEl.className = "text-xs py-2 px-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-300 text-center font-medium leading-relaxed";
                 statusEl.classList.remove('hidden');
+            }
             }
         }
 
@@ -2552,7 +2698,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (queryPlate) {
                 const input = document.getElementById('entry-plate-input');
                 if (input) input.value = queryPlate;
-                searchByPlate(queryPlate);
+                showEntryScreen();
+                const pinInput = document.getElementById('entry-pin-code');
+                if (pinInput) {
+                    pinInput.focus();
+                }
                 return;
             }
 
