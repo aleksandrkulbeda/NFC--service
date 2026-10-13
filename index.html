@@ -326,14 +326,21 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Год выпуска</label>
-                        <input type="text" id="car-year" placeholder="Напр. 2021" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                        <input type="text" id="car-year" placeholder="Напр. 2021" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Гос. номер</label>
-                        <input type="text" id="license-plate" placeholder="Напр. 777 MOB 01" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+                        <input type="text" id="license-plate" placeholder="777 MOB 01" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-3 text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all uppercase text-sm font-bold">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">🔑 ПИН-код</label>
+                            <button type="button" onclick="generateRandomCarAccessPin()" class="text-[10px] text-blue-400 hover:text-blue-300 font-medium">🎲 Случ.</button>
+                        </div>
+                        <input type="text" id="car-access-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4 цифры" class="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-3 py-3 text-amber-300 font-mono tracking-widest outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-sm font-bold">
                     </div>
                 </div>
 
@@ -341,9 +348,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-slate-400">
                     <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z"></path></svg>
                     <div class="space-y-1">
-                        <span class="text-slate-200 font-bold block">🛡️ Защита данных и 152-ФЗ / Законодательство о персональных данных</span>
+                        <span class="text-slate-200 font-bold block">🛡️ Защита данных: 100% без сбора персональных данных</span>
                         <p class="text-[11px] leading-relaxed text-slate-400">
-                            Обрабатываются только технические параметры авто (Марка, Модель, Гос. номер, данные о ТО). Личные данные владельцев не передаются третьим лицам и привязаны к физическому ID брелока. VIN-код не запрашивается.
+                            Номера телефонов и личные данные не запрашиваются. Доступ к электронной книжке защищён 4-значным ПИН-кодом (спросите у клиента любые 4 цифры, которые ему легко запомнить).
                         </p>
                     </div>
                 </div>
@@ -1873,15 +1880,15 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 modal.style.display = 'flex';
             }
 
+            updateStoPinLockoutUI();
+
             const pinInput = document.getElementById('input-sto-pin');
-            if (pinInput) {
+            if (pinInput && !getStoPinLockoutState().isLocked) {
                 pinInput.value = '';
                 setTimeout(() => {
                     try { pinInput.focus(); } catch(e) {}
                 }, 150);
             }
-            const pinErr = document.getElementById('sto-pin-error');
-            if (pinErr) pinErr.classList.add('hidden');
         }
 
         function closeStoAuthModal() {
@@ -1988,7 +1995,98 @@ window.$RefreshSig$ = () => (type) => type;</script>
             return 'fb_' + Math.abs(hash);
         }
 
+        // =========================================================================
+        // PIN BRUTE-FORCE LOCKOUT PROTECTION (5 ATTEMPTS -> 1 HOUR LOCKOUT)
+        // =========================================================================
+        const STO_PIN_LOCKOUT_MS = 60 * 60 * 1000; // 1 hour lockout
+        const STO_PIN_MAX_ATTEMPTS = 5;
+        let _stoPinCountdownTimer = null;
+
+        function getStoPinLockoutState() {
+            try {
+                const lockoutUntil = parseInt(localStorage.getItem('sto_pin_lockout_until') || '0', 10);
+                const attempts = parseInt(localStorage.getItem('sto_pin_failed_attempts') || '0', 10);
+                const now = Date.now();
+                if (lockoutUntil && now < lockoutUntil) {
+                    return { isLocked: true, remainingMs: lockoutUntil - now, attempts };
+                }
+                if (lockoutUntil && now >= lockoutUntil) {
+                    localStorage.removeItem('sto_pin_lockout_until');
+                    localStorage.removeItem('sto_pin_failed_attempts');
+                    return { isLocked: false, remainingMs: 0, attempts: 0 };
+                }
+                return { isLocked: false, remainingMs: 0, attempts };
+            } catch(e) {
+                return { isLocked: false, remainingMs: 0, attempts: 0 };
+            }
+        }
+
+        function updateStoPinLockoutUI() {
+            const lockout = getStoPinLockoutState();
+            const pinInput = document.getElementById('input-sto-pin');
+            const loginBtn = document.getElementById('sto-login-btn');
+            const pinErr = document.getElementById('sto-pin-error');
+
+            if (lockout.isLocked) {
+                if (pinInput) {
+                    pinInput.disabled = true;
+                    pinInput.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                    loginBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+                if (pinErr) {
+                    pinErr.classList.remove('hidden');
+                    const totalSec = Math.ceil(lockout.remainingMs / 1000);
+                    const mins = Math.floor(totalSec / 60);
+                    const secs = totalSec % 60;
+                    const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                    pinErr.innerHTML = `
+                        <div class="text-rose-400 font-black text-xs uppercase tracking-wider">⛔ ВВОД PIN ЗАБЛОКИРОВАН НА 1 ЧАС</div>
+                        <div class="text-[11px] text-rose-300 mt-1">Превышено количество неверных попыток (5 из 5).</div>
+                        <div class="text-xs font-mono font-black text-amber-300 mt-1.5 bg-amber-950/70 border border-amber-800/60 py-1 px-2.5 rounded-lg inline-block">
+                            ⏳ Разблокировка через: ${timeStr}
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-1.5">Для срочного доступа обратитесь к администратору сети СТО</div>
+                    `;
+                }
+
+                if (!_stoPinCountdownTimer) {
+                    _stoPinCountdownTimer = setInterval(() => {
+                        const cur = getStoPinLockoutState();
+                        if (!cur.isLocked) {
+                            clearInterval(_stoPinCountdownTimer);
+                            _stoPinCountdownTimer = null;
+                            updateStoPinLockoutUI();
+                        } else {
+                            updateStoPinLockoutUI();
+                        }
+                    }, 1000);
+                }
+            } else {
+                if (_stoPinCountdownTimer) {
+                    clearInterval(_stoPinCountdownTimer);
+                    _stoPinCountdownTimer = null;
+                }
+                if (pinInput) {
+                    pinInput.disabled = false;
+                    pinInput.classList.remove('opacity-40', 'cursor-not-allowed');
+                }
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+                }
+            }
+        }
+
         function saveStoProfile() {
+            const lockout = getStoPinLockoutState();
+            if (lockout.isLocked) {
+                updateStoPinLockoutUI();
+                return;
+            }
+
             const pinIn = document.getElementById('input-sto-pin')?.value.trim();
             const expectedPin = activeStoProfile.pinCode || '1234';
             const pinErr = document.getElementById('sto-pin-error');
@@ -1996,18 +2094,34 @@ window.$RefreshSig$ = () => (type) => type;</script>
             computePinHash(pinIn).then(inputHash => {
                 return computePinHash(expectedPin).then(expectedHash => {
                     if (!pinIn || inputHash !== expectedHash) {
-                        if (pinErr) {
-                            pinErr.classList.remove('hidden');
-                            pinErr.innerText = `❌ Неверный ПИН-код! Попробуйте снова.`;
+                        let attempts = parseInt(localStorage.getItem('sto_pin_failed_attempts') || '0', 10) + 1;
+                        localStorage.setItem('sto_pin_failed_attempts', attempts);
+
+                        if (attempts >= STO_PIN_MAX_ATTEMPTS) {
+                            const lockoutUntil = Date.now() + STO_PIN_LOCKOUT_MS;
+                            localStorage.setItem('sto_pin_lockout_until', lockoutUntil);
+                            updateStoPinLockoutUI();
+                        } else {
+                            if (pinErr) {
+                                pinErr.classList.remove('hidden');
+                                pinErr.innerHTML = `❌ Неверный ПИН-код! Осталось попыток: <b class="text-white">${STO_PIN_MAX_ATTEMPTS - attempts}</b>`;
+                            }
                         }
                         const inputElem = document.getElementById('input-sto-pin');
                         if (inputElem) {
                             inputElem.value = '';
-                            inputElem.focus();
+                            if (attempts < STO_PIN_MAX_ATTEMPTS) inputElem.focus();
                         }
                         return;
                     }
 
+                    // Successful login -> Reset attempts and timer
+                    localStorage.removeItem('sto_pin_failed_attempts');
+                    localStorage.removeItem('sto_pin_lockout_until');
+                    if (_stoPinCountdownTimer) {
+                        clearInterval(_stoPinCountdownTimer);
+                        _stoPinCountdownTimer = null;
+                    }
                     if (pinErr) pinErr.classList.add('hidden');
 
                     try {
@@ -2356,12 +2470,22 @@ window.$RefreshSig$ = () => (type) => type;</script>
             }
         }
 
+        function generateRandomCarAccessPin() {
+            const pin = String(Math.floor(1000 + Math.random() * 9000));
+            const input = document.getElementById('car-access-pin');
+            if (input) {
+                input.value = pin;
+                input.focus();
+            }
+        }
+
         // Core global reactive reference (mapped to the active post)
         let state = {
             fobId: '',
             carBrand: '',
             carModel: '',
             carYear: '',
+            accessPin: '',
             ownerName: '',
             ownerPhone: '',
             licensePlate: ''
@@ -2375,6 +2499,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             post.carBrand = state.carBrand;
             post.carModel = state.carModel;
             post.carYear = state.carYear;
+            post.accessPin = state.accessPin;
             post.ownerName = state.ownerName;
             post.ownerPhone = state.ownerPhone;
             post.licensePlate = state.licensePlate;
@@ -2448,6 +2573,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             state.carBrand = post.carBrand;
             state.carModel = post.carModel;
             state.carYear = post.carYear;
+            state.accessPin = post.accessPin || '';
             state.ownerName = post.ownerName;
             state.ownerPhone = post.ownerPhone;
             state.licensePlate = post.licensePlate;
@@ -2495,8 +2621,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
             if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel || '';
             if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear || '';
             if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate || '';
-            if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName || '';
-            if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone || '';
+            if (document.getElementById('car-access-pin')) document.getElementById('car-access-pin').value = state.accessPin || '';
             
             // Populate Card 1 inputs
             if (document.getElementById('oil_type_dvs')) document.getElementById('oil_type_dvs').value = post.formData.oilTypeDvs || '';
@@ -2608,8 +2733,11 @@ window.$RefreshSig$ = () => (type) => type;</script>
             document.getElementById('display-fob-id').innerText = state.fobId;
             
             // Pre-fill inputs with state
-            document.getElementById('car-brand').value = state.carBrand;
-            document.getElementById('car-model').value = state.carModel;
+            if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand || '';
+            if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel || '';
+            if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear || '';
+            if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate || '';
+            if (document.getElementById('car-access-pin')) document.getElementById('car-access-pin').value = state.accessPin || '';
 
             document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-chip-init').classList.remove('hidden');
@@ -2943,6 +3071,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
                 state.licensePlate = matched.licensePlate || '';
+                state.accessPin = matched.accessPin || (matched.ownerPhone ? String(matched.ownerPhone).replace(/\D/g, '').slice(-4) : '');
                 state.ownerName = matched.ownerName || '';
                 state.ownerPhone = matched.ownerPhone || '';
 
@@ -2986,6 +3115,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 state.carModel = '';
                 state.carYear = '';
                 state.licensePlate = '';
+                state.accessPin = '';
                 state.ownerName = '';
                 state.ownerPhone = '';
 
@@ -3164,6 +3294,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 state.carBrand = matched.carBrand || '';
                 state.carModel = matched.carModel || '';
                 state.carYear = matched.carYear || '';
+                state.accessPin = matched.accessPin || (matched.ownerPhone ? String(matched.ownerPhone).replace(/\D/g, '').slice(-4) : '');
                 state.ownerName = matched.ownerName || '';
                 state.ownerPhone = matched.ownerPhone || '';
                 state.licensePlate = matched.licensePlate || inputPlate;
@@ -3172,9 +3303,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 if (document.getElementById('car-brand')) document.getElementById('car-brand').value = state.carBrand;
                 if (document.getElementById('car-model')) document.getElementById('car-model').value = state.carModel;
                 if (document.getElementById('car-year')) document.getElementById('car-year').value = state.carYear;
-                if (document.getElementById('owner-name')) document.getElementById('owner-name').value = state.ownerName;
-                if (document.getElementById('owner-phone')) document.getElementById('owner-phone').value = state.ownerPhone;
                 if (document.getElementById('license-plate')) document.getElementById('license-plate').value = state.licensePlate;
+                if (document.getElementById('car-access-pin')) document.getElementById('car-access-pin').value = state.accessPin;
                 
                 // Also pre-fill active post data
                 let post = posts[activePostIndex];
@@ -3182,6 +3312,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     post.fobId = state.fobId;
                     post.carBrand = state.carBrand;
                     post.carModel = state.carModel;
+                    post.carYear = state.carYear;
+                    post.accessPin = state.accessPin;
                     post.licensePlate = state.licensePlate;
                     if (post.formData) {
                         if (matched.mileageUnit) post.formData.mileageUnit = matched.mileageUnit;
@@ -3216,7 +3348,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     resultBox.innerHTML = `
                         <div class="text-emerald-400 font-bold mb-1">✓ Автомобиль найден в базе!</div>
                         <div class="text-slate-300 font-medium">${state.carBrand} ${state.carModel} (${state.carYear || 'Год не указ.'})</div>
-                        <div class="text-slate-400 text-[11px]">Владелец: ${state.ownerName || 'Не указан'} | Тел: ${state.ownerPhone || '-'}</div>
+                        <div class="text-slate-400 text-[11px]">ПИН-код доступа: <b class="text-amber-300 font-mono tracking-widest">${state.accessPin || 'Не задан'}</b></div>
                         <div class="text-slate-400 text-[11px] font-mono text-cyan-400">Брелок: ${state.fobId}</div>
                         <div class="mt-2 flex space-x-2">
                             <button type="button" onclick="goToScreen2()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-xs">
@@ -3244,16 +3376,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
             const brandVal = document.getElementById('car-brand')?.value || '';
             const modelVal = document.getElementById('car-model')?.value || '';
             const yearVal = document.getElementById('car-year')?.value || '';
-            const ownerNameVal = document.getElementById('owner-name')?.value || '';
-            const ownerPhoneVal = document.getElementById('owner-phone')?.value || '';
             const licensePlateVal = document.getElementById('license-plate')?.value || '';
+            const accessPinVal = document.getElementById('car-access-pin')?.value.replace(/\D/g, '').slice(0, 4) || '';
             
             state.carBrand = brandVal;
             state.carModel = modelVal;
             state.carYear = yearVal;
-            state.ownerName = ownerNameVal;
-            state.ownerPhone = ownerPhoneVal;
             state.licensePlate = licensePlateVal;
+            state.accessPin = accessPinVal;
             
             // Save vehicle details in local storage database
             const vehicleRecord = {
@@ -3266,9 +3396,8 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 carBrand: state.carBrand,
                 carModel: state.carModel,
                 carYear: state.carYear,
-                ownerName: state.ownerName,
-                ownerPhone: state.ownerPhone,
                 licensePlate: state.licensePlate,
+                accessPin: state.accessPin,
                 timestamp: new Date().toLocaleDateString('ru-RU')
             };
             
