@@ -2470,6 +2470,7 @@ window.$RefreshSig$ = () => (type) => type;</script>
 
             const normStation = normalizeStoKey(stationName);
             const normId = normalizeStoKey(stationId);
+            const isAksukent = normStation.includes('aksukent') || normId.includes('aksukent');
 
             // 1. Try fetching from Supabase 'banners' table strictly for this client's station
             const client = getSupabaseClient();
@@ -2494,20 +2495,20 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     if (!error && Array.isArray(list)) {
                         supabaseResponded = true;
 
-                        // Find ALL announcement rows matching this car's station
+                        // Find ALL announcement rows matching this car's station (strict station isolation)
                         const stationBanners = list.filter(b => {
-                            if (!b.title && !b.description) return false;
+                            if (!b || (!b.title && !b.description)) return false;
                             const t = String(b.title || '');
-                            const normTitle = normalizeStoKey(t);
-                            return (
-                                t.includes(`[${stationName}]`) ||
-                                (normStation && normTitle.includes(normStation)) ||
-                                (normStation && normStation.includes(normTitle)) ||
-                                (normId && normTitle.includes(normId)) ||
-                                (normId && normId.includes(normTitle)) ||
-                                (stationName && t.includes(stationName)) ||
-                                (normStation.includes('aksukent') && normTitle.includes('aksukent'))
-                            );
+                            const normT = normalizeStoKey(t);
+                            if (stationName && t.includes(`[${stationName}]`)) return true;
+                            if (stationId && t.includes(`[${stationId}]`)) return true;
+                            if (b.station_id && stationId && String(b.station_id).toLowerCase() === stationId.toLowerCase()) return true;
+                            if (b.stationId && stationId && String(b.stationId).toLowerCase() === stationId.toLowerCase()) return true;
+                            if (b.stationName && stationName && normalizeStoKey(b.stationName) === normStation) return true;
+                            if (normStation && normStation.length >= 4 && normT.includes(normStation)) return true;
+                            if (normId && normId.length >= 3 && normT.includes(normId)) return true;
+                            if (isAksukent && normT.includes('aksukent')) return true;
+                            return false;
                         });
 
                         if (stationBanners.length > 0) {
@@ -2552,12 +2553,12 @@ window.$RefreshSig$ = () => (type) => type;</script>
                 }
             }
 
-            // 2. Fallback to localStorage: check if local cache has a newer announcement or if Supabase had no rows
+            // 2. Fallback to localStorage: check if local cache has an announcement for this station
             const localKeysToCheck = [
                 'sto_announcement_' + encodeURIComponent(stationName),
                 'sto_announcement_' + encodeURIComponent(normStation),
                 stationId ? ('sto_announcement_' + encodeURIComponent(stationId)) : null,
-                'sto_announcement_aksukent'
+                isAksukent ? 'sto_announcement_aksukent' : null
             ].filter(Boolean);
 
             try {
@@ -2565,6 +2566,9 @@ window.$RefreshSig$ = () => (type) => type;</script>
                     const raw = localStorage.getItem(lk);
                     if (raw) {
                         const cached = JSON.parse(raw);
+                        if (!isAksukent && cached && cached.description && cached.description.includes('ул. Абая, 150')) {
+                            continue;
+                        }
                         const isCachedActive = (cached.is_active === true || cached.is_active === 'true' || cached.is_active === 1);
                         const cachedText = (cached.description || cached.text || '').trim();
                         if (isCachedActive && cachedText) {
